@@ -79,7 +79,7 @@ Quest For Duskara/
 ### Running the Game
 
 ```bash
-git clone https://github.com/your-username/quest-for-duskara.git
+git clone https://github.com/Dbhardwaj99/Quest-For-Duskara
 ```
 
 Open `Quest For Duskara.xcodeproj` in Xcode, select a simulator or device, and hit Run. That's it.
