@@ -11,11 +11,14 @@ final class GameViewModel {
     var bonusAllocation: [ResourceKind: Int] = [:]
     var selectedCoordinate: GridCoordinate?
     var selectedBuildingID: UUID?
+    var placementBuildingKind: BuildingKind?
+    var buildingPresentation: BuildingPresentation?
     var isBuildMenuPresented = false
     var isWorldMapPresented = false
-    var message: GameMessage?
+    var feedback: GameMessage?
 
     private var clockTask: Task<Void, Never>?
+    private var feedbackTask: Task<Void, Never>?
     private let resourceSystem = ResourceSystem()
     private let buildingSystem = BuildingSystem()
     private let simulationSystem = SimulationSystem()
@@ -24,6 +27,8 @@ final class GameViewModel {
     private let transferSystem = TransferSystem()
     private let townSystem = TownSystem()
     private let timeSystem = TimeSystem()
+    private let placementValidationSystem = PlacementValidationSystem()
+    private let feedbackOverlaySystem = FeedbackOverlaySystem()
 
     init() {
         let balance = GameBalance.duskDefault
@@ -35,7 +40,6 @@ final class GameViewModel {
         self.balance = balance
         self.state = WorldMapSystem().makeInitialState(balance: balance)
     }
-
 
     var startingResourceKinds: [ResourceKind] {
         [.gold, .wood, .coal, .tech]
@@ -52,6 +56,11 @@ final class GameViewModel {
     var selectedBuilding: BuildingInstance? {
         guard let selectedBuildingID else { return nil }
         return activeTown.buildings.first { $0.id == selectedBuildingID }
+    }
+
+    var presentedBuilding: BuildingInstance? {
+        guard let buildingPresentation else { return nil }
+        return activeTown.buildings.first { $0.id == buildingPresentation.id }
     }
 
     var activeTownIncome: [ResourceKind: Int] {
@@ -78,6 +87,10 @@ final class GameViewModel {
 
     var populationCapacity: Int {
         townSystem.populationCapacity(for: activeTown, balance: balance)
+    }
+
+    var isPlacingBuilding: Bool {
+        placementBuildingKind != nil
     }
 
     func startingTotal(for kind: ResourceKind) -> Int {
@@ -107,26 +120,46 @@ final class GameViewModel {
 
     func selectCell(_ coordinate: GridCoordinate) {
         selectedCoordinate = coordinate
+
+        if let placementBuildingKind {
+            place(placementBuildingKind, at: coordinate)
+            return
+        }
+
         if let building = activeTown.buildings.first(where: { $0.coordinate == coordinate }) {
             selectedBuildingID = building.id
+            buildingPresentation = .details(building.id)
             isBuildMenuPresented = false
         } else {
             selectedBuildingID = nil
-            isBuildMenuPresented = true
         }
     }
 
+    func beginPlacement(for kind: BuildingKind) {
+        placementBuildingKind = kind
+        selectedBuildingID = nil
+        selectedCoordinate = nil
+        isBuildMenuPresented = false
+        show("Choose a highlighted plot for \(kind.title).")
+    }
+
+    func cancelPlacement() {
+        placementBuildingKind = nil
+        selectedCoordinate = nil
+        show("Placement cancelled.")
+    }
+
+    func tilePlacementState(for coordinate: GridCoordinate) -> TilePlacementState {
+        guard let kind = placementBuildingKind else { return .normal }
+        return placementValidationSystem.canPlace(kind, on: coordinate, in: activeTown, balance: balance) == nil ? .valid : .invalid
+    }
+
     func build(_ kind: BuildingKind) {
-        guard let coordinate = selectedCoordinate else { return }
-        state.updateTown(id: state.activeTownID) { town in
-            if let failure = buildingSystem.build(kind, at: coordinate, in: &town, balance: balance) {
-                show(failure.rawValue)
-            } else {
-                selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
-                isBuildMenuPresented = false
-                show("Built \(kind.title).")
-            }
+        guard let coordinate = selectedCoordinate else {
+            beginPlacement(for: kind)
+            return
         }
+        place(kind, at: coordinate)
     }
 
     func upgradeSelectedBuilding() {
@@ -160,6 +193,7 @@ final class GameViewModel {
         state.activeTownID = townID
         selectedCoordinate = nil
         selectedBuildingID = nil
+        placementBuildingKind = nil
         isWorldMapPresented = false
     }
 
@@ -211,6 +245,18 @@ final class GameViewModel {
         return building.level < definition.maxLevel && activeTown.resources.canAfford(definition.cost(for: building.level + 1))
     }
 
+    private func place(_ kind: BuildingKind, at coordinate: GridCoordinate) {
+        state.updateTown(id: state.activeTownID) { town in
+            if let failure = buildingSystem.build(kind, at: coordinate, in: &town, balance: balance) {
+                show(feedbackOverlaySystem.text(for: failure, building: kind))
+            } else {
+                selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
+                placementBuildingKind = nil
+                show("Built \(kind.title).")
+            }
+        }
+    }
+
     private func startClock() {
         clockTask?.cancel()
         clockTask = Task { [weak self] in
@@ -230,6 +276,15 @@ final class GameViewModel {
     }
 
     private func show(_ text: String) {
-        message = GameMessage(text: text)
+        let message = GameMessage(text: text)
+        feedback = message
+        feedbackTask?.cancel()
+        feedbackTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2.2))
+            guard Task.isCancelled == false else { return }
+            if self?.feedback?.id == message.id {
+                self?.feedback = nil
+            }
+        }
     }
 }

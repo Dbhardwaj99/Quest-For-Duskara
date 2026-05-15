@@ -7,20 +7,14 @@ struct BuildMenuView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    if let coordinate = viewModel.selectedCoordinate {
-                        Text("Plot \(coordinate.x + 1), \(coordinate.y + 1)")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(DuskaraTheme.ink)
-                    } else {
-                        Text("Choose a plot on the town grid, then build.")
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(DuskaraTheme.ink)
-                    }
+                    Text("Choose a building, then place it on a highlighted town plot.")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(DuskaraTheme.ink)
 
                     ForEach(BuildingKind.allCases) { kind in
                         if let definition = viewModel.definition(for: kind) {
                             BuildingMenuCard(kind: kind, definition: definition) {
-                                viewModel.build(kind)
+                                viewModel.beginPlacement(for: kind)
                             }
                         }
                     }

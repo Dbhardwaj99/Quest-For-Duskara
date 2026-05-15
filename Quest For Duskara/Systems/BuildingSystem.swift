@@ -25,18 +25,7 @@ struct BuildingSystem {
     }
 
     func canBuild(_ kind: BuildingKind, at coordinate: GridCoordinate, in town: Town, balance: GameBalance) -> BuildFailure? {
-        guard balance.gridSize.contains(coordinate) else { return .outOfBounds }
-        guard town.buildings.contains(where: { $0.coordinate == coordinate }) == false else { return .occupied }
-        guard let definition = balance.buildingDefinitions[kind] else { return .missingDefinition }
-        guard town.resources.canAfford(definition.cost(for: 1)) else { return .insufficientResources }
-
-        let freePeople = TownSystem().freePeople(in: town, balance: balance)
-        guard freePeople >= definition.peopleRequired else { return .insufficientPeople }
-
-        for rule in definition.placementRules where rule != .none {
-            guard satisfies(rule, at: coordinate, in: town, gridSize: balance.gridSize) else { return .placementRule }
-        }
-        return nil
+        PlacementValidationSystem().canPlace(kind, on: coordinate, in: town, balance: balance)
     }
 
     func build(_ kind: BuildingKind, at coordinate: GridCoordinate, in town: inout Town, balance: GameBalance) -> BuildFailure? {
@@ -67,22 +56,4 @@ struct BuildingSystem {
         return nil
     }
 
-    private func satisfies(_ rule: PlacementRule, at coordinate: GridCoordinate, in town: Town, gridSize: GridSize) -> Bool {
-        switch rule {
-        case .none:
-            return true
-        case .adjacentToBiome(let biome):
-            let touchingSides = touchingBiomeSides(for: coordinate, gridSize: gridSize)
-            return touchingSides.contains { town.biomeLayout.biome(on: $0) == biome }
-        }
-    }
-
-    private func touchingBiomeSides(for coordinate: GridCoordinate, gridSize: GridSize) -> [BiomeSide] {
-        var sides: [BiomeSide] = []
-        if coordinate.y == 0 { sides.append(.top) }
-        if coordinate.x == gridSize.columns - 1 { sides.append(.right) }
-        if coordinate.y == gridSize.rows - 1 { sides.append(.bottom) }
-        if coordinate.x == 0 { sides.append(.left) }
-        return sides
-    }
 }
