@@ -9,9 +9,11 @@ This is not a prototype. It's a foundation, designed to grow into something genu
 ---
 
 ## 🌍 Vision
-
+<p align="center">
+  <img src="docs/screen.png" width="320" alt="Quest for Duskara Gameplay Screenshot" />
+</p>
 Most mobile strategy games sacrifice depth for retention loops. Quest for Duskara aims to do the opposite: bring back the joy of *actual strategy*, where resource decisions matter, terrain shapes your options, towns have distinct identities, and wars have real consequences.
-
+ 
 The architecture is built to support this. Every system (buildings, soldiers, biomes, world maps) is modular and configurable. When the game grows, it grows cleanly.
 
 ---
