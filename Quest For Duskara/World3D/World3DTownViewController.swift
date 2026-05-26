@@ -25,6 +25,7 @@ final class World3DTownViewController: UIViewController {
     }
 
     func syncFromGameState() {
+        guard cameraController.isInteracting == false else { return }
         renderer?.render(adapter: adapter)
     }
 

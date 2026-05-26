@@ -9,7 +9,7 @@ struct GameBalance {
     var soldierDefinitions: [SoldierKind: SoldierDefinition]
 
     static let duskDefault = GameBalance(
-        gridSize: GridSize(columns: 8, rows: 8),
+        gridSize: GridSize(columns: 5, rows: 5),
         dayDuration: 60,
         baseStartingResources: [
             .gold: 100,

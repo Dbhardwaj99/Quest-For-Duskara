@@ -17,26 +17,26 @@ struct GameView3D: View {
 
     private var townBody: some View {
         ZStack(alignment: .top) {
-            DuskaraTheme.background.ignoresSafeArea()
+            DuskaraTheme.worldBackdrop.ignoresSafeArea()
             mainTownLayout
                 .opacity(isTownViewExpanded ? 0 : 1)
                 .allowsHitTesting(isTownViewExpanded == false)
 
             if isTownViewExpanded {
                 expandedTownViewLayout
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .transition(.opacity.combined(with: .scale(scale: 0.985)))
                     .zIndex(5)
             }
 
             if let feedback = viewModel.feedback {
                 Game3DFeedbackToastView(message: feedback.text)
-                    .padding(.top, 8)
+                    .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(10)
             }
         }
         .animation(.snappy, value: viewModel.feedback?.id)
-        .animation(.snappy(duration: 0.32), value: isTownViewExpanded)
+        .animation(.smooth(duration: 0.34), value: isTownViewExpanded)
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
             BuildMenuView(viewModel: viewModel)
                 .presentationDetents([.medium, .large])
@@ -51,36 +51,45 @@ struct GameView3D: View {
     }
 
     private var mainTownLayout: some View {
-        VStack(spacing: 10) {
-            topHUD
+        ZStack(alignment: .top) {
             townView3D
-                .frame(maxWidth: .infinity)
-                .frame(height: 500)
-                .padding(.horizontal, 8)
+                .ignoresSafeArea()
 
-            InspectorPanelView(viewModel: viewModel)
-                .frame(minHeight: 84)
+            worldVignette
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
-            bottomBar
+            VStack(spacing: 0) {
+                topHUD
+                    .padding(.top, 8)
+                Spacer(minLength: 12)
+                InspectorPanelView(viewModel: viewModel)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 8)
+                bottomBar
+                    .padding(.bottom, 8)
+            }
         }
     }
 
     private var expandedTownViewLayout: some View {
-        ZStack(alignment: .bottom) {
-            DuskaraTheme.background.ignoresSafeArea()
-            VStack(spacing: 10) {
+        ZStack(alignment: .top) {
+            townView3D
+                .ignoresSafeArea()
+
+            worldVignette
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+            VStack(spacing: 0) {
                 topHUD
-                townView3D
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 78)
+                    .padding(.top, 8)
+                Spacer()
+                bottomBar
+                    .padding(.bottom, 10)
             }
-            bottomBar
-                .padding(.horizontal, 8)
-                .padding(.bottom, 10)
-                .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
-                .padding(.horizontal, 10)
         }
+        .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
     }
 
     private var topHUD: some View {
@@ -97,21 +106,38 @@ struct GameView3D: View {
 
     private var townView3D: some View {
         World3DTownView(sourceViewModel: viewModel)
-            .background(Color.black.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.28), lineWidth: 1))
+            .background(DuskaraTheme.worldBackdrop)
             .overlay(alignment: .topTrailing) {
                 Button(action: toggleTownViewExpansion) {
                     Image(systemName: isTownViewExpanded ? "xmark" : "arrow.up.left.and.arrow.down.right")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.94))
                         .frame(width: 38, height: 38)
-                        .background(.black.opacity(0.62), in: Circle())
+                        .background(.ultraThinMaterial, in: Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.28), radius: 12, y: 6)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isTownViewExpanded ? "Collapse 3D town view" : "Expand 3D town view")
-                .padding(10)
+                .padding(.top, 78)
+                .padding(.trailing, 14)
             }
+    }
+
+    private var worldVignette: some View {
+        ZStack {
+            LinearGradient(
+                colors: [.black.opacity(0.30), .clear, .black.opacity(0.24)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            RadialGradient(
+                colors: [.clear, .black.opacity(0.24)],
+                center: .center,
+                startRadius: 120,
+                endRadius: 620
+            )
+        }
     }
 
     private var bottomBar: some View {
@@ -123,7 +149,7 @@ struct GameView3D: View {
     }
 
     private func toggleTownViewExpansion() {
-        withAnimation(.snappy(duration: 0.32)) {
+        withAnimation(.smooth(duration: 0.34)) {
             isTownViewExpanded.toggle()
         }
     }
@@ -139,8 +165,9 @@ private struct Game3DFeedbackToastView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(.black.opacity(0.76), in: Capsule())
-            .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
+            .shadow(color: .black.opacity(0.26), radius: 14, y: 7)
             .padding(.horizontal, 18)
     }
 }

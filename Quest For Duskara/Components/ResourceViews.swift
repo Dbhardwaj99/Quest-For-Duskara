@@ -6,24 +6,48 @@ struct ResourcePill: View {
     var income: Int? = nil
 
     var body: some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(kind.color)
-                .frame(width: 18, height: 18)
-                .overlay(Text(kind.symbol).font(.caption2.bold()).foregroundStyle(.white))
+        HStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(kind.color.gradient)
+                Circle()
+                    .stroke(.white.opacity(0.36), lineWidth: 1)
+                Text(kind.symbol)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 20, height: 20)
+            .shadow(color: kind.color.opacity(0.24), radius: 5, y: 2)
+
             Text("\(amount)")
-                .font(.caption.bold())
+                .font(.caption.weight(.heavy))
                 .foregroundStyle(DuskaraTheme.ink)
+                .contentTransition(.numericText())
+
             if let income, income != 0 {
                 Text(income > 0 ? "+\(income)" : "\(income)")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(income > 0 ? .green : .red)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(income > 0 ? Color(red: 0.25, green: 0.48, blue: 0.20) : Color(red: 0.58, green: 0.22, blue: 0.18))
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(.white.opacity(0.42), in: Capsule())
+                    .contentTransition(.numericText())
             }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(.white.opacity(0.78), in: Capsule())
-        .animation(.snappy, value: amount)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.96, green: 0.89, blue: 0.72).opacity(0.92), Color(red: 0.74, green: 0.66, blue: 0.48).opacity(0.78)],
+                startPoint: .top,
+                endPoint: .bottom
+            ),
+            in: Capsule()
+        )
+        .overlay(Capsule().stroke(.white.opacity(0.30), lineWidth: 1))
+        .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
+        .animation(.smooth(duration: 0.22), value: amount)
+        .animation(.smooth(duration: 0.22), value: income)
     }
 }
 

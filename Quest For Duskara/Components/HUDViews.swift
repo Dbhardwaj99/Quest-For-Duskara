@@ -10,35 +10,72 @@ struct TopHUDView: View {
     let capacity: Int
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 3) {
+        VStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(town.name)
                         .font(.headline.weight(.heavy))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.white.opacity(0.96))
                     HStack(spacing: 10) {
-                        Label("Day \(day)", systemImage: "sun.max.fill")
-                        Label("Power \(armyStrength)", systemImage: "shield.fill")
-                        Label("\(freePeople)/\(capacity)", systemImage: "person.2.fill")
+                        HUDMetric(systemImage: "sun.max.fill", text: "Day \(day)")
+                        HUDMetric(systemImage: "shield.fill", text: "\(armyStrength)")
+                        HUDMetric(systemImage: "person.2.fill", text: "\(freePeople)/\(capacity)")
                     }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.86))
                 }
-                Spacer()
+                Spacer(minLength: 10)
+                dayDial
             }
+
             ProgressView(value: progress)
-                .tint(.yellow)
+                .tint(DuskaraTheme.warmGold)
+                .scaleEffect(x: 1, y: 0.72)
+
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: 7) {
                     ForEach(ResourceKind.allCases) { kind in
                         ResourcePill(kind: kind, amount: town.resources[kind], income: income[kind])
                     }
                 }
+                .padding(.vertical, 1)
             }
         }
-        .padding(12)
-        .background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14)))
+        .overlay(
+            UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14))
+                .stroke(DuskaraTheme.glassStroke, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.28), radius: 18, x: 0, y: 10)
         .padding(.horizontal, 12)
+    }
+
+    private var dayDial: some View {
+        ZStack {
+            Circle()
+                .stroke(.white.opacity(0.16), lineWidth: 4)
+            Circle()
+                .trim(from: 0, to: min(1, max(0, progress)))
+                .stroke(DuskaraTheme.warmGold, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Image(systemName: "sun.max.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(DuskaraTheme.warmGold)
+        }
+        .frame(width: 34, height: 34)
+        .animation(.smooth(duration: 0.28), value: progress)
+    }
+}
+
+private struct HUDMetric: View {
+    let systemImage: String
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white.opacity(0.82))
+            .labelStyle(.titleAndIcon)
     }
 }
 
@@ -48,14 +85,14 @@ struct BottomBarView: View {
     let onNextDay: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Button(action: onBuild) {
                 Label("Build", systemImage: "hammer.fill")
             }
             .buttonStyle(DuskaraButtonStyle())
 
             Button(action: onNextDay) {
-                Label("Next Day", systemImage: "forward.end.fill")
+                Label("Next", systemImage: "forward.end.fill")
             }
             .buttonStyle(DuskaraButtonStyle())
 
@@ -64,8 +101,12 @@ struct BottomBarView: View {
             }
             .buttonStyle(DuskaraButtonStyle(prominent: true))
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(DuskaraTheme.glassStroke, lineWidth: 1))
+        .shadow(color: .black.opacity(0.28), radius: 18, y: 10)
+        .padding(.horizontal, 14)
     }
 }
 
@@ -78,11 +119,31 @@ struct DuskaraButtonStyle: ButtonStyle {
             .foregroundStyle(prominent ? .white : DuskaraTheme.ink)
             .lineLimit(1)
             .minimumScaleFactor(0.78)
-            .padding(.horizontal, 12)
+            .labelStyle(.titleAndIcon)
+            .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .background(prominent ? DuskaraTheme.accent : DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: 8))
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .background(buttonFill, in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(prominent ? 0.22 : 0.34), lineWidth: 1))
+            .shadow(color: .black.opacity(configuration.isPressed ? 0.10 : 0.18), radius: configuration.isPressed ? 4 : 9, y: configuration.isPressed ? 2 : 5)
+            .opacity(configuration.isPressed ? 0.86 : 1)
+            .scaleEffect(configuration.isPressed ? 0.965 : 1)
+            .animation(.smooth(duration: 0.16), value: configuration.isPressed)
+    }
+
+    private var buttonFill: AnyShapeStyle {
+        if prominent {
+            AnyShapeStyle(LinearGradient(
+                colors: [DuskaraTheme.accent, Color(red: 0.55, green: 0.30, blue: 0.18)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ))
+        } else {
+            AnyShapeStyle(LinearGradient(
+                colors: [DuskaraTheme.panel.opacity(0.96), Color(red: 0.76, green: 0.67, blue: 0.50).opacity(0.94)],
+                startPoint: .top,
+                endPoint: .bottom
+            ))
+        }
     }
 }
