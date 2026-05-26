@@ -6,7 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		003AC6E32FBB30B9007CEC60 /* agents.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6DF2FBB30B9007CEC60 /* agents.md */; };
+		003AC6E42FBB30B9007CEC60 /* design.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E02FBB30B9007CEC60 /* design.md */; };
+		003AC6E52FBB30B9007CEC60 /* screen.png in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E12FBB30B9007CEC60 /* screen.png */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		003AC6DF2FBB30B9007CEC60 /* agents.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = agents.md; sourceTree = "<group>"; };
+		003AC6E02FBB30B9007CEC60 /* design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = design.md; sourceTree = "<group>"; };
+		003AC6E12FBB30B9007CEC60 /* screen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = screen.png; sourceTree = "<group>"; };
 		005C61792FB7949100C85FA6 /* Quest For Duskara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Quest For Duskara.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -29,9 +38,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		003AC6E22FBB30B9007CEC60 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				003AC6DF2FBB30B9007CEC60 /* agents.md */,
+				003AC6E02FBB30B9007CEC60 /* design.md */,
+				003AC6E12FBB30B9007CEC60 /* screen.png */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 		005C61702FB7949100C85FA6 = {
 			isa = PBXGroup;
 			children = (
+				003AC6E22FBB30B9007CEC60 /* docs */,
 				005C617B2FB7949100C85FA6 /* Quest For Duskara */,
 				005C617A2FB7949100C85FA6 /* Products */,
 			);
@@ -109,6 +129,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				003AC6E32FBB30B9007CEC60 /* agents.md in Resources */,
+				003AC6E42FBB30B9007CEC60 /* design.md in Resources */,
+				003AC6E52FBB30B9007CEC60 /* screen.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

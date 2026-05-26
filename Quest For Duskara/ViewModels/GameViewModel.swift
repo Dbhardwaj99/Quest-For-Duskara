@@ -29,6 +29,7 @@ final class GameViewModel {
     private let timeSystem = TimeSystem()
     private let placementValidationSystem = PlacementValidationSystem()
     private let feedbackOverlaySystem = FeedbackOverlaySystem()
+    private let saveStore = GameSaveStore()
 
     init() {
         let balance = GameBalance.duskDefault
@@ -39,6 +40,14 @@ final class GameViewModel {
     init(balance: GameBalance) {
         self.balance = balance
         self.state = WorldMapSystem().makeInitialState(balance: balance)
+    }
+
+    init(savedState: GameState) {
+        let balance = GameBalance.duskDefault
+        self.balance = balance
+        self.state = savedState
+        self.phase = .town
+        startClock()
     }
 
     var startingResourceKinds: [ResourceKind] {
@@ -93,6 +102,23 @@ final class GameViewModel {
         placementBuildingKind != nil
     }
 
+    var currentDayLabel: String {
+        saveStore.dayLabel(for: state.day)
+    }
+
+    func saveCurrentGame() {
+        do {
+            try saveStore.save(state: state)
+        } catch {
+            show("Could not save game.")
+        }
+    }
+
+    func stopClock() {
+        clockTask?.cancel()
+        feedbackTask?.cancel()
+    }
+
     func startingTotal(for kind: ResourceKind) -> Int {
         balance.baseStartingResources[kind, default: 0] + bonusAllocation[kind, default: 0]
     }
@@ -116,6 +142,7 @@ final class GameViewModel {
         }
         phase = .town
         startClock()
+        saveCurrentGame()
     }
 
     func selectCell(_ coordinate: GridCoordinate) {
@@ -169,6 +196,7 @@ final class GameViewModel {
                 show(failure.rawValue)
             } else {
                 show("Building upgraded.")
+                saveCurrentGame()
             }
         }
     }
@@ -179,12 +207,14 @@ final class GameViewModel {
                 show(failure.rawValue)
             } else {
                 show("Trained 1 \(soldier.title).")
+                saveCurrentGame()
             }
         }
     }
 
     func advanceDayManually() {
         simulationSystem.advanceDay(state: &state, balance: balance)
+        saveCurrentGame()
         show("Day \(state.day) begins.")
     }
 
@@ -195,12 +225,14 @@ final class GameViewModel {
         selectedBuildingID = nil
         placementBuildingKind = nil
         isWorldMapPresented = false
+        saveCurrentGame()
     }
 
     func attackTown(_ targetID: UUID) {
         let won = worldMapSystem.attack(targetID: targetID, from: state.activeTownID, state: &state, balance: balance)
         if won {
             show("Town conquered.")
+            saveCurrentGame()
         } else {
             show("Only adjacent weaker towns can be conquered.")
         }
@@ -220,6 +252,7 @@ final class GameViewModel {
             show(failure.rawValue)
         } else {
             show("Sent \(amount) \(kind.title).")
+            saveCurrentGame()
         }
     }
 
@@ -253,6 +286,7 @@ final class GameViewModel {
                 selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
                 placementBuildingKind = nil
                 show("Built \(kind.title).")
+                saveCurrentGame()
             }
         }
     }
@@ -272,6 +306,7 @@ final class GameViewModel {
         state.elapsedSecondsInDay += 1
         if timeSystem.shouldAdvanceDay(elapsedSeconds: state.elapsedSecondsInDay, balance: balance) {
             simulationSystem.advanceDay(state: &state, balance: balance)
+            saveCurrentGame()
         }
     }
 

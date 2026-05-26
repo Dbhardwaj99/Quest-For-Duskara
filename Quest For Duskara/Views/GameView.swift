@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GameView: View {
     @Bindable var viewModel: GameViewModel
+    @State private var isTownGridExpanded = false
 
     var body: some View {
         Group {
@@ -17,37 +18,14 @@ struct GameView: View {
     private var townBody: some View {
         ZStack(alignment: .top) {
             DuskaraTheme.background.ignoresSafeArea()
-            VStack(spacing: 10) {
-                TopHUDView(
-                    town: viewModel.activeTown,
-                    day: viewModel.state.day,
-                    progress: viewModel.dayProgress,
-                    income: viewModel.activeTownIncome,
-                    armyStrength: viewModel.activeArmyStrength,
-                    freePeople: viewModel.freePeople,
-                    capacity: viewModel.populationCapacity
-                )
-                TownGridView(
-                    town: viewModel.activeTown,
-                    gridSize: viewModel.balance.gridSize,
-                    selectedCoordinate: viewModel.selectedCoordinate,
-                    selectedBuildingID: viewModel.selectedBuildingID,
-                    placementBuildingKind: viewModel.placementBuildingKind,
-                    tilePlacementState: viewModel.tilePlacementState,
-                    onSelect: viewModel.selectCell
-                )
-                .frame(maxWidth: .infinity)
-                .frame(height: 500)
-                .padding(.horizontal, 8)
+            mainTownLayout
+                .opacity(isTownGridExpanded ? 0 : 1)
+                .allowsHitTesting(isTownGridExpanded == false)
 
-                InspectorPanelView(viewModel: viewModel)
-                    .frame(minHeight: 84)
-
-                BottomBarView(
-                    onBuild: { viewModel.isBuildMenuPresented = true },
-                    onWorld: { viewModel.isWorldMapPresented = true },
-                    onNextDay: viewModel.advanceDayManually
-                )
+            if isTownGridExpanded {
+                expandedTownGridLayout
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .zIndex(5)
             }
 
             if let feedback = viewModel.feedback {
@@ -58,6 +36,7 @@ struct GameView: View {
             }
         }
         .animation(.snappy, value: viewModel.feedback?.id)
+        .animation(.snappy(duration: 0.32), value: isTownGridExpanded)
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
             BuildMenuView(viewModel: viewModel)
                 .presentationDetents([.medium, .large])
@@ -68,6 +47,89 @@ struct GameView: View {
         }
         .fullScreenCover(isPresented: $viewModel.isWorldMapPresented) {
             WorldMapView(viewModel: viewModel)
+        }
+    }
+
+    private var mainTownLayout: some View {
+        VStack(spacing: 10) {
+            topHUD
+            townGrid
+                .frame(maxWidth: .infinity)
+                .frame(height: 500)
+                .padding(.horizontal, 8)
+
+            InspectorPanelView(viewModel: viewModel)
+                .frame(minHeight: 84)
+
+            bottomBar
+        }
+    }
+
+    private var expandedTownGridLayout: some View {
+        ZStack(alignment: .bottom) {
+            DuskaraTheme.background.ignoresSafeArea()
+            VStack(spacing: 10) {
+                topHUD
+                townGrid
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 78)
+            }
+            bottomBar
+                .padding(.horizontal, 8)
+                .padding(.bottom, 10)
+                .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 10)
+        }
+    }
+
+    private var topHUD: some View {
+        TopHUDView(
+            town: viewModel.activeTown,
+            day: viewModel.state.day,
+            progress: viewModel.dayProgress,
+            income: viewModel.activeTownIncome,
+            armyStrength: viewModel.activeArmyStrength,
+            freePeople: viewModel.freePeople,
+            capacity: viewModel.populationCapacity
+        )
+    }
+
+    private var townGrid: some View {
+        TownGridView(
+            town: viewModel.activeTown,
+            gridSize: viewModel.balance.gridSize,
+            selectedCoordinate: viewModel.selectedCoordinate,
+            selectedBuildingID: viewModel.selectedBuildingID,
+            placementBuildingKind: viewModel.placementBuildingKind,
+            tilePlacementState: viewModel.tilePlacementState,
+            onSelect: viewModel.selectCell
+        )
+        .overlay(alignment: .topTrailing) {
+            Button(action: toggleTownGridExpansion) {
+                Image(systemName: isTownGridExpanded ? "xmark" : "arrow.up.left.and.arrow.down.right")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(.black.opacity(0.62), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isTownGridExpanded ? "Collapse town grid" : "Expand town grid")
+            .padding(10)
+        }
+    }
+
+    private var bottomBar: some View {
+        BottomBarView(
+            onBuild: { viewModel.isBuildMenuPresented = true },
+            onWorld: { viewModel.isWorldMapPresented = true },
+            onNextDay: viewModel.advanceDayManually
+        )
+    }
+
+    private func toggleTownGridExpansion() {
+        withAnimation(.snappy(duration: 0.32)) {
+            isTownGridExpanded.toggle()
         }
     }
 }

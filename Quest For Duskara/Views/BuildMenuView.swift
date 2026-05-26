@@ -6,20 +6,30 @@ struct BuildMenuView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Choose a building, then place it on a highlighted town plot.")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(DuskaraTheme.ink)
+                LazyVStack(alignment: .leading, spacing: 14, pinnedViews: [.sectionHeaders]) {
+                    Section {
+                        Text("Choose a building, then place it on a highlighted town plot.")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(DuskaraTheme.ink)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 14)
 
-                    ForEach(BuildingKind.allCases) { kind in
-                        if let definition = viewModel.definition(for: kind) {
-                            BuildingMenuCard(kind: kind, definition: definition) {
-                                viewModel.beginPlacement(for: kind)
+                        ForEach(BuildingKind.allCases) { kind in
+                            if let definition = viewModel.definition(for: kind) {
+                                BuildingMenuCard(kind: kind, definition: definition) {
+                                    viewModel.beginPlacement(for: kind)
+                                }
+                                .padding(.horizontal, 16)
                             }
                         }
+                    } header: {
+                        BuildResourcesHeader(
+                            town: viewModel.activeTown,
+                            income: viewModel.activeTownIncome
+                        )
                     }
                 }
-                .padding(16)
+                .padding(.bottom, 16)
             }
             .background(DuskaraTheme.panel.opacity(0.35))
             .navigationTitle("Build")
@@ -28,6 +38,35 @@ struct BuildMenuView: View {
                     Button("Done") { viewModel.isBuildMenuPresented = false }
                 }
             }
+        }
+    }
+}
+
+private struct BuildResourcesHeader: View {
+    let town: Town
+    let income: [ResourceKind: Int]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Resources")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(DuskaraTheme.ink.opacity(0.72))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(ResourceKind.allCases) { kind in
+                        ResourcePill(kind: kind, amount: town.resources[kind], income: income[kind])
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(DuskaraTheme.panel)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(.black.opacity(0.12))
+                .frame(height: 1)
         }
     }
 }
@@ -63,8 +102,8 @@ private struct BuildingMenuCard: View {
             ResourceCostRow(title: "Cost", values: definition.cost(for: 1))
             if definition.peopleRequired > 0 {
                 Label("Requires \(definition.peopleRequired) free people", systemImage: "person.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.red)
             }
             if definition.production(for: 1).isEmpty == false {
                 ResourceCostRow(title: "Daily Production", values: definition.production(for: 1))

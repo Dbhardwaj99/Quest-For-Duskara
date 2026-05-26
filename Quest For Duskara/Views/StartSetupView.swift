@@ -91,7 +91,6 @@ private struct BonusAllocationRow: View {
                     in: 0...100
                 )
                 .tint(kind.color)
-                .allowsHitTesting(false)
 
                 Button(action: onIncrease) {
                     Image(systemName: "plus.circle.fill")
