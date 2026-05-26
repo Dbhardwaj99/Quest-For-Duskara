@@ -21,6 +21,11 @@ final class World3DRenderer {
     private let tileSize: Float = 0.46
     private let tileGap: Float = 0.020
     private let tileHeight: Float = 0.060
+    private let terrainRingDepth = 2
+
+    var cameraParent: Entity {
+        anchor
+    }
 
     init(arView: ARView) {
         self.arView = arView
@@ -73,6 +78,14 @@ final class World3DRenderer {
         World3DTileEntity.coordinate(from: entity)
     }
 
+    func cameraBounds(for gridSize: GridSize) -> World3DCameraBounds {
+        World3DCameraBounds(
+            halfWidth: terrainWidth(for: gridSize) / 2,
+            halfDepth: terrainDepth(for: gridSize) / 2,
+            focusInset: tileSize * 1.45
+        )
+    }
+
     func select(_ coordinate: GridCoordinate?) {
         guard selectedCoordinate != coordinate else { return }
         selectedCoordinate = coordinate
@@ -123,34 +136,65 @@ final class World3DRenderer {
     }
 
     private func addGroundPlate(for gridSize: GridSize) {
-        let boardWidth = fullBoardWidth(for: gridSize)
-        let boardDepth = fullBoardDepth(for: gridSize)
+        let boardWidth = terrainWidth(for: gridSize)
+        let boardDepth = terrainDepth(for: gridSize)
 
         let earth = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 1.05, 0.16, boardDepth + 1.05), cornerRadius: 0.18),
+            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.14, 0.16, boardDepth + 0.14), cornerRadius: 0.18),
             materials: [matte(UIColor(red: 0.22, green: 0.24, blue: 0.18, alpha: 1), roughness: 0.96)]
         )
         earth.position.y = -0.17
         staticRoot.addChild(earth)
 
         let lowerSoil = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 1.40, 0.09, boardDepth + 1.40), cornerRadius: 0.22),
+            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.38, 0.11, boardDepth + 0.38), cornerRadius: 0.22),
             materials: [matte(UIColor(red: 0.17, green: 0.13, blue: 0.10, alpha: 1), roughness: 0.98)]
         )
-        lowerSoil.position.y = -0.30
+        lowerSoil.position.y = -0.315
         staticRoot.addChild(lowerSoil)
 
+        addTerrainSkirt(width: boardWidth, depth: boardDepth)
+
         let softShadow = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 1.90, 0.018, boardDepth + 1.90), cornerRadius: 0.26),
+            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.58, 0.018, boardDepth + 0.58), cornerRadius: 0.26),
             materials: [matte(UIColor.black.withAlphaComponent(0.26), roughness: 1)]
         )
-        softShadow.position.y = -0.365
+        softShadow.position.y = -0.390
         staticRoot.addChild(softShadow)
     }
 
+    private func addTerrainSkirt(width: Float, depth: Float) {
+        let sideMaterial = matte(UIColor(red: 0.15, green: 0.13, blue: 0.09, alpha: 1), roughness: 0.98)
+        let frontBackSize = SIMD3<Float>(width + 0.10, 0.24, 0.11)
+        let sideSize = SIMD3<Float>(0.11, 0.24, depth + 0.10)
+
+        let topZ = depth / 2 + 0.035
+        let sideX = width / 2 + 0.035
+        let y: Float = -0.205
+
+        let front = ModelEntity(mesh: .generateBox(size: frontBackSize, cornerRadius: 0.035), materials: [sideMaterial])
+        front.position = SIMD3<Float>(0, y, topZ)
+        staticRoot.addChild(front)
+
+        let back = ModelEntity(mesh: .generateBox(size: frontBackSize, cornerRadius: 0.035), materials: [sideMaterial])
+        back.position = SIMD3<Float>(0, y, -topZ)
+        staticRoot.addChild(back)
+
+        let left = ModelEntity(mesh: .generateBox(size: sideSize, cornerRadius: 0.035), materials: [sideMaterial])
+        left.position = SIMD3<Float>(-sideX, y, 0)
+        staticRoot.addChild(left)
+
+        let right = ModelEntity(mesh: .generateBox(size: sideSize, cornerRadius: 0.035), materials: [sideMaterial])
+        right.position = SIMD3<Float>(sideX, y, 0)
+        staticRoot.addChild(right)
+    }
+
     private func addTerrainRing(layout: TownBiomeLayout, gridSize: GridSize) {
-        for y in -1...gridSize.rows {
-            for x in -1...gridSize.columns {
+        let rangeX = -terrainRingDepth..<(gridSize.columns + terrainRingDepth)
+        let rangeY = -terrainRingDepth..<(gridSize.rows + terrainRingDepth)
+
+        for y in rangeY {
+            for x in rangeX {
                 guard gridSize.contains(GridCoordinate(x: x, y: y)) == false else { continue }
                 let coordinate = GridCoordinate(x: x, y: y)
                 let biome = terrainBiome(at: coordinate, layout: layout, gridSize: gridSize)
@@ -249,8 +293,8 @@ final class World3DRenderer {
     }
 
     private func addAtmosphere(for gridSize: GridSize) {
-        let boardWidth = fullBoardWidth(for: gridSize)
-        let boardDepth = fullBoardDepth(for: gridSize)
+        let boardWidth = terrainWidth(for: gridSize)
+        let boardDepth = terrainDepth(for: gridSize)
 
         for index in 0..<6 {
             let mist = ModelEntity(
@@ -393,12 +437,14 @@ final class World3DRenderer {
         )
     }
 
-    private func fullBoardWidth(for gridSize: GridSize) -> Float {
-        Float(gridSize.columns + 2) * tileSize + Float(gridSize.columns + 1) * tileGap
+    private func terrainWidth(for gridSize: GridSize) -> Float {
+        let tileCount = gridSize.columns + terrainRingDepth * 2
+        return Float(tileCount) * tileSize + Float(tileCount - 1) * tileGap
     }
 
-    private func fullBoardDepth(for gridSize: GridSize) -> Float {
-        Float(gridSize.rows + 2) * tileSize + Float(gridSize.rows + 1) * tileGap
+    private func terrainDepth(for gridSize: GridSize) -> Float {
+        let tileCount = gridSize.rows + terrainRingDepth * 2
+        return Float(tileCount) * tileSize + Float(tileCount - 1) * tileGap
     }
 
     private func stablePercent(_ coordinate: GridCoordinate, salt: Int) -> Int {

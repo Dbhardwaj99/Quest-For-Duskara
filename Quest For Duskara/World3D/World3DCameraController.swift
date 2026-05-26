@@ -1,6 +1,20 @@
 import RealityKit
 import UIKit
 
+struct World3DCameraBounds {
+    let halfWidth: Float
+    let halfDepth: Float
+    let focusInset: Float
+
+    var maxTargetX: Float {
+        max(0, halfWidth - focusInset)
+    }
+
+    var maxTargetZ: Float {
+        max(0, halfDepth - focusInset)
+    }
+}
+
 @MainActor
 final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
     private let camera = PerspectiveCamera()
@@ -14,20 +28,31 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
     private var rotateStartPitch: Float = 0.74
     private var panStartTarget = SIMD3<Float>(0, 0, 0)
     private var pinchStartDistance: Float = 6.6
-    private var boardRadius: Float = 2.4
+    private var bounds = World3DCameraBounds(halfWidth: 2.15, halfDepth: 2.15, focusInset: 0.66)
+    private var activeGestureIDs: Set<ObjectIdentifier> = []
+    private var inertiaDisplayLink: CADisplayLink?
+    private var yawVelocity: Float = 0
+    private var pitchVelocity: Float = 0
+    private var panVelocity = SIMD3<Float>(repeating: 0)
+    private var distanceVelocity: Float = 0
     private(set) var isInteracting = false
 
     private let minDistance: Float = 3.2
-    private let maxDistance: Float = 9.2
-    private let minPitch: Float = 0.48
-    private let maxPitch: Float = 1.08
+    private let maxDistance: Float = 7.4
+    private let minPitch: Float = 0.56
+    private let maxPitch: Float = 1.02
 
-    func install(in arView: ARView, gridSize: GridSize) {
+    deinit {
+        inertiaDisplayLink?.invalidate()
+    }
+
+    func install(in arView: ARView, bounds: World3DCameraBounds, parent: Entity) {
         view = arView
-        boardRadius = max(Float(gridSize.columns), Float(gridSize.rows)) * 0.30
-        camera.camera.fieldOfViewInDegrees = 35
-        arView.scene.anchors.first?.addChild(camera)
-        updateCamera(animated: false)
+        self.bounds = bounds
+        camera.camera = PerspectiveCameraComponent(near: 0.01, far: 28, fieldOfViewInDegrees: 35)
+        parent.addChild(camera)
+        sanitizeState()
+        updateCamera()
         let rotate = UIPanGestureRecognizer(target: self, action: #selector(handleRotate(_:)))
         rotate.maximumNumberOfTouches = 1
         rotate.delegate = self
@@ -48,17 +73,20 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         guard let view else { return }
         switch recognizer.state {
         case .began:
-            isInteracting = true
+            beginInteraction(recognizer)
             rotateStartYaw = yaw
             rotateStartPitch = pitch
         case .changed:
             let translation = recognizer.translation(in: view)
-            yaw = rotateStartYaw - Float(translation.x) * 0.0056
-            pitch = min(maxPitch, max(minPitch, rotateStartPitch + Float(translation.y) * 0.0042))
-            updateCamera(animated: false)
+            let velocity = recognizer.velocity(in: view)
+            yaw = rotateStartYaw - safeFloat(Float(translation.x), fallback: 0) * 0.0056
+            pitch = rotateStartPitch + safeFloat(Float(translation.y), fallback: 0) * 0.0042
+            yawVelocity = -safeFloat(Float(velocity.x), fallback: 0) * 0.0056
+            pitchVelocity = safeFloat(Float(velocity.y), fallback: 0) * 0.0042
+            sanitizeState()
+            updateCamera()
         default:
-            isInteracting = false
-            updateCamera(animated: true)
+            endInteraction(recognizer)
         }
     }
 
@@ -66,33 +94,40 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         guard let view else { return }
         switch recognizer.state {
         case .began:
-            isInteracting = true
+            beginInteraction(recognizer)
             panStartTarget = target
         case .changed:
             let translation = recognizer.translation(in: view)
+            let velocity = recognizer.velocity(in: view)
             let right = SIMD3<Float>(cos(yaw), 0, -sin(yaw))
             let forward = SIMD3<Float>(sin(yaw), 0, cos(yaw))
             let scale = max(0.003, distance * 0.0007)
-            let nextTarget = panStartTarget - right * Float(translation.x) * scale + forward * Float(translation.y) * scale
+            let nextTarget = panStartTarget
+                - right * safeFloat(Float(translation.x), fallback: 0) * scale
+                + forward * safeFloat(Float(translation.y), fallback: 0) * scale
+            panVelocity = -right * safeFloat(Float(velocity.x), fallback: 0) * scale
+                + forward * safeFloat(Float(velocity.y), fallback: 0) * scale
             target = clampedTarget(nextTarget)
-            updateCamera(animated: false)
+            sanitizeState()
+            updateCamera()
         default:
-            isInteracting = false
-            updateCamera(animated: true)
+            endInteraction(recognizer)
         }
     }
 
     @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
         switch recognizer.state {
         case .began:
-            isInteracting = true
+            beginInteraction(recognizer)
             pinchStartDistance = distance
         case .changed:
-            distance = min(maxDistance, max(minDistance, pinchStartDistance / Float(recognizer.scale)))
-            updateCamera(animated: false)
+            let scale = max(0.35, min(2.8, safeFloat(Float(recognizer.scale), fallback: 1)))
+            distance = pinchStartDistance / scale
+            distanceVelocity = -pinchStartDistance * safeFloat(Float(recognizer.velocity), fallback: 0) / (scale * scale)
+            sanitizeState()
+            updateCamera()
         default:
-            isInteracting = false
-            updateCamera(animated: true)
+            endInteraction(recognizer)
         }
     }
 
@@ -100,7 +135,8 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         true
     }
 
-    private func updateCamera(animated: Bool) {
+    private func updateCamera() {
+        sanitizeState()
         let horizontalDistance = cos(pitch) * distance
         let position = target + SIMD3<Float>(
             sin(yaw) * horizontalDistance,
@@ -108,30 +144,102 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
             cos(yaw) * horizontalDistance
         )
         let lookTarget = target + SIMD3<Float>(0, 0.02, 0)
-        if animated {
-            camera.move(to: Transform(matrix: lookAtTransform(from: position, to: lookTarget)), relativeTo: nil, duration: 0.22, timingFunction: .easeInOut)
-        } else {
-            camera.look(at: lookTarget, from: position, relativeTo: nil)
-        }
+        camera.look(at: lookTarget, from: position, relativeTo: nil)
     }
 
     private func clampedTarget(_ value: SIMD3<Float>) -> SIMD3<Float> {
         SIMD3<Float>(
-            min(boardRadius, max(-boardRadius, value.x)),
+            min(bounds.maxTargetX, max(-bounds.maxTargetX, safeFloat(value.x, fallback: 0))),
             0,
-            min(boardRadius, max(-boardRadius, value.z))
+            min(bounds.maxTargetZ, max(-bounds.maxTargetZ, safeFloat(value.z, fallback: 0)))
         )
     }
 
-    private func lookAtTransform(from position: SIMD3<Float>, to target: SIMD3<Float>) -> simd_float4x4 {
-        let forward = normalize(target - position)
-        let right = normalize(cross(SIMD3<Float>(0, 1, 0), forward))
-        let up = cross(forward, right)
-        return simd_float4x4(columns: (
-            SIMD4<Float>(right.x, right.y, right.z, 0),
-            SIMD4<Float>(up.x, up.y, up.z, 0),
-            SIMD4<Float>(forward.x, forward.y, forward.z, 0),
-            SIMD4<Float>(position.x, position.y, position.z, 1)
-        ))
+    private func beginInteraction(_ recognizer: UIGestureRecognizer) {
+        stopInertia()
+        activeGestureIDs.insert(ObjectIdentifier(recognizer))
+        isInteracting = true
     }
+
+    private func endInteraction(_ recognizer: UIGestureRecognizer) {
+        activeGestureIDs.remove(ObjectIdentifier(recognizer))
+        guard activeGestureIDs.isEmpty else { return }
+
+        if hasMeaningfulVelocity {
+            startInertia()
+        } else {
+            isInteracting = false
+            updateCamera()
+        }
+    }
+
+    private func startInertia() {
+        isInteracting = true
+        inertiaDisplayLink?.invalidate()
+        let displayLink = CADisplayLink(target: self, selector: #selector(stepInertia(_:)))
+        displayLink.add(to: .main, forMode: .common)
+        inertiaDisplayLink = displayLink
+    }
+
+    private func stopInertia() {
+        inertiaDisplayLink?.invalidate()
+        inertiaDisplayLink = nil
+        yawVelocity = 0
+        pitchVelocity = 0
+        panVelocity = SIMD3<Float>(repeating: 0)
+        distanceVelocity = 0
+    }
+
+    @objc private func stepInertia(_ displayLink: CADisplayLink) {
+        let dt = min(1 / 30, max(1 / 120, Float(displayLink.targetTimestamp - displayLink.timestamp)))
+        yaw += yawVelocity * dt
+        pitch += pitchVelocity * dt
+        target += panVelocity * dt
+        distance += distanceVelocity * dt
+        sanitizeState()
+        updateCamera()
+
+        let decay = pow(Float(0.055), dt)
+        yawVelocity *= decay
+        pitchVelocity *= decay
+        panVelocity *= decay
+        distanceVelocity *= decay
+
+        if hasMeaningfulVelocity == false {
+            stopInertia()
+            isInteracting = false
+            updateCamera()
+        }
+    }
+
+    private var hasMeaningfulVelocity: Bool {
+        abs(yawVelocity) > 0.035
+            || abs(pitchVelocity) > 0.025
+            || length(panVelocity) > 0.018
+            || abs(distanceVelocity) > 0.040
+    }
+
+    private func sanitizeState() {
+        yaw = normalizedAngle(safeFloat(yaw, fallback: .pi / 4))
+        pitch = min(maxPitch, max(minPitch, safeFloat(pitch, fallback: 0.74)))
+        distance = min(maxDistance, max(minDistance, safeFloat(distance, fallback: 6.6)))
+        target = clampedTarget(target)
+    }
+
+    private func normalizedAngle(_ value: Float) -> Float {
+        guard value.isFinite else { return .pi / 4 }
+        let twoPi = Float.pi * 2
+        var angle = value.truncatingRemainder(dividingBy: twoPi)
+        if angle < -.pi {
+            angle += twoPi
+        } else if angle > .pi {
+            angle -= twoPi
+        }
+        return angle
+    }
+
+    private func safeFloat(_ value: Float, fallback: Float) -> Float {
+        value.isFinite ? value : fallback
+    }
+
 }

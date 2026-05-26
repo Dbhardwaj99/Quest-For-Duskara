@@ -60,7 +60,11 @@ final class World3DGameViewController: UIViewController {
         ])
 
         let renderer = World3DRenderer(arView: arView)
-        cameraController.install(in: arView, gridSize: sourceViewModel.balance.gridSize)
+        cameraController.install(
+            in: arView,
+            bounds: renderer.cameraBounds(for: sourceViewModel.balance.gridSize),
+            parent: renderer.cameraParent
+        )
         self.renderer = renderer
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
