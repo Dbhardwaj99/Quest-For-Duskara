@@ -6,68 +6,62 @@ struct World3DTileSnapshot: Identifiable, Equatable {
         case water
         case tree
         case mountain
-        case building(BuildingKind)
+        case building(BuildingKind, level: Int)
     }
 
     var id: GridCoordinate { coordinate }
     var coordinate: GridCoordinate
     var content: Content
-    var isOccupied: Bool {
-        if case .grass = content { return false }
-        if case .water = content { return false }
-        return true
-    }
+    var placementState: TilePlacementState
 }
 
-enum World3DPlacementTool: CaseIterable {
-    case building
+enum World3DDecorationKind: CaseIterable {
     case tree
     case mountain
-    case clear
 
     var title: String {
         switch self {
-        case .building: "Building"
         case .tree: "Tree"
         case .mountain: "Mountain"
-        case .clear: "Clear"
+        }
+    }
+
+    var content: World3DTileSnapshot.Content {
+        switch self {
+        case .tree: .tree
+        case .mountain: .mountain
         }
     }
 }
 
+@MainActor
 struct World3DStateAdapter {
-    private(set) var town: Town
-    private(set) var balance: GameBalance
-    private var decorations: [GridCoordinate: World3DTileSnapshot.Content] = [:]
-    private let buildingSystem = BuildingSystem()
+    let viewModel: GameViewModel
+    private(set) var decorations: [GridCoordinate: World3DTileSnapshot.Content] = [:]
 
-    init(sourceViewModel: GameViewModel) {
-        var adaptedBalance = sourceViewModel.balance
-        adaptedBalance.gridSize = GridSize(columns: 9, rows: 9)
-        adaptedBalance.baseStartingResources = ResourceKind.allCases.reduce(into: [:]) { totals, kind in
-            totals[kind] = max(sourceViewModel.balance.baseStartingResources[kind, default: 0], 250)
-        }
-
-        var adaptedTown = sourceViewModel.activeTown
-        adaptedTown.resources = ResourceWallet(adaptedBalance.baseStartingResources)
-        adaptedTown.buildings = adaptedTown.buildings.filter { adaptedBalance.gridSize.contains($0.coordinate) }
-
-        self.town = adaptedTown
-        self.balance = adaptedBalance
+    init(viewModel: GameViewModel) {
+        self.viewModel = viewModel
     }
 
+    var town: Town { viewModel.activeTown }
+    var balance: GameBalance { viewModel.balance }
     var gridSize: GridSize { balance.gridSize }
 
     func tileSnapshot(at coordinate: GridCoordinate) -> World3DTileSnapshot {
+        let content: World3DTileSnapshot.Content
         if let building = town.buildings.first(where: { $0.coordinate == coordinate }) {
-            return World3DTileSnapshot(coordinate: coordinate, content: .building(building.kind))
+            content = .building(building.kind, level: building.level)
+        } else if let decoration = decorations[coordinate] {
+            content = decoration
+        } else {
+            content = .grass
         }
 
-        if let decoration = decorations[coordinate] {
-            return World3DTileSnapshot(coordinate: coordinate, content: decoration)
-        }
-
-        return World3DTileSnapshot(coordinate: coordinate, content: isWaterCoordinate(coordinate) ? .water : .grass)
+        return World3DTileSnapshot(
+            coordinate: coordinate,
+            content: content,
+            placementState: viewModel.tilePlacementState(for: coordinate)
+        )
     }
 
     func allTileSnapshots() -> [World3DTileSnapshot] {
@@ -80,43 +74,20 @@ struct World3DStateAdapter {
         return tiles
     }
 
-    mutating func apply(_ tool: World3DPlacementTool, at coordinate: GridCoordinate) -> String {
+    mutating func placeDecoration(_ decoration: World3DDecorationKind, at coordinate: GridCoordinate) -> String {
         guard gridSize.contains(coordinate) else { return "Out of bounds" }
-
-        switch tool {
-        case .building:
-            decorations[coordinate] = nil
-            if let failure = buildingSystem.build(.house, at: coordinate, in: &town, balance: balance) {
-                return failure.rawValue
-            }
-            return "Placed house at \(coordinate.x), \(coordinate.y)"
-        case .tree:
-            return placeDecoration(.tree, at: coordinate, label: "tree")
-        case .mountain:
-            return placeDecoration(.mountain, at: coordinate, label: "mountain")
-        case .clear:
-            town.buildings.removeAll { $0.coordinate == coordinate }
-            decorations[coordinate] = nil
-            return "Cleared \(coordinate.x), \(coordinate.y)"
-        }
-    }
-
-    private mutating func placeDecoration(_ content: World3DTileSnapshot.Content, at coordinate: GridCoordinate, label: String) -> String {
         guard town.buildings.contains(where: { $0.coordinate == coordinate }) == false else {
-            return "That plot is already occupied."
+            return "That plot already has a building."
         }
-        guard isWaterCoordinate(coordinate) == false else {
-            return "Cannot place \(label) on water."
-        }
-        decorations[coordinate] = content
-        return "Placed \(label) at \(coordinate.x), \(coordinate.y)"
+        decorations[coordinate] = decoration.content
+        return "Placed \(decoration.title.lowercased()) at \(coordinate.x), \(coordinate.y)."
     }
 
-    private func isWaterCoordinate(_ coordinate: GridCoordinate) -> Bool {
-        let middle = gridSize.columns / 2
-        if town.biomeLayout.sides.values.contains(.river) {
-            return coordinate.x == middle || (coordinate.y == gridSize.rows - 1 && abs(coordinate.x - middle) <= 1)
+    mutating func clearDecoration(at coordinate: GridCoordinate) -> String {
+        guard gridSize.contains(coordinate) else { return "Out of bounds" }
+        if decorations.removeValue(forKey: coordinate) == nil {
+            return "No decoration to clear at \(coordinate.x), \(coordinate.y)."
         }
-        return coordinate.x == middle && coordinate.y > 1 && coordinate.y < gridSize.rows - 2
+        return "Cleared decoration at \(coordinate.x), \(coordinate.y)."
     }
 }

@@ -4,7 +4,6 @@ struct ContentView: View {
     @State private var viewModel = GameViewModel()
     @State private var path: [GameRoute] = []
     @State private var savedGameSummary = GameSaveStore().savedGameSummary()
-    @State private var isWorld3DTestPresented = false
 
     private let saveStore = GameSaveStore()
 
@@ -14,20 +13,21 @@ struct ContentView: View {
                 savedGameSummary: savedGameSummary,
                 onStartNewGame: startNewGame,
                 onLoadGame: loadGame,
-                onOpenWorld3DTest: { isWorld3DTestPresented = true }
+                onPlay2D: openGame,
+                onPlay3D: openGame3D
             )
             .navigationDestination(for: GameRoute.self) { route in
                 switch route {
-                case .game:
+                case .game2D:
                     GameView(viewModel: viewModel)
+                        .navigationBarBackButtonHidden()
+                case .game3D:
+                    GameView3D(viewModel: viewModel)
                         .navigationBarBackButtonHidden()
                 }
             }
         }
         .onAppear(perform: refreshSavedGameSummary)
-        .fullScreenCover(isPresented: $isWorld3DTestPresented) {
-            World3DTestView(sourceViewModel: viewModel)
-        }
     }
 
     private func startNewGame() {
@@ -40,17 +40,31 @@ struct ContentView: View {
     }
 
     private func loadGame() {
-        guard let savedGame = try? saveStore.loadSavedGame() else {
-            refreshSavedGameSummary()
-            return
-        }
-        viewModel.stopClock()
-        viewModel = GameViewModel(savedState: savedGame.state)
+        guard loadSavedGameIntoViewModel() else { return }
         openGame()
     }
 
+    private func openGame3D() {
+        if viewModel.phase == .setup {
+            _ = loadSavedGameIntoViewModel()
+        }
+        path = [.game3D]
+    }
+
+    @discardableResult
+    private func loadSavedGameIntoViewModel() -> Bool {
+        guard let savedGame = try? saveStore.loadSavedGame() else {
+            refreshSavedGameSummary()
+            return false
+        }
+        viewModel.stopClock()
+        viewModel = GameViewModel(savedState: savedGame.state)
+        refreshSavedGameSummary()
+        return true
+    }
+
     private func openGame() {
-        path = [.game]
+        path = [.game2D]
     }
 
     private func refreshSavedGameSummary() {
@@ -59,7 +73,8 @@ struct ContentView: View {
 }
 
 private enum GameRoute: Hashable {
-    case game
+    case game2D
+    case game3D
 }
 
 #Preview {

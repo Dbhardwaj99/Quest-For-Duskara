@@ -4,7 +4,8 @@ struct MenuView: View {
     let savedGameSummary: SavedGameSummary?
     let onStartNewGame: () -> Void
     let onLoadGame: () -> Void
-    let onOpenWorld3DTest: () -> Void
+    let onPlay2D: () -> Void
+    let onPlay3D: () -> Void
 
     @State private var isStartConfirmationPresented = false
     @State private var isLoadConfirmationPresented = false
@@ -25,11 +26,23 @@ struct MenuView: View {
             }
 
             VStack(spacing: 12) {
+                Button(action: onPlay2D) {
+                    Label("Play 2D", systemImage: "square.grid.3x3.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(DuskaraButtonStyle(prominent: true))
+
+                Button(action: onPlay3D) {
+                    Label("Play 3D", systemImage: "cube.transparent.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(DuskaraButtonStyle())
+
                 Button(action: startNewGameTapped) {
                     Label("Start New Game", systemImage: "sparkles")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(DuskaraButtonStyle(prominent: true))
+                .buttonStyle(DuskaraButtonStyle())
 
                 Button(action: { isLoadConfirmationPresented = true }) {
                     Label("Load Game", systemImage: "tray.and.arrow.down.fill")
@@ -38,12 +51,6 @@ struct MenuView: View {
                 .buttonStyle(DuskaraButtonStyle())
                 .disabled(savedGameSummary == nil)
                 .opacity(savedGameSummary == nil ? 0.55 : 1)
-
-                Button(action: onOpenWorld3DTest) {
-                    Label("Open 3D World Test", systemImage: "cube.transparent.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(DuskaraButtonStyle())
             }
             .padding(16)
             .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: 8))
@@ -80,6 +87,7 @@ struct MenuView: View {
         savedGameSummary: SavedGameSummary(dayLabel: "Day 3"),
         onStartNewGame: { },
         onLoadGame: { },
-        onOpenWorld3DTest: { }
+        onPlay2D: { },
+        onPlay3D: { }
     )
 }

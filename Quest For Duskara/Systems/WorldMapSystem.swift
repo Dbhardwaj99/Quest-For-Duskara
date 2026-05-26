@@ -49,10 +49,11 @@ struct WorldMapSystem {
     private func makeTowns(balance: GameBalance) -> [Town] {
         let layouts: [TownBiomeLayout] = [
             TownBiomeLayout(sides: [.left: .forest, .right: .mountain, .top: .forest, .bottom: .mountain]),
-            TownBiomeLayout(sides: [.left: .forest, .top: .forest, .right: .plains, .bottom: .mountain]),
-            TownBiomeLayout(sides: [.left: .mountain, .right: .mountain, .top: .plains, .bottom: .plains]),
-            TownBiomeLayout(sides: [.left: .forest, .right: .forest, .top: .forest, .bottom: .plains]),
-            TownBiomeLayout(sides: [.left: .plains, .right: .mountain, .top: .mountain, .bottom: .river])
+            TownBiomeLayout(sides: [.left: .forest, .top: .forest, .right: .forest, .bottom: .mountain]),
+            TownBiomeLayout(sides: [.left: .mountain, .right: .mountain, .top: .mountain, .bottom: .mountain]),
+            TownBiomeLayout(sides: [.left: .forest, .right: .forest, .top: .forest, .bottom: .forest]),
+            TownBiomeLayout(sides: [.left: .mountain, .right: .forest, .top: .mountain, .bottom: .forest]),
+            TownBiomeLayout(sides: [.left: .forest, .right: .mountain, .top: .mountain, .bottom: .mountain])
         ]
         let names = [
             "Duskara", "Green Hollow", "Ironridge", "Mosswatch", "Ashbarrow", "Pinefall", "Stonewake", "Rivergate", "Brindle Keep", "Oakmere",

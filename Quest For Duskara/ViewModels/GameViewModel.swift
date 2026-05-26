@@ -46,6 +46,7 @@ final class GameViewModel {
         let balance = GameBalance.duskDefault
         self.balance = balance
         self.state = savedState
+        normalizeBuildingsToCurrentGrid()
         self.phase = .town
         startClock()
     }
@@ -191,24 +192,32 @@ final class GameViewModel {
 
     func upgradeSelectedBuilding() {
         guard let selectedBuildingID else { return }
+        var didUpgrade = false
         state.updateTown(id: state.activeTownID) { town in
             if let failure = buildingSystem.upgrade(selectedBuildingID, in: &town, balance: balance) {
                 show(failure.rawValue)
             } else {
                 show("Building upgraded.")
-                saveCurrentGame()
+                didUpgrade = true
             }
+        }
+        if didUpgrade {
+            saveCurrentGame()
         }
     }
 
     func train(_ soldier: SoldierKind) {
+        var didTrain = false
         state.updateTown(id: state.activeTownID) { town in
             if let failure = soldierTrainingSystem.train(soldier, in: &town, balance: balance) {
                 show(failure.rawValue)
             } else {
                 show("Trained 1 \(soldier.title).")
-                saveCurrentGame()
+                didTrain = true
             }
+        }
+        if didTrain {
+            saveCurrentGame()
         }
     }
 
@@ -279,6 +288,7 @@ final class GameViewModel {
     }
 
     private func place(_ kind: BuildingKind, at coordinate: GridCoordinate) {
+        var didBuild = false
         state.updateTown(id: state.activeTownID) { town in
             if let failure = buildingSystem.build(kind, at: coordinate, in: &town, balance: balance) {
                 show(feedbackOverlaySystem.text(for: failure, building: kind))
@@ -286,9 +296,51 @@ final class GameViewModel {
                 selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
                 placementBuildingKind = nil
                 show("Built \(kind.title).")
-                saveCurrentGame()
+                didBuild = true
             }
         }
+        if didBuild {
+            saveCurrentGame()
+        }
+    }
+
+    private func normalizeBuildingsToCurrentGrid() {
+        for townIndex in state.towns.indices {
+            var occupied: Set<GridCoordinate> = []
+            for buildingIndex in state.towns[townIndex].buildings.indices {
+                let coordinate = state.towns[townIndex].buildings[buildingIndex].coordinate
+                if balance.gridSize.contains(coordinate), occupied.contains(coordinate) == false {
+                    occupied.insert(coordinate)
+                } else if let replacement = nearestOpenCoordinate(to: coordinate, occupied: occupied) {
+                    state.towns[townIndex].buildings[buildingIndex].coordinate = replacement
+                    occupied.insert(replacement)
+                }
+            }
+        }
+    }
+
+    private func nearestOpenCoordinate(to coordinate: GridCoordinate, occupied: Set<GridCoordinate>) -> GridCoordinate? {
+        let clampedX = min(max(0, coordinate.x), balance.gridSize.columns - 1)
+        let clampedY = min(max(0, coordinate.y), balance.gridSize.rows - 1)
+        let clamped = GridCoordinate(x: clampedX, y: clampedY)
+        if occupied.contains(clamped) == false {
+            return clamped
+        }
+
+        var best: GridCoordinate?
+        var bestDistance = Int.max
+        for y in 0..<balance.gridSize.rows {
+            for x in 0..<balance.gridSize.columns {
+                let candidate = GridCoordinate(x: x, y: y)
+                guard occupied.contains(candidate) == false else { continue }
+                let distance = abs(candidate.x - coordinate.x) + abs(candidate.y - coordinate.y)
+                if distance < bestDistance {
+                    best = candidate
+                    bestDistance = distance
+                }
+            }
+        }
+        return best
     }
 
     private func startClock() {
