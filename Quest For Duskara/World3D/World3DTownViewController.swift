@@ -59,7 +59,7 @@ final class World3DTownViewController: UIViewController {
     }
 
     private func configureScene() {
-        view.backgroundColor = UIColor(red: 0.18, green: 0.22, blue: 0.27, alpha: 1)
+        view.backgroundColor = UIColor(red: 0.31, green: 0.41, blue: 0.52, alpha: 1)
 
         let arView = ARView(frame: view.bounds, cameraMode: .nonAR, automaticallyConfigureSession: false)
         arView.translatesAutoresizingMaskIntoConstraints = false

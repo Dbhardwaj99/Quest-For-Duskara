@@ -118,7 +118,7 @@ final class World3DRenderer {
     private func configureView() {
         arView.cameraMode = .nonAR
         arView.automaticallyConfigureSession = false
-        arView.environment.background = .color(UIColor(red: 0.18, green: 0.22, blue: 0.27, alpha: 1))
+        arView.environment.background = .color(UIColor(red: 0.31, green: 0.41, blue: 0.52, alpha: 1))
         arView.renderOptions.insert(.disableDepthOfField)
         arView.renderOptions.insert(.disableMotionBlur)
 
@@ -188,35 +188,13 @@ final class World3DRenderer {
         let boardWidth = terrainWidth(for: gridSize)
         let boardDepth = terrainDepth(for: gridSize)
         let horizonWidth = boardWidth + tileSize * 4.4
-        let horizonDepth = boardDepth + tileSize * 4.4
-        let horizonHeight = tileSize * 1.25
-        let horizonY = tileSize * 0.22
+        let horizonY = tileSize * 0.74
         let distance = max(boardWidth, boardDepth) * 0.58 + tileSize * 1.35
 
-        let skyBand = matte(UIColor(red: 0.24, green: 0.30, blue: 0.38, alpha: 1), roughness: 1.0)
-        let violetBand = matte(UIColor(red: 0.23, green: 0.25, blue: 0.36, alpha: 1), roughness: 1.0)
-        let warmHorizon = matte(UIColor(red: 0.39, green: 0.32, blue: 0.24, alpha: 1), roughness: 1.0)
-        let groundHaze = matte(UIColor(red: 0.17, green: 0.22, blue: 0.22, alpha: 1), roughness: 1.0)
-
-        let back = World3DRenderResources.makeBox(size: SIMD3<Float>(horizonWidth, horizonHeight, 0.06), material: skyBand, cornerRadius: 0.04)
-        back.position = SIMD3<Float>(0, horizonY, -distance)
-        staticRoot.addChild(back)
-
-        let backGlow = World3DRenderResources.makeBox(size: SIMD3<Float>(horizonWidth * 0.72, tileSize * 0.38, 0.065), material: warmHorizon, cornerRadius: 0.05)
-        backGlow.position = SIMD3<Float>(0, tileSize * 0.05, -distance + 0.035)
-        staticRoot.addChild(backGlow)
-
-        let frontDepth = World3DRenderResources.makeBox(size: SIMD3<Float>(horizonWidth, tileSize * 0.72, 0.055), material: groundHaze, cornerRadius: 0.04)
-        frontDepth.position = SIMD3<Float>(0, -tileSize * 0.05, distance)
-        staticRoot.addChild(frontDepth)
-
-        let left = World3DRenderResources.makeBox(size: SIMD3<Float>(0.06, horizonHeight * 0.86, horizonDepth), material: violetBand, cornerRadius: 0.04)
-        left.position = SIMD3<Float>(-distance, horizonY * 0.9, 0)
-        staticRoot.addChild(left)
-
-        let right = World3DRenderResources.makeBox(size: SIMD3<Float>(0.06, horizonHeight * 0.86, horizonDepth), material: skyBand, cornerRadius: 0.04)
-        right.position = SIMD3<Float>(distance, horizonY * 0.9, 0)
-        staticRoot.addChild(right)
+        addSurroundingWater(boardWidth: boardWidth, boardDepth: boardDepth)
+        addCloudCluster(center: SIMD3<Float>(-horizonWidth * 0.25, horizonY + tileSize * 0.55, -distance + 0.12), scale: 0.90)
+        addCloudCluster(center: SIMD3<Float>(horizonWidth * 0.22, horizonY + tileSize * 0.78, -distance + 0.10), scale: 0.72)
+        addCloudCluster(center: SIMD3<Float>(horizonWidth * 0.04, horizonY + tileSize * 0.36, -distance + 0.14), scale: 0.58)
 
         let tableShadow = World3DRenderResources.makeBox(
             size: SIMD3<Float>(boardWidth + tileSize * 1.6, 0.035, boardDepth + tileSize * 1.6),
@@ -225,6 +203,94 @@ final class World3DRenderer {
         )
         tableShadow.position.y = -0.43
         staticRoot.addChild(tableShadow)
+    }
+
+    private func addSurroundingWater(boardWidth: Float, boardDepth: Float) {
+        let waterMaterial = matte(UIColor(red: 0.14, green: 0.38, blue: 0.48, alpha: 1), roughness: 0.32)
+        let waterShadowMaterial = matte(UIColor(red: 0.09, green: 0.28, blue: 0.38, alpha: 1), roughness: 0.36)
+        let waterY: Float = -0.072
+        let waterHeight: Float = 0.018
+        let outerWidth = boardWidth + tileSize * 5.2
+        let outerDepth = boardDepth + tileSize * 5.2
+        let innerWidth = boardWidth + tileSize * 0.34
+        let innerDepth = boardDepth + tileSize * 0.34
+        let stripDepth = max(0.01, (outerDepth - innerDepth) / 2)
+        let stripWidth = max(0.01, (outerWidth - innerWidth) / 2)
+
+        let backWater = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(outerWidth, waterHeight, stripDepth),
+            material: waterMaterial,
+            cornerRadius: tileSize * 0.050
+        )
+        backWater.position = SIMD3<Float>(0, waterY, -(innerDepth / 2 + stripDepth / 2))
+        staticRoot.addChild(backWater)
+
+        let frontWater = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(outerWidth, waterHeight, stripDepth),
+            material: waterShadowMaterial,
+            cornerRadius: tileSize * 0.050
+        )
+        frontWater.position = SIMD3<Float>(0, waterY, innerDepth / 2 + stripDepth / 2)
+        staticRoot.addChild(frontWater)
+
+        let leftWater = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(stripWidth, waterHeight, innerDepth),
+            material: waterMaterial,
+            cornerRadius: tileSize * 0.050
+        )
+        leftWater.position = SIMD3<Float>(-(innerWidth / 2 + stripWidth / 2), waterY, 0)
+        staticRoot.addChild(leftWater)
+
+        let rightWater = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(stripWidth, waterHeight, innerDepth),
+            material: waterMaterial,
+            cornerRadius: tileSize * 0.050
+        )
+        rightWater.position = SIMD3<Float>(innerWidth / 2 + stripWidth / 2, waterY, 0)
+        staticRoot.addChild(rightWater)
+
+        addWaterSheen(width: outerWidth, depth: outerDepth, y: waterY + waterHeight / 2 + 0.004)
+    }
+
+    private func addWaterSheen(width: Float, depth: Float, y: Float) {
+        let sheenMaterial = matte(UIColor(red: 0.55, green: 0.72, blue: 0.73, alpha: 0.44), roughness: 0.26)
+        let positions: [SIMD3<Float>] = [
+            SIMD3<Float>(-width * 0.26, y, -depth * 0.40),
+            SIMD3<Float>(width * 0.24, y, -depth * 0.33),
+            SIMD3<Float>(-width * 0.34, y, depth * 0.36),
+            SIMD3<Float>(width * 0.30, y, depth * 0.28)
+        ]
+
+        for (index, position) in positions.enumerated() {
+            let sheen = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(tileSize * (0.48 + Float(index % 2) * 0.18), 0.006, tileSize * 0.035),
+                material: sheenMaterial,
+                cornerRadius: tileSize * 0.008
+            )
+            sheen.position = position
+            sheen.orientation = simd_quatf(angle: 0.12 + Float(index) * 0.21, axis: SIMD3<Float>(0, 1, 0))
+            staticRoot.addChild(sheen)
+        }
+    }
+
+    private func addCloudCluster(center: SIMD3<Float>, scale: Float) {
+        let cloudMaterial = matte(UIColor(red: 0.74, green: 0.75, blue: 0.70, alpha: 1), roughness: 1.0)
+        let shadowMaterial = matte(UIColor(red: 0.56, green: 0.62, blue: 0.66, alpha: 1), roughness: 1.0)
+        let puffs: [(SIMD3<Float>, Float, SIMD3<Float>, SimpleMaterial)] = [
+            (SIMD3<Float>(-0.20, -0.02, 0), 0.18, SIMD3<Float>(1.7, 0.46, 0.24), shadowMaterial),
+            (SIMD3<Float>(-0.05, 0.03, 0), 0.22, SIMD3<Float>(1.9, 0.52, 0.24), cloudMaterial),
+            (SIMD3<Float>(0.17, 0.00, 0), 0.16, SIMD3<Float>(1.6, 0.42, 0.22), cloudMaterial)
+        ]
+
+        for puff in puffs {
+            let cloud = World3DRenderResources.makeSphere(
+                radius: tileSize * puff.1 * scale,
+                material: puff.3,
+                scale: puff.2
+            )
+            cloud.position = center + puff.0 * (tileSize * scale)
+            staticRoot.addChild(cloud)
+        }
     }
 
     private func addTerrainRing(layout: TownBiomeLayout, gridSize: GridSize) {
