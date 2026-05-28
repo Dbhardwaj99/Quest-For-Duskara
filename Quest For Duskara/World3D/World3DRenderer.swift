@@ -23,6 +23,7 @@ final class World3DRenderer {
     private let tileGap: Float = 0.020
     private let tileHeight: Float = 0.060
     private let terrainRingDepth = 1
+    private let duskDepthTint = UIColor(red: 0.23, green: 0.28, blue: 0.36, alpha: 1)
 
     var cameraParent: Entity {
         anchor
@@ -117,19 +118,20 @@ final class World3DRenderer {
     private func configureView() {
         arView.cameraMode = .nonAR
         arView.automaticallyConfigureSession = false
-        arView.environment.background = .color(UIColor(red: 0.11, green: 0.13, blue: 0.12, alpha: 1))
+        arView.environment.background = .color(UIColor(red: 0.18, green: 0.22, blue: 0.27, alpha: 1))
         arView.renderOptions.insert(.disableDepthOfField)
         arView.renderOptions.insert(.disableMotionBlur)
 
         let sun = DirectionalLight()
-        sun.light.intensity = 4550
-        sun.light.color = UIColor(red: 1.0, green: 0.82, blue: 0.58, alpha: 1)
+        sun.light.intensity = 5000
+        sun.light.color = UIColor(red: 1.0, green: 0.78, blue: 0.50, alpha: 1)
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
     }
 
     private func rebuildScaffold(layout: TownBiomeLayout, gridSize: GridSize) {
         staticRoot.children.forEach { $0.removeFromParent() }
+        addDuskBackdrop(for: gridSize)
         addGroundPlate(for: gridSize)
         addTerrainRing(layout: layout, gridSize: gridSize)
         addBiomeBackdrop(layout: layout, gridSize: gridSize)
@@ -147,7 +149,7 @@ final class World3DRenderer {
 
         let earth = World3DRenderResources.makeBox(
             size: SIMD3<Float>(boardWidth + 0.14, 0.32, boardDepth + 0.14),
-            material: matte(UIColor(red: 0.22, green: 0.24, blue: 0.18, alpha: 1), roughness: 0.96),
+            material: matte(UIColor(red: 0.20, green: 0.23, blue: 0.19, alpha: 1), roughness: 0.96),
             cornerRadius: 0.18
         )
         earth.position.y = -0.25
@@ -157,7 +159,7 @@ final class World3DRenderer {
     }
 
     private func addTerrainSkirt(width: Float, depth: Float) {
-        let sideMaterial = matte(UIColor(red: 0.15, green: 0.13, blue: 0.09, alpha: 1), roughness: 0.98)
+        let sideMaterial = matte(UIColor(red: 0.13, green: 0.13, blue: 0.12, alpha: 1), roughness: 0.98)
         let frontBackSize = SIMD3<Float>(width + 0.10, 0.24, 0.11)
         let sideSize = SIMD3<Float>(0.11, 0.24, depth + 0.10)
 
@@ -180,6 +182,49 @@ final class World3DRenderer {
         let right = World3DRenderResources.makeBox(size: sideSize, material: sideMaterial, cornerRadius: 0.035)
         right.position = SIMD3<Float>(sideX, y, 0)
         staticRoot.addChild(right)
+    }
+
+    private func addDuskBackdrop(for gridSize: GridSize) {
+        let boardWidth = terrainWidth(for: gridSize)
+        let boardDepth = terrainDepth(for: gridSize)
+        let horizonWidth = boardWidth + tileSize * 4.4
+        let horizonDepth = boardDepth + tileSize * 4.4
+        let horizonHeight = tileSize * 1.25
+        let horizonY = tileSize * 0.22
+        let distance = max(boardWidth, boardDepth) * 0.58 + tileSize * 1.35
+
+        let skyBand = matte(UIColor(red: 0.24, green: 0.30, blue: 0.38, alpha: 1), roughness: 1.0)
+        let violetBand = matte(UIColor(red: 0.23, green: 0.25, blue: 0.36, alpha: 1), roughness: 1.0)
+        let warmHorizon = matte(UIColor(red: 0.39, green: 0.32, blue: 0.24, alpha: 1), roughness: 1.0)
+        let groundHaze = matte(UIColor(red: 0.17, green: 0.22, blue: 0.22, alpha: 1), roughness: 1.0)
+
+        let back = World3DRenderResources.makeBox(size: SIMD3<Float>(horizonWidth, horizonHeight, 0.06), material: skyBand, cornerRadius: 0.04)
+        back.position = SIMD3<Float>(0, horizonY, -distance)
+        staticRoot.addChild(back)
+
+        let backGlow = World3DRenderResources.makeBox(size: SIMD3<Float>(horizonWidth * 0.72, tileSize * 0.38, 0.065), material: warmHorizon, cornerRadius: 0.05)
+        backGlow.position = SIMD3<Float>(0, tileSize * 0.05, -distance + 0.035)
+        staticRoot.addChild(backGlow)
+
+        let frontDepth = World3DRenderResources.makeBox(size: SIMD3<Float>(horizonWidth, tileSize * 0.72, 0.055), material: groundHaze, cornerRadius: 0.04)
+        frontDepth.position = SIMD3<Float>(0, -tileSize * 0.05, distance)
+        staticRoot.addChild(frontDepth)
+
+        let left = World3DRenderResources.makeBox(size: SIMD3<Float>(0.06, horizonHeight * 0.86, horizonDepth), material: violetBand, cornerRadius: 0.04)
+        left.position = SIMD3<Float>(-distance, horizonY * 0.9, 0)
+        staticRoot.addChild(left)
+
+        let right = World3DRenderResources.makeBox(size: SIMD3<Float>(0.06, horizonHeight * 0.86, horizonDepth), material: skyBand, cornerRadius: 0.04)
+        right.position = SIMD3<Float>(distance, horizonY * 0.9, 0)
+        staticRoot.addChild(right)
+
+        let tableShadow = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(boardWidth + tileSize * 1.6, 0.035, boardDepth + tileSize * 1.6),
+            material: matte(UIColor(red: 0.10, green: 0.13, blue: 0.14, alpha: 1), roughness: 1.0),
+            cornerRadius: 0.42
+        )
+        tableShadow.position.y = -0.43
+        staticRoot.addChild(tableShadow)
     }
 
     private func addTerrainRing(layout: TownBiomeLayout, gridSize: GridSize) {
@@ -224,14 +269,14 @@ final class World3DRenderer {
             switch biome {
             case .forest:
                 tint = stablePercent(coordinate, salt: 300 + index) < 50
-                    ? UIColor(red: 0.12, green: 0.23, blue: 0.13, alpha: 1)
-                    : UIColor(red: 0.20, green: 0.31, blue: 0.18, alpha: 1)
+                    ? atmosphericColor(UIColor(red: 0.10, green: 0.22, blue: 0.18, alpha: 1), coordinate: coordinate, strength: 0.18)
+                    : atmosphericColor(UIColor(red: 0.24, green: 0.34, blue: 0.18, alpha: 1), coordinate: coordinate, strength: 0.12)
             case .mountain:
-                tint = UIColor(red: 0.48, green: 0.46, blue: 0.39, alpha: 1)
+                tint = atmosphericColor(UIColor(red: 0.48, green: 0.46, blue: 0.40, alpha: 1), coordinate: coordinate, strength: 0.22)
             case .plains:
-                tint = UIColor(red: 0.39, green: 0.47, blue: 0.27, alpha: 1)
+                tint = atmosphericColor(UIColor(red: 0.43, green: 0.49, blue: 0.28, alpha: 1), coordinate: coordinate, strength: 0.08)
             case .river:
-                tint = UIColor(red: 0.48, green: 0.68, blue: 0.75, alpha: 0.56)
+                tint = atmosphericColor(UIColor(red: 0.34, green: 0.56, blue: 0.61, alpha: 0.56), coordinate: coordinate, strength: 0.10)
             }
 
             let fleck = World3DRenderResources.makeBox(
@@ -455,7 +500,7 @@ final class World3DRenderer {
     private func showSelection(at coordinate: GridCoordinate) {
         let glow = World3DRenderResources.makeBox(
             size: SIMD3<Float>(tileSize * 0.96, 0.022, tileSize * 0.96),
-            material: matte(UIColor(red: 0.98, green: 0.78, blue: 0.36, alpha: 0.50), roughness: 0.36),
+            material: matte(UIColor(red: 1.0, green: 0.76, blue: 0.28, alpha: 0.52), roughness: 0.34),
             cornerRadius: tileSize * 0.055
         )
         glow.name = "world3d_selection"
@@ -464,7 +509,7 @@ final class World3DRenderer {
 
         let inner = World3DRenderResources.makeBox(
             size: SIMD3<Float>(tileSize * 0.58, 0.012, tileSize * 0.58),
-            material: matte(UIColor(red: 1.0, green: 0.88, blue: 0.54, alpha: 0.34), roughness: 0.32),
+            material: matte(UIColor(red: 1.0, green: 0.88, blue: 0.46, alpha: 0.36), roughness: 0.30),
             cornerRadius: tileSize * 0.04
         )
         inner.name = "world3d_selection"
@@ -489,26 +534,57 @@ final class World3DRenderer {
         switch content {
         case .water:
             let ripple = CGFloat(stablePercent(coordinate, salt: 88)) / 900
-            return matte(UIColor(red: 0.14 + ripple, green: 0.36 + ripple, blue: 0.47 + ripple, alpha: 1), roughness: 0.34)
+            return matte(UIColor(red: 0.10 + ripple, green: 0.31 + ripple, blue: 0.40 + ripple, alpha: 1), roughness: 0.30)
         default:
             let variant = CGFloat(stablePercent(coordinate, salt: 211)) / 900
             let warm = CGFloat(stablePercent(coordinate, salt: 67)) / 1400
-            return matte(UIColor(red: 0.27 + warm, green: 0.39 + variant, blue: 0.22 + warm, alpha: 1), roughness: 0.90)
+            return matte(UIColor(red: 0.29 + warm, green: 0.40 + variant, blue: 0.24 + warm, alpha: 1), roughness: 0.91)
         }
     }
 
     private func terrainMaterial(for biome: BiomeKind, coordinate: GridCoordinate) -> SimpleMaterial {
         let variant = CGFloat(stablePercent(coordinate, salt: 211)) / 1100
+        let coolVariant = CGFloat(stablePercent(coordinate, salt: 619)) / 1500
         switch biome {
         case .forest:
-            return matte(UIColor(red: 0.10 + variant, green: 0.24 + variant, blue: 0.13, alpha: 1), roughness: 0.92)
+            let base = UIColor(red: 0.10 + coolVariant, green: 0.24 + variant, blue: 0.17 + coolVariant, alpha: 1)
+            return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.20), roughness: 0.93)
         case .mountain:
-            return matte(UIColor(red: 0.39 + variant, green: 0.38 + variant, blue: 0.34 + variant, alpha: 1), roughness: 0.96)
+            let base = UIColor(red: 0.38 + variant, green: 0.39 + variant, blue: 0.38 + coolVariant, alpha: 1)
+            return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.28), roughness: 0.97)
         case .plains:
-            return matte(UIColor(red: 0.32 + variant, green: 0.42 + variant, blue: 0.24, alpha: 1), roughness: 0.92)
+            let base = UIColor(red: 0.35 + variant, green: 0.44 + variant, blue: 0.25, alpha: 1)
+            return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.10), roughness: 0.92)
         case .river:
-            return matte(UIColor(red: 0.12, green: 0.33 + variant, blue: 0.46 + variant, alpha: 1), roughness: 0.32)
+            let base = UIColor(red: 0.09, green: 0.31 + variant, blue: 0.40 + variant, alpha: 1)
+            return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.12), roughness: 0.30)
         }
+    }
+
+    private func atmosphericColor(_ color: UIColor, coordinate: GridCoordinate, strength: CGFloat) -> UIColor {
+        let distance = max(abs(coordinate.x - (gridSize.columns - 1) / 2), abs(coordinate.y - (gridSize.rows - 1) / 2))
+        let depth = min(1, CGFloat(max(0, distance - max(gridSize.columns, gridSize.rows) / 2)) / 2)
+        return blend(color, with: duskDepthTint, amount: depth * strength)
+    }
+
+    private func blend(_ color: UIColor, with tint: UIColor, amount: CGFloat) -> UIColor {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        var tintRed: CGFloat = 0
+        var tintGreen: CGFloat = 0
+        var tintBlue: CGFloat = 0
+        var tintAlpha: CGFloat = 0
+        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        tint.getRed(&tintRed, green: &tintGreen, blue: &tintBlue, alpha: &tintAlpha)
+        let clampedAmount = min(1, max(0, amount))
+        return UIColor(
+            red: red + (tintRed - red) * clampedAmount,
+            green: green + (tintGreen - green) * clampedAmount,
+            blue: blue + (tintBlue - blue) * clampedAmount,
+            alpha: alpha
+        )
     }
 
     private func matte(_ color: UIColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {

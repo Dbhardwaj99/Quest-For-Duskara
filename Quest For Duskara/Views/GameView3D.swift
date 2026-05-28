@@ -105,12 +105,12 @@ struct GameView3D: View {
     private var worldVignette: some View {
         ZStack {
             LinearGradient(
-                colors: [.black.opacity(0.30), .clear, .black.opacity(0.24)],
+                colors: [.black.opacity(0.18), .clear, .black.opacity(0.16)],
                 startPoint: .top,
                 endPoint: .bottom
             )
             RadialGradient(
-                colors: [.clear, .black.opacity(0.24)],
+                colors: [.clear, Color(red: 0.08, green: 0.10, blue: 0.14).opacity(0.18)],
                 center: .center,
                 startRadius: 120,
                 endRadius: 620

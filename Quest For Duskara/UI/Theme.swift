@@ -13,9 +13,9 @@ enum DuskaraTheme {
 
     static let worldBackdrop = LinearGradient(
         colors: [
-            Color(red: 0.10, green: 0.13, blue: 0.12),
-            Color(red: 0.18, green: 0.23, blue: 0.18),
-            Color(red: 0.31, green: 0.25, blue: 0.18)
+            Color(red: 0.18, green: 0.22, blue: 0.29),
+            Color(red: 0.22, green: 0.28, blue: 0.27),
+            Color(red: 0.39, green: 0.30, blue: 0.22)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
