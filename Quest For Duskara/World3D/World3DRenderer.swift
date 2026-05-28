@@ -136,27 +136,13 @@ final class World3DRenderer {
         let boardDepth = terrainDepth(for: gridSize)
 
         let earth = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.14, 0.16, boardDepth + 0.14), cornerRadius: 0.18),
+            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.14, 0.32, boardDepth + 0.14), cornerRadius: 0.18),
             materials: [matte(UIColor(red: 0.22, green: 0.24, blue: 0.18, alpha: 1), roughness: 0.96)]
         )
-        earth.position.y = -0.17
+        earth.position.y = -0.25
         staticRoot.addChild(earth)
 
-        let lowerSoil = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.38, 0.11, boardDepth + 0.38), cornerRadius: 0.22),
-            materials: [matte(UIColor(red: 0.17, green: 0.13, blue: 0.10, alpha: 1), roughness: 0.98)]
-        )
-        lowerSoil.position.y = -0.315
-        staticRoot.addChild(lowerSoil)
-
         addTerrainSkirt(width: boardWidth, depth: boardDepth)
-
-        let softShadow = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.58, 0.018, boardDepth + 0.58), cornerRadius: 0.26),
-            materials: [matte(UIColor.black.withAlphaComponent(0.26), roughness: 1)]
-        )
-        softShadow.position.y = -0.390
-        staticRoot.addChild(softShadow)
     }
 
     private func addTerrainSkirt(width: Float, depth: Float) {
