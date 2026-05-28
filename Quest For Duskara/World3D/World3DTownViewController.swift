@@ -7,6 +7,10 @@ final class World3DTownViewController: UIViewController {
     private var adapter: World3DStateAdapter
     private var renderer: World3DRenderer?
     private let cameraController = World3DCameraController()
+    private var fpsDisplayLink: CADisplayLink?
+    private var fpsFrameCount = 0
+    private var fpsStartTime: CFTimeInterval = 0
+    private var didCountActiveARView = false
 
     init(sourceViewModel: GameViewModel) {
         self.sourceViewModel = sourceViewModel
@@ -22,6 +26,31 @@ final class World3DTownViewController: UIViewController {
         super.viewDidLoad()
         configureScene()
         syncFromGameState()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard didCountActiveARView == false else { return }
+        didCountActiveARView = true
+        World3DDiagnostics.arViewDidAppear()
+        startFPSReporting()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        guard didCountActiveARView else { return }
+        didCountActiveARView = false
+        stopFPSReporting()
+        World3DDiagnostics.arViewDidDisappear()
+    }
+
+    deinit {
+        fpsDisplayLink?.invalidate()
+        if didCountActiveARView {
+            Task { @MainActor in
+                World3DDiagnostics.arViewDidDisappear()
+            }
+        }
     }
 
     func syncFromGameState() {
@@ -53,6 +82,29 @@ final class World3DTownViewController: UIViewController {
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         arView.addGestureRecognizer(tap)
+    }
+
+    private func startFPSReporting() {
+        fpsDisplayLink?.invalidate()
+        fpsFrameCount = 0
+        fpsStartTime = CACurrentMediaTime()
+        let displayLink = CADisplayLink(target: self, selector: #selector(stepFPS(_:)))
+        displayLink.add(to: .main, forMode: .common)
+        fpsDisplayLink = displayLink
+    }
+
+    private func stopFPSReporting() {
+        fpsDisplayLink?.invalidate()
+        fpsDisplayLink = nil
+    }
+
+    @objc private func stepFPS(_ displayLink: CADisplayLink) {
+        fpsFrameCount += 1
+        let elapsed = displayLink.timestamp - fpsStartTime
+        guard elapsed >= 2 else { return }
+        World3DDiagnostics.recordFPS(Double(fpsFrameCount) / elapsed)
+        fpsFrameCount = 0
+        fpsStartTime = displayLink.timestamp
     }
 
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {

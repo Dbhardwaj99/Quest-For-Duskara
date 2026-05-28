@@ -18,15 +18,18 @@ struct GameView3D: View {
     private var townBody: some View {
         ZStack(alignment: .top) {
             DuskaraTheme.worldBackdrop.ignoresSafeArea()
-            mainTownLayout
-                .opacity(isTownViewExpanded ? 0 : 1)
-                .allowsHitTesting(isTownViewExpanded == false)
 
-            if isTownViewExpanded {
-                expandedTownViewLayout
-                    .transition(.opacity.combined(with: .scale(scale: 0.985)))
-                    .zIndex(5)
-            }
+            townView3D
+                .ignoresSafeArea()
+                .zIndex(0)
+
+            worldVignette
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+                .zIndex(1)
+
+            townControls
+                .zIndex(2)
 
             if let feedback = viewModel.feedback {
                 Game3DFeedbackToastView(message: feedback.text)
@@ -37,6 +40,7 @@ struct GameView3D: View {
         }
         .animation(.snappy, value: viewModel.feedback?.id)
         .animation(.smooth(duration: 0.34), value: isTownViewExpanded)
+        .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
             BuildMenuView(viewModel: viewModel)
                 .presentationDetents([.medium, .large])
@@ -50,46 +54,20 @@ struct GameView3D: View {
         }
     }
 
-    private var mainTownLayout: some View {
-        ZStack(alignment: .top) {
-            townView3D
-                .ignoresSafeArea()
-
-            worldVignette
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-
-            VStack(spacing: 0) {
-                topHUD
-                    .padding(.top, 8)
-                Spacer(minLength: 12)
+    private var townControls: some View {
+        VStack(spacing: 0) {
+            topHUD
+                .padding(.top, 8)
+            Spacer(minLength: isTownViewExpanded ? 0 : 12)
+            if isTownViewExpanded == false {
                 InspectorPanelView(viewModel: viewModel)
                     .padding(.horizontal, 14)
                     .padding(.bottom, 8)
-                bottomBar
-                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            bottomBar
+                .padding(.bottom, isTownViewExpanded ? 10 : 8)
         }
-    }
-
-    private var expandedTownViewLayout: some View {
-        ZStack(alignment: .top) {
-            townView3D
-                .ignoresSafeArea()
-
-            worldVignette
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-
-            VStack(spacing: 0) {
-                topHUD
-                    .padding(.top, 8)
-                Spacer()
-                bottomBar
-                    .padding(.bottom, 10)
-            }
-        }
-        .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
     }
 
     private var topHUD: some View {

@@ -16,6 +16,8 @@ final class World3DRenderer {
     private var tileEntities: [GridCoordinate: Entity] = [:]
     private var tileSnapshots: [GridCoordinate: World3DTileSnapshot] = [:]
     private var scaffoldSignature = ""
+    private var visualQuality = World3DVisualQuality.adaptive
+    private var lastDiagnosticsReportTime = Date.distantPast
 
     private let tileSize: Float = 0.46
     private let tileGap: Float = 0.020
@@ -28,6 +30,8 @@ final class World3DRenderer {
 
     init(arView: ARView) {
         self.arView = arView
+        World3DRenderResources.configureVisualQuality(visualQuality)
+        World3DDiagnostics.rendererDidInit()
         configureView()
         boardRoot.addChild(staticRoot)
         boardRoot.addChild(tileRoot)
@@ -36,7 +40,14 @@ final class World3DRenderer {
         arView.scene.anchors.append(anchor)
     }
 
+    deinit {
+        Task { @MainActor in
+            World3DDiagnostics.rendererDidDeinit()
+        }
+    }
+
     func render(adapter: World3DStateAdapter) {
+        updateVisualQuality()
         let nextGridSize = adapter.gridSize
         let nextSignature = signature(gridSize: nextGridSize, layout: adapter.town.biomeLayout)
         if nextSignature != scaffoldSignature {
@@ -64,6 +75,7 @@ final class World3DRenderer {
             }
 
             tileEntities[snapshot.coordinate]?.removeFromParent()
+            World3DDiagnostics.tileDidRebuild()
             let entity = World3DTileEntity.makeTile(
                 snapshot: snapshot,
                 tileSize: tileSize,
@@ -78,6 +90,7 @@ final class World3DRenderer {
         }
 
         select(adapter.viewModel.selectedCoordinate)
+        reportDiagnosticsIfNeeded()
     }
 
     func coordinate(for entity: Entity?) -> GridCoordinate? {
@@ -109,22 +122,17 @@ final class World3DRenderer {
         arView.renderOptions.insert(.disableMotionBlur)
 
         let sun = DirectionalLight()
-        sun.light.intensity = 4300
+        sun.light.intensity = 4550
         sun.light.color = UIColor(red: 1.0, green: 0.82, blue: 0.58, alpha: 1)
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
-
-        let warmFill = PointLight()
-        warmFill.light.intensity = 360
-        warmFill.light.color = UIColor(red: 1.0, green: 0.66, blue: 0.42, alpha: 1)
-        warmFill.position = SIMD3<Float>(1.4, 1.8, -1.8)
-        anchor.addChild(warmFill)
     }
 
     private func rebuildScaffold(layout: TownBiomeLayout, gridSize: GridSize) {
         staticRoot.children.forEach { $0.removeFromParent() }
         addGroundPlate(for: gridSize)
         addTerrainRing(layout: layout, gridSize: gridSize)
+        addBiomeBackdrop(layout: layout, gridSize: gridSize)
     }
 
     private func clearTiles() {
@@ -198,7 +206,7 @@ final class World3DRenderer {
                 root.addChild(tile)
 
                 addTerrainTexture(for: biome, to: root, coordinate: coordinate)
-                addTerrainDecoration(for: biome, to: root, coordinate: coordinate)
+                addTerrainDecoration(for: biome, to: root, coordinate: coordinate, gridSize: gridSize)
                 staticRoot.addChild(root)
             }
         }
@@ -217,7 +225,7 @@ final class World3DRenderer {
     }
 
     private func addTerrainTexture(for biome: BiomeKind, to root: Entity, coordinate: GridCoordinate) {
-        let count = biome == .river ? 2 : 3
+        let count = min(biome == .river ? 2 : 3, visualQuality.terrainTextureCount)
         for index in 0..<count {
             let tint: UIColor
             switch biome {
@@ -248,30 +256,43 @@ final class World3DRenderer {
         }
     }
 
-    private func addTerrainDecoration(for biome: BiomeKind, to root: Entity, coordinate: GridCoordinate) {
+    private func addTerrainDecoration(for biome: BiomeKind, to root: Entity, coordinate: GridCoordinate, gridSize: GridSize) {
+        let edgeWeight = terrainEdgeWeight(for: coordinate, gridSize: gridSize)
         switch biome {
         case .forest:
-            let count = stablePercent(coordinate, salt: 7) < 45 ? 3 : 2
+            let baseCount = stablePercent(coordinate, salt: 7) < 45 ? 2 : 1
+            let count = terrainDetailCount(baseCount)
             for index in 0..<count {
                 let cluster = Entity()
                 cluster.position = terrainDecorationOffset(coordinate, index: index)
                 cluster.orientation = simd_quatf(angle: jitter(coordinate, salt: 600 + index) * 0.18, axis: SIMD3<Float>(0, 0, 1))
-                World3DTileEntity.addTree(to: cluster, tileSize: tileSize * (count == 2 ? 0.66 : 0.52))
+                World3DTileEntity.addDistantForestMass(
+                    to: cluster,
+                    tileSize: tileSize * (count == 1 ? 0.86 : 0.64),
+                    coordinate: coordinate,
+                    edgeWeight: edgeWeight
+                )
                 root.addChild(cluster)
             }
         case .mountain:
-            let count = stablePercent(coordinate, salt: 23) < 38 ? 2 : 1
+            let baseCount = stablePercent(coordinate, salt: 23) < 38 ? 2 : 1
+            let count = terrainDetailCount(baseCount)
             for index in 0..<count {
                 let cluster = Entity()
                 cluster.position = terrainDecorationOffset(coordinate, index: index)
-                World3DTileEntity.addMountain(to: cluster, tileSize: tileSize * (count == 1 ? 0.92 : 0.68))
+                World3DTileEntity.addDistantMountainMass(
+                    to: cluster,
+                    tileSize: tileSize * (count == 1 ? 1.02 : 0.72),
+                    coordinate: coordinate,
+                    edgeWeight: edgeWeight
+                )
                 root.addChild(cluster)
             }
         case .plains:
-            if stablePercent(coordinate, salt: 19) < 28 {
+            if stablePercent(coordinate, salt: 19) < Int(20 * visualQuality.terrainDecorationMultiplier) {
                 let cluster = Entity()
                 cluster.position = terrainDecorationOffset(coordinate, index: 0)
-                World3DTileEntity.addTree(to: cluster, tileSize: tileSize * 0.48)
+                World3DTileEntity.addDistantForestMass(to: cluster, tileSize: tileSize * 0.48, coordinate: coordinate, edgeWeight: 0.28)
                 root.addChild(cluster)
             }
         case .river:
@@ -304,6 +325,75 @@ final class World3DRenderer {
         let zJitter = jitter(coordinate, salt: 149 + index * 13) * tileSize * 0.22
         let splitOffset = Float(index - 1) * tileSize * 0.12
         return SIMD3<Float>(xJitter + splitOffset, 0.02, zJitter - splitOffset * 0.55)
+    }
+
+    private func addBiomeBackdrop(layout: TownBiomeLayout, gridSize: GridSize) {
+        for side in BiomeSide.allCases {
+            let biome = layout.biome(on: side) ?? .plains
+            let segments = backdropSegmentCount(for: side, gridSize: gridSize)
+            for index in 0..<segments {
+                let coordinate = backdropCoordinate(for: side, index: index, segments: segments, gridSize: gridSize)
+                let root = Entity()
+                root.name = "world3d_backdrop_\(side.rawValue)_\(index)"
+                root.position = position(for: coordinate)
+                root.position.y = backdropElevation(for: biome, coordinate: coordinate)
+                root.orientation = backdropOrientation(for: side, coordinate: coordinate)
+
+                addBackdropBase(for: biome, to: root, coordinate: coordinate, side: side)
+                switch biome {
+                case .forest:
+                    World3DTileEntity.addDistantForestMass(
+                        to: root,
+                        tileSize: tileSize * backdropScale(for: side, index: index, segments: segments),
+                        coordinate: coordinate,
+                        edgeWeight: 1.0
+                    )
+                case .mountain:
+                    World3DTileEntity.addDistantMountainMass(
+                        to: root,
+                        tileSize: tileSize * backdropScale(for: side, index: index, segments: segments) * 1.06,
+                        coordinate: coordinate,
+                        edgeWeight: 1.0
+                    )
+                case .plains:
+                    if stablePercent(coordinate, salt: 733) < 68 {
+                        World3DTileEntity.addDistantForestMass(
+                            to: root,
+                            tileSize: tileSize * 0.56,
+                            coordinate: coordinate,
+                            edgeWeight: 0.34
+                        )
+                    }
+                case .river:
+                    addRiverBackdrop(to: root, coordinate: coordinate)
+                }
+
+                staticRoot.addChild(root)
+            }
+        }
+    }
+
+    private func addBackdropBase(for biome: BiomeKind, to root: Entity, coordinate: GridCoordinate, side: BiomeSide) {
+        let scale = backdropScale(for: side, index: stablePercent(coordinate, salt: 739) % 4, segments: 4)
+        let size = SIMD3<Float>(tileSize * 0.92 * scale, tileHeight * 0.68, tileSize * 0.62 * scale)
+        let base = World3DRenderResources.makeBox(
+            size: size,
+            material: terrainMaterial(for: biome, coordinate: coordinate),
+            cornerRadius: tileSize * 0.030
+        )
+        base.position.y = -tileHeight * 0.36
+        root.addChild(base)
+    }
+
+    private func addRiverBackdrop(to root: Entity, coordinate: GridCoordinate) {
+        let water = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(tileSize * 0.92, tileHeight * 0.22, tileSize * 0.30),
+            material: terrainMaterial(for: .river, coordinate: coordinate),
+            cornerRadius: tileSize * 0.020
+        )
+        water.position.y = 0.010
+        water.orientation = simd_quatf(angle: jitter(coordinate, salt: 751) * 0.28, axis: SIMD3<Float>(0, 1, 0))
+        root.addChild(water)
     }
 
     private func showSelection(at coordinate: GridCoordinate) {
@@ -394,13 +484,115 @@ final class World3DRenderer {
     }
 
     private func terrainWidth(for gridSize: GridSize) -> Float {
-        let tileCount = gridSize.columns + terrainRingDepth * 2
+        let tileCount = gridSize.columns + terrainRingDepth * 2 + 2
         return Float(tileCount) * tileSize + Float(tileCount - 1) * tileGap
     }
 
     private func terrainDepth(for gridSize: GridSize) -> Float {
-        let tileCount = gridSize.rows + terrainRingDepth * 2
+        let tileCount = gridSize.rows + terrainRingDepth * 2 + 2
         return Float(tileCount) * tileSize + Float(tileCount - 1) * tileGap
+    }
+
+    private func updateVisualQuality() {
+        let nextQuality = World3DVisualQuality.adaptive
+        guard nextQuality != visualQuality else { return }
+        visualQuality = nextQuality
+        World3DRenderResources.configureVisualQuality(nextQuality)
+        scaffoldSignature = ""
+        debugPrint("World3D quality changed:", nextQuality.rawValue)
+    }
+
+    private func terrainDetailCount(_ count: Int) -> Int {
+        max(1, Int((Float(count) * visualQuality.terrainDecorationMultiplier).rounded()))
+    }
+
+    private func reportDiagnosticsIfNeeded() {
+        let now = Date()
+        guard now.timeIntervalSince(lastDiagnosticsReportTime) > 4 else { return }
+        lastDiagnosticsReportTime = now
+        World3DDiagnostics.report(entityRoot: boardRoot, terrainRoot: staticRoot, quality: visualQuality)
+    }
+
+    private func terrainEdgeWeight(for coordinate: GridCoordinate, gridSize: GridSize) -> Float {
+        let sideCount = Float(sidesTouching(coordinate, gridSize: gridSize).count)
+        let cornerBonus: Float = sideCount > 1 ? 0.22 : 0
+        let rhythm = Float(stablePercent(coordinate, salt: 727)) / 100 * 0.18
+        return min(1, 0.64 + cornerBonus + rhythm)
+    }
+
+    private func backdropSegmentCount(for side: BiomeSide, gridSize: GridSize) -> Int {
+        let length = side == .top || side == .bottom ? gridSize.columns : gridSize.rows
+        switch visualQuality {
+        case .low:
+            return min(length, 3)
+        case .medium:
+            return min(length, 4)
+        case .high:
+            return length
+        }
+    }
+
+    private func backdropCoordinate(for side: BiomeSide, index: Int, segments: Int, gridSize: GridSize) -> GridCoordinate {
+        let length = side == .top || side == .bottom ? gridSize.columns : gridSize.rows
+        let sourceIndex: Int
+        if segments <= 1 {
+            sourceIndex = length / 2
+        } else {
+            sourceIndex = Int((Float(index) / Float(segments - 1) * Float(length - 1)).rounded())
+        }
+
+        switch side {
+        case .top:
+            return GridCoordinate(x: sourceIndex, y: -2)
+        case .bottom:
+            return GridCoordinate(x: sourceIndex, y: gridSize.rows + 1)
+        case .left:
+            return GridCoordinate(x: -2, y: sourceIndex)
+        case .right:
+            return GridCoordinate(x: gridSize.columns + 1, y: sourceIndex)
+        }
+    }
+
+    private func backdropOrientation(for side: BiomeSide, coordinate: GridCoordinate) -> simd_quatf {
+        let jitterAngle = jitter(coordinate, salt: 743) * 0.12
+        let baseAngle: Float
+        switch side {
+        case .top:
+            baseAngle = 0
+        case .bottom:
+            baseAngle = .pi
+        case .left:
+            baseAngle = -.pi / 2
+        case .right:
+            baseAngle = .pi / 2
+        }
+        return simd_quatf(angle: baseAngle + jitterAngle, axis: SIMD3<Float>(0, 1, 0))
+    }
+
+    private func backdropScale(for side: BiomeSide, index: Int, segments: Int) -> Float {
+        let edgeBias: Float
+        if segments <= 1 {
+            edgeBias = 1
+        } else {
+            let t = Float(index) / Float(segments - 1)
+            edgeBias = 1 - abs(t - 0.5) * 0.22
+        }
+
+        let sideBias: Float = side == .top || side == .left ? 1.03 : 0.96
+        return edgeBias * sideBias
+    }
+
+    private func backdropElevation(for biome: BiomeKind, coordinate: GridCoordinate) -> Float {
+        switch biome {
+        case .forest:
+            return 0.016 + Float(stablePercent(coordinate, salt: 747)) / 100 * 0.012
+        case .mountain:
+            return 0.040 + Float(stablePercent(coordinate, salt: 748)) / 100 * 0.018
+        case .plains:
+            return 0.006
+        case .river:
+            return -0.004
+        }
     }
 
     private func stablePercent(_ coordinate: GridCoordinate, salt: Int) -> Int {
