@@ -4,6 +4,7 @@ import UIKit
 
 struct World3DAssetGalleryView: View {
     @State private var selectedAsset = World3DAssetPreview.defaultAsset
+	@Environment(\.presentationMode) private var presentationMode
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -11,6 +12,14 @@ struct World3DAssetGalleryView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 12) {
+				HStack {
+					close
+					
+					Spacer(minLength: 0)
+				}
+				
+				Spacer(minLength: 0)
+				
                 assetHeader
                 assetPicker
             }
@@ -18,6 +27,8 @@ struct World3DAssetGalleryView: View {
             .padding(.bottom, 18)
         }
         .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
+//        .background(NavigationBackSwipeDisabler())
+		.navigationBarBackButtonHidden()
         .navigationTitle("3D Assets")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -46,6 +57,16 @@ struct World3DAssetGalleryView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.16), lineWidth: 1))
     }
 
+	private var close: some View {
+		Button(action: {
+			self.presentationMode.wrappedValue.dismiss()
+		}) {
+			Image(systemName: "xmark.circle.fill")
+				.font(.title)
+				.foregroundColor(.white)
+		}
+	}
+	
     private var assetPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -87,6 +108,46 @@ private struct World3DAssetPreviewContainer: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: World3DAssetPreviewViewController, context: Context) {
         uiViewController.show(asset)
+    }
+}
+
+private struct NavigationBackSwipeDisabler: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller {
+        Controller()
+    }
+
+    func updateUIViewController(_ uiViewController: Controller, context: Context) {
+        uiViewController.disableBackSwipe()
+    }
+
+    final class Controller: UIViewController {
+        private weak var disabledGesture: UIGestureRecognizer?
+        private var previousIsEnabled = true
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            disableBackSwipe()
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            restoreBackSwipe()
+        }
+
+        func disableBackSwipe() {
+            guard let gesture = navigationController?.interactivePopGestureRecognizer else { return }
+            if disabledGesture !== gesture {
+                restoreBackSwipe()
+                disabledGesture = gesture
+                previousIsEnabled = gesture.isEnabled
+            }
+            gesture.isEnabled = false
+        }
+
+        private func restoreBackSwipe() {
+            disabledGesture?.isEnabled = previousIsEnabled
+            disabledGesture = nil
+        }
     }
 }
 
@@ -311,7 +372,7 @@ private final class World3DAssetPreviewViewController: UIViewController, UIGestu
         case .began:
             startScale = scale
         case .changed:
-            scale = min(1.85, max(0.62, startScale * Float(recognizer.scale)))
+            scale = min(1.85, max(0.43, startScale * Float(recognizer.scale)))
             updatePreviewTransform()
         default:
             break
