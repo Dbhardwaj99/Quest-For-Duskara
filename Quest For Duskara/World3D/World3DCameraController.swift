@@ -38,7 +38,7 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
     private(set) var isInteracting = false
 
     private let minDistance: Float = 3.2
-    private let maxDistance: Float = 7.4
+    private let maxDistance: Float = 8.86
     private let minPitch: Float = 0.56
     private let maxPitch: Float = 1.02
 

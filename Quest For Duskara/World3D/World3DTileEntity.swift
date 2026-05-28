@@ -60,7 +60,7 @@ struct World3DTileEntity {
     static func addTree(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
         let lean = jitter(coordinate, salt: 91) * 0.12
         let heightScale = 0.92 + randomFloat(coordinate, salt: 92) * 0.18
-        let canopyCount = 3 + stablePercent(coordinate, salt: 93) % 3
+        let canopyCount = 5 + stablePercent(coordinate, salt: 93) % 4
         let trunkOffset = SIMD3<Float>(jitter(coordinate, salt: 94) * 0.035, 0, jitter(coordinate, salt: 95) * 0.035)
 
         addGroundPatch(
@@ -87,8 +87,8 @@ struct World3DTileEntity {
         for index in 0..<canopyCount {
             let x = trunkOffset.x + jitter(coordinate, salt: 101 + index * 11) * 0.13
             let z = trunkOffset.z + jitter(coordinate, salt: 107 + index * 13) * 0.12
-            let y = 0.43 + Float(index) * 0.07 + randomFloat(coordinate, salt: 109 + index) * 0.12
-            let radius = 0.17 + randomFloat(coordinate, salt: 113 + index * 5) * 0.085
+            let y = 0.36 + Float(index) * 0.055 + randomFloat(coordinate, salt: 109 + index) * 0.12
+            let radius = 0.14 + randomFloat(coordinate, salt: 113 + index * 5) * 0.090
             let scale = SIMD3<Float>(
                 1.08 + jitter(coordinate, salt: 117 + index) * 0.18,
                 0.74 + randomFloat(coordinate, salt: 121 + index) * 0.28,
@@ -101,6 +101,22 @@ struct World3DTileEntity {
                 position: SIMD3<Float>(x, y * heightScale, z),
                 scale: scale,
                 color: index.isMultiple(of: 2) ? Palette.forestMoss : Palette.leafHighlight
+            )
+        }
+
+        for index in 0..<3 {
+            let side: Float = index.isMultiple(of: 2) ? -1 : 1
+            addCanopyBlob(
+                to: root,
+                tileSize: tileSize,
+                radius: 0.13 + randomFloat(coordinate, salt: 128 + index) * 0.045,
+                position: SIMD3<Float>(
+                    trunkOffset.x + side * (0.12 + randomFloat(coordinate, salt: 129 + index) * 0.08),
+                    (0.38 + Float(index) * 0.06) * heightScale,
+                    trunkOffset.z + jitter(coordinate, salt: 130 + index) * 0.16
+                ),
+                scale: SIMD3<Float>(1.15, 0.62, 0.92),
+                color: index == 1 ? Palette.leafHighlight : Palette.forestDeep
             )
         }
 
@@ -118,6 +134,8 @@ struct World3DTileEntity {
 
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.18, 0.22), radius: 0.13, count: 3, scale: 0.72)
         addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(trunkOffset.x, trunkOffset.z), radius: 0.38)
+        addMushrooms(to: root, tileSize: tileSize, coordinate: coordinate, around: SIMD2<Float>(trunkOffset.x - 0.11, trunkOffset.z + 0.14))
+        addLeafScatter(to: root, tileSize: tileSize, coordinate: coordinate, around: SIMD2<Float>(trunkOffset.x, trunkOffset.z))
     }
 
     static func addMountain(to root: Entity, tileSize: Float) {
@@ -163,7 +181,10 @@ struct World3DTileEntity {
             rock.orientation = simd_quatf(angle: randomAngle(coordinate, salt: spec.3 + 5), axis: SIMD3<Float>(0, 1, 0))
         }
 
+        addJaggedPeak(to: root, tileSize: tileSize, coordinate: coordinate, base: SIMD3<Float>(-0.06, 0.66, -0.04), salt: 171, color: Palette.paleStone)
+        addJaggedPeak(to: root, tileSize: tileSize, coordinate: coordinate, base: SIMD3<Float>(0.18, 0.47, 0.08), salt: 177, color: Palette.smokeStone)
         addRockStrata(to: root, tileSize: tileSize, coordinate: coordinate)
+        addMountainCracks(to: root, tileSize: tileSize, coordinate: coordinate)
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(0.18, -0.26), radius: 0.25, count: 6, scale: 0.95)
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.24, 0.24), radius: 0.18, count: 4, scale: 0.78)
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(0.03, 0.18), radius: 0.32, color: Palette.deepStone)
@@ -318,6 +339,8 @@ struct World3DTileEntity {
         roof.orientation = simd_quatf(angle: 0.12 + jitter(coordinate, salt: 223) * 0.07, axis: SIMD3<Float>(0, 0, 1))
         let cap = addBox(to: root, size: SIMD3<Float>(0.50, 0.055, 0.55) * tileSize, position: (SIMD3<Float>(-0.08, 0.58, -0.02) + bodyOffset) * tileSize, color: Palette.roofHighlight, roughness: 0.88, cornerRadius: tileSize * 0.012)
         cap.orientation = roof.orientation
+        addRoofSlats(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(-0.07, 0.575, -0.02) + bodyOffset, width: 0.54, depth: 0.48, count: 4, color: Palette.terracottaDark)
+        addTimberFrame(to: root, tileSize: tileSize, center: SIMD3<Float>(-0.04, 0.25, 0.19) + bodyOffset, width: 0.40, height: 0.27, color: Palette.darkTimber)
 
         addBox(to: root, size: SIMD3<Float>(0.20, 0.22, 0.23) * tileSize, position: SIMD3<Float>(0.24, 0.16, 0.12) * tileSize, color: Palette.sideShed, roughness: 0.86, cornerRadius: tileSize * 0.018)
         let shedRoof = addBox(to: root, size: SIMD3<Float>(0.26, 0.07, 0.28) * tileSize, position: SIMD3<Float>(0.24, 0.30, 0.12) * tileSize, color: Palette.strawRoof, roughness: 0.92, cornerRadius: tileSize * 0.012)
@@ -328,10 +351,13 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.12, 0.03, 0.11) * tileSize, position: SIMD3<Float>(chimney.position.x / tileSize, 0.775, chimney.position.z / tileSize) * tileSize, color: Palette.deepStone, roughness: 0.9, cornerRadius: tileSize * 0.005)
 
         addBox(to: root, size: SIMD3<Float>(0.12, 0.13, 0.035) * tileSize, position: SIMD3<Float>(-0.21, 0.25, 0.20) * tileSize, color: Palette.warmWindow, roughness: 0.42, cornerRadius: tileSize * 0.004)
+        addShutters(to: root, tileSize: tileSize, center: SIMD3<Float>(-0.21, 0.25, 0.225))
         addBox(to: root, size: SIMD3<Float>(0.11, 0.15, 0.038) * tileSize, position: SIMD3<Float>(0.05, 0.23, 0.20) * tileSize, color: Palette.doorWood, roughness: 0.84, cornerRadius: tileSize * 0.004)
         addFence(to: root, tileSize: tileSize, coordinate: coordinate, start: SIMD2<Float>(-0.35, 0.29), count: 3, horizontal: true)
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 4, around: SIMD2<Float>(0.29, -0.22), radius: 0.16, color: Palette.cutWood)
         addBarrel(to: root, tileSize: tileSize, position: SIMD3<Float>(-0.31, 0.08, -0.24), salt: 226, coordinate: coordinate)
+        addCrate(to: root, tileSize: tileSize, position: SIMD3<Float>(0.31, 0.065, -0.12), coordinate: coordinate, salt: 227)
+        addLantern(to: root, tileSize: tileSize, position: SIMD3<Float>(-0.01, 0.31, 0.225), coordinate: coordinate, salt: 228)
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -341,13 +367,20 @@ struct World3DTileEntity {
             let z = -0.25 + Float(index) * 0.09 + jitter(coordinate, salt: 232 + index) * 0.015
             let row = addBox(to: root, size: SIMD3<Float>(0.48 + jitter(coordinate, salt: 238 + index) * 0.05, 0.035, 0.028) * tileSize, position: SIMD3<Float>(-0.12 + jitter(coordinate, salt: 244 + index) * 0.025, 0.075, z) * tileSize, color: index.isMultiple(of: 2) ? Palette.cropGold : Palette.cropGreen, roughness: 0.92, cornerRadius: tileSize * 0.006)
             row.orientation = simd_quatf(angle: jitter(coordinate, salt: 250 + index) * 0.05, axis: SIMD3<Float>(0, 1, 0))
+            addBox(to: root, size: SIMD3<Float>(0.035, 0.065 + randomFloat(coordinate, salt: 255 + index) * 0.05, 0.035) * tileSize, position: SIMD3<Float>(0.10 + jitter(coordinate, salt: 260 + index) * 0.08, 0.105, z + 0.018) * tileSize, color: index.isMultiple(of: 2) ? Palette.cropGold : Palette.cropGreen, roughness: 0.94, cornerRadius: tileSize * 0.006)
         }
         addBox(to: root, size: SIMD3<Float>(0.23, 0.24, 0.20) * tileSize, position: SIMD3<Float>(0.23, 0.18, -0.23) * tileSize, color: Palette.barnWood, roughness: 0.86, cornerRadius: tileSize * 0.016)
         let roof = addBox(to: root, size: SIMD3<Float>(0.30, 0.09, 0.25) * tileSize, position: SIMD3<Float>(0.22, 0.335, -0.23) * tileSize, color: Palette.strawRoof, roughness: 0.92, cornerRadius: tileSize * 0.014)
         roof.orientation = simd_quatf(angle: -0.08, axis: SIMD3<Float>(0, 0, 1))
+        addRoofSlats(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.22, 0.35, -0.23), width: 0.27, depth: 0.21, count: 3, color: Palette.strawShadow)
+        addTimberFrame(to: root, tileSize: tileSize, center: SIMD3<Float>(0.23, 0.19, -0.125), width: 0.20, height: 0.20, color: Palette.darkTimber)
         addBox(to: root, size: SIMD3<Float>(0.12, 0.12, 0.035) * tileSize, position: SIMD3<Float>(0.23, 0.19, -0.12) * tileSize, color: Palette.doorWood, roughness: 0.84, cornerRadius: tileSize * 0.004)
         addFence(to: root, tileSize: tileSize, coordinate: coordinate, start: SIMD2<Float>(-0.39, -0.33), count: 5, horizontal: true)
+        addFence(to: root, tileSize: tileSize, coordinate: coordinate, start: SIMD2<Float>(0.39, -0.24), count: 4, horizontal: false)
         addWoodPile(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.34, 0.07, 0.21), count: 3)
+        addScarecrow(to: root, tileSize: tileSize, coordinate: coordinate, position: SIMD3<Float>(-0.34, 0.11, 0.20))
+        addCart(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.33, 0.075, 0.03))
+        addSack(to: root, tileSize: tileSize, position: SIMD3<Float>(0.05, 0.055, 0.31), coordinate: coordinate, salt: 271)
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -355,6 +388,10 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.42, 0.30, 0.34) * tileSize, position: SIMD3<Float>(-0.02, 0.20, -0.01) * tileSize, color: Palette.timber, roughness: 0.9, cornerRadius: tileSize * 0.02)
         let roof = addBox(to: root, size: SIMD3<Float>(0.50, 0.10, 0.40) * tileSize, position: SIMD3<Float>(-0.04, 0.405, -0.02) * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.014)
         roof.orientation = simd_quatf(angle: 0.10 + jitter(coordinate, salt: 261) * 0.06, axis: SIMD3<Float>(0, 0, 1))
+        addRoofSlats(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(-0.04, 0.43, -0.02), width: 0.48, depth: 0.36, count: 4, color: Palette.cutWood)
+        addBox(to: root, size: SIMD3<Float>(0.25, 0.20, 0.24) * tileSize, position: SIMD3<Float>(0.24, 0.16, 0.03) * tileSize, color: Palette.timber, roughness: 0.9, cornerRadius: tileSize * 0.014)
+        let leanRoof = addBox(to: root, size: SIMD3<Float>(0.30, 0.07, 0.28) * tileSize, position: SIMD3<Float>(0.25, 0.30, 0.03) * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.010)
+        leanRoof.orientation = simd_quatf(angle: -0.12, axis: SIMD3<Float>(0, 0, 1))
 
         for index in 0..<3 {
             addSupportBeam(to: root, tileSize: tileSize, position: SIMD3<Float>(-0.20 + Float(index) * 0.19, 0.20, 0.20), height: 0.31, salt: 262 + index, coordinate: coordinate)
@@ -364,10 +401,12 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.42, 0.06, 0.30) * tileSize, position: SIMD3<Float>(0.18, 0.09, -0.28) * tileSize, color: Palette.sawPlatform, roughness: 0.9, cornerRadius: tileSize * 0.01)
         addBox(to: root, size: SIMD3<Float>(0.32, 0.035, 0.05) * tileSize, position: SIMD3<Float>(0.20, 0.145, -0.28) * tileSize, color: Palette.paleStone, roughness: 0.86, cornerRadius: tileSize * 0.004)
         addBox(to: root, size: SIMD3<Float>(0.055, 0.15, 0.055) * tileSize, position: SIMD3<Float>(0.00, 0.19, -0.28) * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.004)
+        addSawBlade(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.08, 0.20, -0.28))
 
         addWheel(to: root, tileSize: tileSize, center: SIMD3<Float>(-0.30, 0.25, -0.05), coordinate: coordinate)
         addWoodPile(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.34, 0.07, 0.18), count: 5)
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(-0.29, 0.27), radius: 0.16, color: Palette.cutWood)
+        addCrate(to: root, tileSize: tileSize, position: SIMD3<Float>(-0.31, 0.06, 0.18), coordinate: coordinate, salt: 276)
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -379,12 +418,16 @@ struct World3DTileEntity {
         addSupportBeam(to: root, tileSize: tileSize, position: SIMD3<Float>(-0.18, 0.20, 0.28), height: 0.26, salt: 282, coordinate: coordinate)
         addSupportBeam(to: root, tileSize: tileSize, position: SIMD3<Float>(0.22, 0.20, 0.27), height: 0.25, salt: 283, coordinate: coordinate)
         addBox(to: root, size: SIMD3<Float>(0.45, 0.055, 0.065) * tileSize, position: SIMD3<Float>(0.02, 0.30, 0.275) * tileSize, color: Palette.railWood, roughness: 0.92, cornerRadius: tileSize * 0.006)
+        addLantern(to: root, tileSize: tileSize, position: SIMD3<Float>(0.02, 0.235, 0.34), coordinate: coordinate, salt: 284)
+        addWinch(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(-0.28, 0.24, 0.20))
 
         addBox(to: root, size: SIMD3<Float>(0.48, 0.035, 0.045) * tileSize, position: SIMD3<Float>(0.02, 0.065, 0.36) * tileSize, color: Palette.railWood, roughness: 0.92, cornerRadius: tileSize * 0.004)
         addBox(to: root, size: SIMD3<Float>(0.48, 0.025, 0.018) * tileSize, position: SIMD3<Float>(0.02, 0.095, 0.315) * tileSize, color: Palette.deepStone, roughness: 0.88, cornerRadius: tileSize * 0.002)
         addBox(to: root, size: SIMD3<Float>(0.48, 0.025, 0.018) * tileSize, position: SIMD3<Float>(0.02, 0.095, 0.405) * tileSize, color: Palette.deepStone, roughness: 0.88, cornerRadius: tileSize * 0.002)
+        addMineCart(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.25, 0.095, 0.36))
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.30, -0.18), radius: 0.18, count: 5, scale: 0.82)
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 6, around: SIMD2<Float>(0.23, 0.33), radius: 0.18, color: Palette.coalChunk)
+        addPickaxe(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(-0.36, 0.10, 0.03))
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -395,6 +438,9 @@ struct World3DTileEntity {
         tower.orientation = simd_quatf(angle: jitter(coordinate, salt: 301) * 0.05, axis: SIMD3<Float>(0, 0, 1))
         addBox(to: root, size: SIMD3<Float>(0.23, 0.055, 0.23) * tileSize, position: SIMD3<Float>(0.22, 0.735, -0.12) * tileSize, color: Palette.warmGold, roughness: 0.48, cornerRadius: tileSize * 0.007)
         addBox(to: root, size: SIMD3<Float>(0.15, 0.25, 0.15) * tileSize, position: SIMD3<Float>(0.22, 0.89, -0.12) * tileSize, color: Palette.glassGlow, roughness: 0.30, cornerRadius: tileSize * 0.018)
+        addBox(to: root, size: SIMD3<Float>(0.10, 0.19, 0.10) * tileSize, position: SIMD3<Float>(-0.27, 0.63, 0.03) * tileSize, color: Palette.smokeStone, roughness: 0.88, cornerRadius: tileSize * 0.010)
+        addBox(to: root, size: SIMD3<Float>(0.52, 0.09, 0.46) * tileSize, position: SIMD3<Float>(-0.05, 0.57, 0.02) * tileSize, color: Palette.slateRoof, roughness: 0.88, cornerRadius: tileSize * 0.012)
+        addRoofSlats(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(-0.05, 0.59, 0.02), width: 0.48, depth: 0.40, count: 3, color: Palette.arcaneBlue)
 
         addBox(to: root, size: SIMD3<Float>(0.08, 0.08, 0.46) * tileSize, position: SIMD3<Float>(-0.28, 0.42, -0.02) * tileSize, color: Palette.arcaneBlue, roughness: 0.38, cornerRadius: tileSize * 0.01)
         addBox(to: root, size: SIMD3<Float>(0.07, 0.32, 0.07) * tileSize, position: SIMD3<Float>(-0.27, 0.24, 0.24) * tileSize, color: Palette.glassGlow, roughness: 0.34, cornerRadius: tileSize * 0.012)
@@ -404,6 +450,7 @@ struct World3DTileEntity {
             rod.orientation = simd_quatf(angle: jitter(coordinate, salt: 302 + index) * 0.10, axis: SIMD3<Float>(0, 0, 1))
         }
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 4, around: SIMD2<Float>(0.31, 0.26), radius: 0.14, color: Palette.warmGold)
+        addAlchemyProps(to: root, tileSize: tileSize, coordinate: coordinate)
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -417,6 +464,8 @@ struct World3DTileEntity {
         for (index, corner) in corners.enumerated() {
             addBox(to: root, size: SIMD3<Float>(0.095, 0.38 + Float(index % 2) * 0.045, 0.095) * tileSize, position: corner * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.006)
         }
+        addBox(to: root, size: SIMD3<Float>(0.22, 0.10, 0.18) * tileSize, position: SIMD3<Float>(-0.31, 0.53, -0.23) * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.006)
+        addBox(to: root, size: SIMD3<Float>(0.27, 0.045, 0.22) * tileSize, position: SIMD3<Float>(-0.31, 0.61, -0.23) * tileSize, color: Palette.slateRoof, roughness: 0.9, cornerRadius: tileSize * 0.006)
 
         addBanner(to: root, tileSize: tileSize, coordinate: coordinate, polePosition: SIMD3<Float>(-0.34, 0.48, -0.26), side: -1)
         addBanner(to: root, tileSize: tileSize, coordinate: coordinate, polePosition: SIMD3<Float>(0.28, 0.43, 0.25), side: 1)
@@ -424,6 +473,8 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.13, 0.16, 0.04) * tileSize, position: SIMD3<Float>(-0.10, 0.24, 0.235) * tileSize, color: Palette.doorWood, roughness: 0.84, cornerRadius: tileSize * 0.004)
         addWeaponRack(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.30, 0.13, -0.30))
         addTrainingProps(to: root, tileSize: tileSize, coordinate: coordinate)
+        addShieldRack(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(-0.33, 0.19, -0.03))
+        addFirePit(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.32, 0.04, 0.09))
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -612,6 +663,174 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.07, 0.07, 0.040) * tileSize, position: SIMD3<Float>(-0.32, 0.25, 0.255) * tileSize, color: Palette.warmGold, roughness: 0.56, cornerRadius: tileSize * 0.014)
     }
 
+    private static func addMushrooms(to root: Entity, tileSize: Float, coordinate: GridCoordinate, around: SIMD2<Float>) {
+        for index in 0..<3 {
+            let x = around.x + jitter(coordinate, salt: 961 + index) * 0.08
+            let z = around.y + jitter(coordinate, salt: 967 + index) * 0.08
+            guard abs(x) < 0.46, abs(z) < 0.46 else { continue }
+            addBox(to: root, size: SIMD3<Float>(0.018, 0.045, 0.018) * tileSize, position: SIMD3<Float>(x, 0.034, z) * tileSize, color: Palette.plaster, roughness: 0.88, cornerRadius: tileSize * 0.004)
+            addBox(to: root, size: SIMD3<Float>(0.045, 0.022, 0.045) * tileSize, position: SIMD3<Float>(x, 0.066, z) * tileSize, color: Palette.mushroomCap, roughness: 0.82, cornerRadius: tileSize * 0.010)
+        }
+    }
+
+    private static func addLeafScatter(to root: Entity, tileSize: Float, coordinate: GridCoordinate, around: SIMD2<Float>) {
+        for index in 0..<5 {
+            let x = around.x + jitter(coordinate, salt: 971 + index) * 0.28
+            let z = around.y + jitter(coordinate, salt: 977 + index) * 0.28
+            guard abs(x) < 0.46, abs(z) < 0.46 else { continue }
+            let leaf = addBox(to: root, size: SIMD3<Float>(0.040, 0.007, 0.022) * tileSize, position: SIMD3<Float>(x, 0.017, z) * tileSize, color: index.isMultiple(of: 2) ? Palette.leafHighlight : Palette.forestDeep, roughness: 0.95, cornerRadius: tileSize * 0.004)
+            leaf.orientation = simd_quatf(angle: randomAngle(coordinate, salt: 981 + index), axis: SIMD3<Float>(0, 1, 0))
+        }
+    }
+
+    private static func addJaggedPeak(to root: Entity, tileSize: Float, coordinate: GridCoordinate, base: SIMD3<Float>, salt: Int, color: UIColor) {
+        for index in 0..<3 {
+            let width = 0.17 - Float(index) * 0.035
+            let height = 0.18 - Float(index) * 0.035
+            let peak = addBox(
+                to: root,
+                size: SIMD3<Float>(width, height, width * 0.82) * tileSize,
+                position: SIMD3<Float>(base.x + jitter(coordinate, salt: salt + index) * 0.025, base.y + Float(index) * 0.075, base.z + jitter(coordinate, salt: salt + 4 + index) * 0.025) * tileSize,
+                color: index.isMultiple(of: 2) ? color : Palette.deepStone,
+                roughness: 0.96,
+                cornerRadius: tileSize * 0.010
+            )
+            peak.orientation = simd_quatf(angle: 0.26 + jitter(coordinate, salt: salt + 8 + index) * 0.16, axis: SIMD3<Float>(0, 0, 1)) * simd_quatf(angle: randomAngle(coordinate, salt: salt + 12 + index), axis: SIMD3<Float>(0, 1, 0))
+        }
+    }
+
+    private static func addMountainCracks(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
+        for index in 0..<4 {
+            let crack = addBox(
+                to: root,
+                size: SIMD3<Float>(0.018, 0.16 - Float(index) * 0.018, 0.020) * tileSize,
+                position: SIMD3<Float>(-0.18 + Float(index) * 0.12, 0.27 + Float(index % 2) * 0.12, 0.155 - Float(index) * 0.08) * tileSize,
+                color: Palette.crackShadow,
+                roughness: 0.98,
+                cornerRadius: tileSize * 0.002
+            )
+            crack.orientation = simd_quatf(angle: -0.24 + jitter(coordinate, salt: 991 + index) * 0.28, axis: SIMD3<Float>(0, 0, 1)) * simd_quatf(angle: jitter(coordinate, salt: 995 + index) * 0.35, axis: SIMD3<Float>(0, 1, 0))
+        }
+    }
+
+    private static func addRoofSlats(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>, width: Float, depth: Float, count: Int, color: UIColor) {
+        for index in 0..<count {
+            let z = center.z - depth * 0.42 + Float(index) * (depth / Float(max(count - 1, 1)))
+            let slat = addBox(
+                to: root,
+                size: SIMD3<Float>(width - Float(index % 2) * 0.035, 0.018, 0.024) * tileSize,
+                position: SIMD3<Float>(center.x + jitter(coordinate, salt: 1001 + index) * 0.018, center.y + Float(index % 2) * 0.006, z) * tileSize,
+                color: color,
+                roughness: 0.90,
+                cornerRadius: tileSize * 0.004
+            )
+            slat.orientation = simd_quatf(angle: jitter(coordinate, salt: 1008 + index) * 0.06, axis: SIMD3<Float>(0, 1, 0))
+        }
+    }
+
+    private static func addTimberFrame(to root: Entity, tileSize: Float, center: SIMD3<Float>, width: Float, height: Float, color: UIColor) {
+        let z = center.z
+        let postHeight = height
+        addBox(to: root, size: SIMD3<Float>(0.026, postHeight, 0.026) * tileSize, position: SIMD3<Float>(center.x - width * 0.46, center.y, z) * tileSize, color: color, roughness: 0.92, cornerRadius: tileSize * 0.003)
+        addBox(to: root, size: SIMD3<Float>(0.026, postHeight, 0.026) * tileSize, position: SIMD3<Float>(center.x + width * 0.46, center.y, z) * tileSize, color: color, roughness: 0.92, cornerRadius: tileSize * 0.003)
+        addBox(to: root, size: SIMD3<Float>(width, 0.024, 0.026) * tileSize, position: SIMD3<Float>(center.x, center.y + height * 0.42, z) * tileSize, color: color, roughness: 0.92, cornerRadius: tileSize * 0.003)
+        addBox(to: root, size: SIMD3<Float>(width * 0.78, 0.024, 0.026) * tileSize, position: SIMD3<Float>(center.x, center.y - height * 0.30, z) * tileSize, color: color, roughness: 0.92, cornerRadius: tileSize * 0.003)
+        let diagonal = addBox(to: root, size: SIMD3<Float>(0.024, height * 0.72, 0.026) * tileSize, position: SIMD3<Float>(center.x, center.y + height * 0.02, z + 0.002) * tileSize, color: color, roughness: 0.92, cornerRadius: tileSize * 0.003)
+        diagonal.orientation = simd_quatf(angle: 0.55, axis: SIMD3<Float>(0, 0, 1))
+    }
+
+    private static func addShutters(to root: Entity, tileSize: Float, center: SIMD3<Float>) {
+        addBox(to: root, size: SIMD3<Float>(0.026, 0.14, 0.024) * tileSize, position: SIMD3<Float>(center.x - 0.078, center.y, center.z) * tileSize, color: Palette.darkTimber, roughness: 0.88, cornerRadius: tileSize * 0.003)
+        addBox(to: root, size: SIMD3<Float>(0.026, 0.14, 0.024) * tileSize, position: SIMD3<Float>(center.x + 0.078, center.y, center.z) * tileSize, color: Palette.darkTimber, roughness: 0.88, cornerRadius: tileSize * 0.003)
+    }
+
+    private static func addLantern(to root: Entity, tileSize: Float, position: SIMD3<Float>, coordinate: GridCoordinate, salt: Int) {
+        addBox(to: root, size: SIMD3<Float>(0.020, 0.070, 0.020) * tileSize, position: position * tileSize, color: Palette.darkTimber, roughness: 0.84, cornerRadius: tileSize * 0.003)
+        let glow = addBox(to: root, size: SIMD3<Float>(0.055, 0.060, 0.042) * tileSize, position: SIMD3<Float>(position.x, position.y - 0.055, position.z) * tileSize, color: Palette.lanternGlow, roughness: 0.36, cornerRadius: tileSize * 0.010)
+        glow.orientation = simd_quatf(angle: jitter(coordinate, salt: salt) * 0.12, axis: SIMD3<Float>(0, 1, 0))
+    }
+
+    private static func addCrate(to root: Entity, tileSize: Float, position: SIMD3<Float>, coordinate: GridCoordinate, salt: Int) {
+        let crate = addBox(to: root, size: SIMD3<Float>(0.105, 0.095, 0.105) * tileSize, position: position * tileSize, color: Palette.cutWood, roughness: 0.90, cornerRadius: tileSize * 0.008)
+        crate.orientation = simd_quatf(angle: randomAngle(coordinate, salt: salt), axis: SIMD3<Float>(0, 1, 0))
+        addBox(to: root, size: SIMD3<Float>(0.118, 0.018, 0.018) * tileSize, position: SIMD3<Float>(position.x, position.y + 0.008, position.z) * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.002)
+    }
+
+    private static func addSack(to root: Entity, tileSize: Float, position: SIMD3<Float>, coordinate: GridCoordinate, salt: Int) {
+        let sack = addBox(to: root, size: SIMD3<Float>(0.11, 0.09, 0.095) * tileSize, position: position * tileSize, color: Palette.sackCloth, roughness: 0.95, cornerRadius: tileSize * 0.020)
+        sack.orientation = simd_quatf(angle: randomAngle(coordinate, salt: salt), axis: SIMD3<Float>(0, 1, 0))
+        addBox(to: root, size: SIMD3<Float>(0.055, 0.018, 0.055) * tileSize, position: SIMD3<Float>(position.x, position.y + 0.055, position.z) * tileSize, color: Palette.railWood, roughness: 0.9, cornerRadius: tileSize * 0.004)
+    }
+
+    private static func addScarecrow(to root: Entity, tileSize: Float, coordinate: GridCoordinate, position: SIMD3<Float>) {
+        addBox(to: root, size: SIMD3<Float>(0.026, 0.25, 0.026) * tileSize, position: position * tileSize, color: Palette.railWood, roughness: 0.90, cornerRadius: tileSize * 0.003)
+        let arm = addBox(to: root, size: SIMD3<Float>(0.20, 0.024, 0.024) * tileSize, position: SIMD3<Float>(position.x, position.y + 0.08, position.z) * tileSize, color: Palette.railWood, roughness: 0.90, cornerRadius: tileSize * 0.003)
+        arm.orientation = simd_quatf(angle: jitter(coordinate, salt: 1021) * 0.08, axis: SIMD3<Float>(0, 0, 1))
+        addBox(to: root, size: SIMD3<Float>(0.085, 0.07, 0.030) * tileSize, position: SIMD3<Float>(position.x, position.y + 0.105, position.z + 0.010) * tileSize, color: Palette.bannerRed, roughness: 0.82, cornerRadius: tileSize * 0.004)
+        addBox(to: root, size: SIMD3<Float>(0.095, 0.026, 0.070) * tileSize, position: SIMD3<Float>(position.x, position.y + 0.165, position.z) * tileSize, color: Palette.strawRoof, roughness: 0.94, cornerRadius: tileSize * 0.006)
+    }
+
+    private static func addCart(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        let tray = addBox(to: root, size: SIMD3<Float>(0.20, 0.070, 0.13) * tileSize, position: center * tileSize, color: Palette.barnWood, roughness: 0.88, cornerRadius: tileSize * 0.008)
+        tray.orientation = simd_quatf(angle: jitter(coordinate, salt: 1031) * 0.18, axis: SIMD3<Float>(0, 1, 0))
+        addBox(to: root, size: SIMD3<Float>(0.035, 0.060, 0.035) * tileSize, position: SIMD3<Float>(center.x - 0.085, center.y - 0.020, center.z + 0.075) * tileSize, color: Palette.darkTimber, roughness: 0.90, cornerRadius: tileSize * 0.010)
+        addBox(to: root, size: SIMD3<Float>(0.035, 0.060, 0.035) * tileSize, position: SIMD3<Float>(center.x + 0.085, center.y - 0.020, center.z + 0.075) * tileSize, color: Palette.darkTimber, roughness: 0.90, cornerRadius: tileSize * 0.010)
+    }
+
+    private static func addSawBlade(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        for index in 0..<4 {
+            let tooth = addBox(to: root, size: SIMD3<Float>(0.028, 0.16, 0.018) * tileSize, position: center * tileSize, color: Palette.paleStone, roughness: 0.70, cornerRadius: tileSize * 0.002)
+            tooth.orientation = simd_quatf(angle: Float(index) * .pi / 4 + jitter(coordinate, salt: 1041) * 0.08, axis: SIMD3<Float>(0, 0, 1))
+        }
+        addBox(to: root, size: SIMD3<Float>(0.050, 0.050, 0.026) * tileSize, position: center * tileSize, color: Palette.warmGold, roughness: 0.56, cornerRadius: tileSize * 0.010)
+    }
+
+    private static func addWinch(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        addSupportBeam(to: root, tileSize: tileSize, position: SIMD3<Float>(center.x - 0.07, center.y, center.z), height: 0.22, salt: 1051, coordinate: coordinate)
+        addSupportBeam(to: root, tileSize: tileSize, position: SIMD3<Float>(center.x + 0.07, center.y, center.z), height: 0.22, salt: 1052, coordinate: coordinate)
+        addBox(to: root, size: SIMD3<Float>(0.19, 0.040, 0.040) * tileSize, position: SIMD3<Float>(center.x, center.y + 0.10, center.z) * tileSize, color: Palette.railWood, roughness: 0.90, cornerRadius: tileSize * 0.006)
+        addBox(to: root, size: SIMD3<Float>(0.050, 0.090, 0.050) * tileSize, position: SIMD3<Float>(center.x, center.y + 0.10, center.z) * tileSize, color: Palette.coalChunk, roughness: 0.82, cornerRadius: tileSize * 0.008)
+    }
+
+    private static func addMineCart(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        let cart = addBox(to: root, size: SIMD3<Float>(0.22, 0.10, 0.14) * tileSize, position: center * tileSize, color: Palette.deepStone, roughness: 0.80, cornerRadius: tileSize * 0.010)
+        cart.orientation = simd_quatf(angle: jitter(coordinate, salt: 1061) * 0.08, axis: SIMD3<Float>(0, 1, 0))
+        addBox(to: root, size: SIMD3<Float>(0.18, 0.045, 0.10) * tileSize, position: SIMD3<Float>(center.x, center.y + 0.07, center.z) * tileSize, color: Palette.coalChunk, roughness: 0.70, cornerRadius: tileSize * 0.012)
+        addBox(to: root, size: SIMD3<Float>(0.040, 0.045, 0.035) * tileSize, position: SIMD3<Float>(center.x - 0.07, center.y - 0.06, center.z + 0.06) * tileSize, color: Palette.railWood, roughness: 0.86, cornerRadius: tileSize * 0.009)
+        addBox(to: root, size: SIMD3<Float>(0.040, 0.045, 0.035) * tileSize, position: SIMD3<Float>(center.x + 0.07, center.y - 0.06, center.z + 0.06) * tileSize, color: Palette.railWood, roughness: 0.86, cornerRadius: tileSize * 0.009)
+    }
+
+    private static func addPickaxe(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        let handle = addBox(to: root, size: SIMD3<Float>(0.026, 0.22, 0.026) * tileSize, position: center * tileSize, color: Palette.railWood, roughness: 0.88, cornerRadius: tileSize * 0.003)
+        handle.orientation = simd_quatf(angle: -0.62 + jitter(coordinate, salt: 1071) * 0.10, axis: SIMD3<Float>(0, 0, 1))
+        let head = addBox(to: root, size: SIMD3<Float>(0.16, 0.028, 0.020) * tileSize, position: SIMD3<Float>(center.x + 0.055, center.y + 0.085, center.z) * tileSize, color: Palette.paleStone, roughness: 0.76, cornerRadius: tileSize * 0.003)
+        head.orientation = handle.orientation
+    }
+
+    private static func addAlchemyProps(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
+        addBox(to: root, size: SIMD3<Float>(0.16, 0.07, 0.16) * tileSize, position: SIMD3<Float>(0.30, 0.075, 0.10) * tileSize, color: Palette.cauldron, roughness: 0.78, cornerRadius: tileSize * 0.020)
+        addBox(to: root, size: SIMD3<Float>(0.10, 0.035, 0.10) * tileSize, position: SIMD3<Float>(0.30, 0.13, 0.10) * tileSize, color: Palette.glassGlow, roughness: 0.30, cornerRadius: tileSize * 0.016)
+        for index in 0..<3 {
+            let bottle = addBox(to: root, size: SIMD3<Float>(0.040, 0.075, 0.040) * tileSize, position: SIMD3<Float>(-0.32 + Float(index) * 0.055, 0.075, -0.28) * tileSize, color: index.isMultiple(of: 2) ? Palette.arcaneBlue : Palette.potionPurple, roughness: 0.34, cornerRadius: tileSize * 0.010)
+            bottle.orientation = simd_quatf(angle: jitter(coordinate, salt: 1081 + index) * 0.10, axis: SIMD3<Float>(0, 1, 0))
+        }
+    }
+
+    private static func addShieldRack(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        addBox(to: root, size: SIMD3<Float>(0.025, 0.24, 0.030) * tileSize, position: center * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.003)
+        for index in 0..<2 {
+            let shield = addBox(to: root, size: SIMD3<Float>(0.075, 0.095, 0.025) * tileSize, position: SIMD3<Float>(center.x + Float(index) * 0.075, center.y + 0.04, center.z) * tileSize, color: index.isMultiple(of: 2) ? Palette.bannerRed : Palette.warmGold, roughness: 0.70, cornerRadius: tileSize * 0.014)
+            shield.orientation = simd_quatf(angle: jitter(coordinate, salt: 1091 + index) * 0.08, axis: SIMD3<Float>(0, 1, 0))
+        }
+    }
+
+    private static func addFirePit(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>) {
+        addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(center.x, center.z), radius: 0.055, count: 5, scale: 0.35)
+        addBox(to: root, size: SIMD3<Float>(0.060, 0.080, 0.040) * tileSize, position: SIMD3<Float>(center.x, center.y + 0.06, center.z) * tileSize, color: Palette.lanternGlow, roughness: 0.38, cornerRadius: tileSize * 0.010)
+        let flame = addBox(to: root, size: SIMD3<Float>(0.035, 0.11, 0.035) * tileSize, position: SIMD3<Float>(center.x, center.y + 0.10, center.z) * tileSize, color: Palette.bannerRed, roughness: 0.58, cornerRadius: tileSize * 0.008)
+        flame.orientation = simd_quatf(angle: 0.32 + jitter(coordinate, salt: 1101) * 0.08, axis: SIMD3<Float>(0, 0, 1))
+    }
+
     @discardableResult
     private static func addBox(
         to root: Entity,
@@ -675,6 +894,7 @@ private enum Palette {
     static let grassLight = UIColor(red: 0.40, green: 0.51, blue: 0.30, alpha: 1)
     static let grassShadow = UIColor(red: 0.24, green: 0.37, blue: 0.22, alpha: 1)
     static let forestMoss = UIColor(red: 0.16, green: 0.32, blue: 0.19, alpha: 1)
+    static let forestDeep = UIColor(red: 0.10, green: 0.24, blue: 0.14, alpha: 1)
     static let leafHighlight = UIColor(red: 0.24, green: 0.43, blue: 0.24, alpha: 1)
     static let bark = UIColor(red: 0.33, green: 0.22, blue: 0.13, alpha: 1)
     static let rootSoil = UIColor(red: 0.29, green: 0.27, blue: 0.18, alpha: 1)
@@ -690,6 +910,7 @@ private enum Palette {
     static let plinthStone = UIColor(red: 0.42, green: 0.37, blue: 0.28, alpha: 1)
     static let plaster = UIColor(red: 0.70, green: 0.55, blue: 0.39, alpha: 1)
     static let terracotta = UIColor(red: 0.43, green: 0.20, blue: 0.16, alpha: 1)
+    static let terracottaDark = UIColor(red: 0.32, green: 0.14, blue: 0.11, alpha: 1)
     static let roofHighlight = UIColor(red: 0.55, green: 0.27, blue: 0.19, alpha: 1)
     static let sideShed = UIColor(red: 0.57, green: 0.42, blue: 0.28, alpha: 1)
     static let warmWindow = UIColor(red: 0.93, green: 0.70, blue: 0.36, alpha: 1)
@@ -698,6 +919,7 @@ private enum Palette {
     static let cropGreen = UIColor(red: 0.36, green: 0.49, blue: 0.24, alpha: 1)
     static let barnWood = UIColor(red: 0.52, green: 0.32, blue: 0.19, alpha: 1)
     static let strawRoof = UIColor(red: 0.70, green: 0.56, blue: 0.30, alpha: 1)
+    static let strawShadow = UIColor(red: 0.54, green: 0.43, blue: 0.22, alpha: 1)
     static let timber = UIColor(red: 0.43, green: 0.29, blue: 0.17, alpha: 1)
     static let darkTimber = UIColor(red: 0.25, green: 0.17, blue: 0.10, alpha: 1)
     static let cutWood = UIColor(red: 0.59, green: 0.40, blue: 0.23, alpha: 1)
@@ -714,6 +936,12 @@ private enum Palette {
     static let slateRoof = UIColor(red: 0.28, green: 0.31, blue: 0.29, alpha: 1)
     static let bannerRed = UIColor(red: 0.66, green: 0.22, blue: 0.17, alpha: 1)
     static let waterSheen = UIColor(red: 0.60, green: 0.78, blue: 0.86, alpha: 0.42)
+    static let mushroomCap = UIColor(red: 0.72, green: 0.28, blue: 0.21, alpha: 1)
+    static let crackShadow = UIColor(red: 0.18, green: 0.18, blue: 0.16, alpha: 1)
+    static let lanternGlow = UIColor(red: 0.96, green: 0.72, blue: 0.30, alpha: 1)
+    static let sackCloth = UIColor(red: 0.63, green: 0.49, blue: 0.31, alpha: 1)
+    static let cauldron = UIColor(red: 0.20, green: 0.24, blue: 0.23, alpha: 1)
+    static let potionPurple = UIColor(red: 0.53, green: 0.36, blue: 0.74, alpha: 1)
 }
 
 private extension SIMD3 where Scalar == Float {

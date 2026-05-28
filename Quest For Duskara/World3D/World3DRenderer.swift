@@ -9,7 +9,6 @@ final class World3DRenderer {
     private let boardRoot = Entity()
     private let staticRoot = Entity()
     private let tileRoot = Entity()
-    private let atmosphereRoot = Entity()
     private let overlayRoot = Entity()
 
     private var selectedCoordinate: GridCoordinate?
@@ -21,7 +20,7 @@ final class World3DRenderer {
     private let tileSize: Float = 0.46
     private let tileGap: Float = 0.020
     private let tileHeight: Float = 0.060
-    private let terrainRingDepth = 2
+    private let terrainRingDepth = 1
 
     var cameraParent: Entity {
         anchor
@@ -32,7 +31,6 @@ final class World3DRenderer {
         configureView()
         boardRoot.addChild(staticRoot)
         boardRoot.addChild(tileRoot)
-        boardRoot.addChild(atmosphereRoot)
         boardRoot.addChild(overlayRoot)
         anchor.addChild(boardRoot)
         arView.scene.anchors.append(anchor)
@@ -123,10 +121,8 @@ final class World3DRenderer {
 
     private func rebuildScaffold(layout: TownBiomeLayout, gridSize: GridSize) {
         staticRoot.children.forEach { $0.removeFromParent() }
-        atmosphereRoot.children.forEach { $0.removeFromParent() }
         addGroundPlate(for: gridSize)
         addTerrainRing(layout: layout, gridSize: gridSize)
-        addAtmosphere(for: gridSize)
     }
 
     private func clearTiles() {
@@ -289,39 +285,6 @@ final class World3DRenderer {
             }
         case .river:
             break
-        }
-    }
-
-    private func addAtmosphere(for gridSize: GridSize) {
-        let boardWidth = terrainWidth(for: gridSize)
-        let boardDepth = terrainDepth(for: gridSize)
-
-        for index in 0..<6 {
-            let mist = ModelEntity(
-                mesh: .generateBox(size: SIMD3<Float>(boardWidth * 0.35, 0.010, 0.045), cornerRadius: 0.020),
-                materials: [matte(UIColor(red: 0.76, green: 0.78, blue: 0.68, alpha: 0.16), roughness: 0.24)]
-            )
-            let side: Float = index.isMultiple(of: 2) ? -1 : 1
-            mist.position = SIMD3<Float>(
-                jitter(GridCoordinate(x: index, y: 0), salt: 11) * boardWidth * 0.46,
-                0.15 + Float(index % 3) * 0.045,
-                side * boardDepth * (0.46 + Float(index % 2) * 0.10)
-            )
-            mist.orientation = simd_quatf(angle: 0.22 * side + Float(index) * 0.12, axis: SIMD3<Float>(0, 1, 0))
-            atmosphereRoot.addChild(mist)
-        }
-
-        for index in 0..<10 {
-            let mote = ModelEntity(
-                mesh: .generateSphere(radius: 0.010 + Float(index % 3) * 0.003),
-                materials: [matte(UIColor(red: 0.95, green: 0.78, blue: 0.48, alpha: 0.38), roughness: 0.35)]
-            )
-            mote.position = SIMD3<Float>(
-                jitter(GridCoordinate(x: index, y: 2), salt: 91) * boardWidth * 0.42,
-                0.24 + Float(index % 4) * 0.055,
-                jitter(GridCoordinate(x: index, y: 5), salt: 131) * boardDepth * 0.42
-            )
-            atmosphereRoot.addChild(mote)
         }
     }
 
