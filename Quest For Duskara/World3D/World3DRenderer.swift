@@ -55,6 +55,14 @@ final class World3DRenderer {
         }
 
         for snapshot in snapshots where tileSnapshots[snapshot.coordinate] != snapshot {
+            if let existing = tileEntities[snapshot.coordinate],
+               let previous = tileSnapshots[snapshot.coordinate],
+               previous.content == snapshot.content {
+                World3DTileEntity.updatePlacementOverlay(snapshot.placementState, on: existing, tileSize: tileSize)
+                tileSnapshots[snapshot.coordinate] = snapshot
+                continue
+            }
+
             tileEntities[snapshot.coordinate]?.removeFromParent()
             let entity = World3DTileEntity.makeTile(
                 snapshot: snapshot,
@@ -106,17 +114,11 @@ final class World3DRenderer {
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
 
-        let skyFill = PointLight()
-        skyFill.light.intensity = 620
-        skyFill.light.color = UIColor(red: 0.54, green: 0.65, blue: 0.78, alpha: 1)
-        skyFill.position = SIMD3<Float>(-3.2, 3.0, 2.8)
-        anchor.addChild(skyFill)
-
-        let hearthGlow = PointLight()
-        hearthGlow.light.intensity = 420
-        hearthGlow.light.color = UIColor(red: 1.0, green: 0.58, blue: 0.30, alpha: 1)
-        hearthGlow.position = SIMD3<Float>(1.8, 1.0, -1.6)
-        anchor.addChild(hearthGlow)
+        let warmFill = PointLight()
+        warmFill.light.intensity = 360
+        warmFill.light.color = UIColor(red: 1.0, green: 0.66, blue: 0.42, alpha: 1)
+        warmFill.position = SIMD3<Float>(1.4, 1.8, -1.8)
+        anchor.addChild(warmFill)
     }
 
     private func rebuildScaffold(layout: TownBiomeLayout, gridSize: GridSize) {
@@ -135,9 +137,10 @@ final class World3DRenderer {
         let boardWidth = terrainWidth(for: gridSize)
         let boardDepth = terrainDepth(for: gridSize)
 
-        let earth = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(boardWidth + 0.14, 0.32, boardDepth + 0.14), cornerRadius: 0.18),
-            materials: [matte(UIColor(red: 0.22, green: 0.24, blue: 0.18, alpha: 1), roughness: 0.96)]
+        let earth = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(boardWidth + 0.14, 0.32, boardDepth + 0.14),
+            material: matte(UIColor(red: 0.22, green: 0.24, blue: 0.18, alpha: 1), roughness: 0.96),
+            cornerRadius: 0.18
         )
         earth.position.y = -0.25
         staticRoot.addChild(earth)
@@ -154,19 +157,19 @@ final class World3DRenderer {
         let sideX = width / 2 + 0.035
         let y: Float = -0.205
 
-        let front = ModelEntity(mesh: .generateBox(size: frontBackSize, cornerRadius: 0.035), materials: [sideMaterial])
+        let front = World3DRenderResources.makeBox(size: frontBackSize, material: sideMaterial, cornerRadius: 0.035)
         front.position = SIMD3<Float>(0, y, topZ)
         staticRoot.addChild(front)
 
-        let back = ModelEntity(mesh: .generateBox(size: frontBackSize, cornerRadius: 0.035), materials: [sideMaterial])
+        let back = World3DRenderResources.makeBox(size: frontBackSize, material: sideMaterial, cornerRadius: 0.035)
         back.position = SIMD3<Float>(0, y, -topZ)
         staticRoot.addChild(back)
 
-        let left = ModelEntity(mesh: .generateBox(size: sideSize, cornerRadius: 0.035), materials: [sideMaterial])
+        let left = World3DRenderResources.makeBox(size: sideSize, material: sideMaterial, cornerRadius: 0.035)
         left.position = SIMD3<Float>(-sideX, y, 0)
         staticRoot.addChild(left)
 
-        let right = ModelEntity(mesh: .generateBox(size: sideSize, cornerRadius: 0.035), materials: [sideMaterial])
+        let right = World3DRenderResources.makeBox(size: sideSize, material: sideMaterial, cornerRadius: 0.035)
         right.position = SIMD3<Float>(sideX, y, 0)
         staticRoot.addChild(right)
     }
@@ -186,9 +189,10 @@ final class World3DRenderer {
                 root.position.y = terrainElevation(for: biome, coordinate: coordinate)
 
                 let tileScale = terrainTileScale(coordinate)
-                let tile = ModelEntity(
-                    mesh: .generateBox(size: SIMD3<Float>(tileSize * tileScale.x, tileHeight * tileScale.y, tileSize * tileScale.z), cornerRadius: tileSize * 0.055),
-                    materials: [terrainMaterial(for: biome, coordinate: coordinate)]
+                let tile = World3DRenderResources.makeBox(
+                    size: SIMD3<Float>(tileSize * tileScale.x, tileHeight * tileScale.y, tileSize * tileScale.z),
+                    material: terrainMaterial(for: biome, coordinate: coordinate),
+                    cornerRadius: tileSize * 0.055
                 )
                 tile.position.y = -tileHeight * tileScale.y / 2
                 root.addChild(tile)
@@ -229,9 +233,10 @@ final class World3DRenderer {
                 tint = UIColor(red: 0.48, green: 0.68, blue: 0.75, alpha: 0.56)
             }
 
-            let fleck = ModelEntity(
-                mesh: .generateBox(size: SIMD3<Float>(tileSize * 0.18, 0.008, tileSize * 0.035), cornerRadius: tileSize * 0.006),
-                materials: [matte(tint, roughness: biome == .river ? 0.30 : 0.96)]
+            let fleck = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(tileSize * 0.18, 0.008, tileSize * 0.035),
+                material: matte(tint, roughness: biome == .river ? 0.30 : 0.96),
+                cornerRadius: tileSize * 0.006
             )
             fleck.position = SIMD3<Float>(
                 jitter(coordinate, salt: 351 + index * 13) * tileSize * 0.28,
@@ -302,17 +307,19 @@ final class World3DRenderer {
     }
 
     private func showSelection(at coordinate: GridCoordinate) {
-        let glow = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(tileSize * 0.96, 0.022, tileSize * 0.96), cornerRadius: tileSize * 0.055),
-            materials: [matte(UIColor(red: 0.98, green: 0.78, blue: 0.36, alpha: 0.50), roughness: 0.36)]
+        let glow = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(tileSize * 0.96, 0.022, tileSize * 0.96),
+            material: matte(UIColor(red: 0.98, green: 0.78, blue: 0.36, alpha: 0.50), roughness: 0.36),
+            cornerRadius: tileSize * 0.055
         )
         glow.name = "world3d_selection"
         glow.position = position(for: coordinate) + SIMD3<Float>(0, 0.084 + tileElevation(for: coordinate), 0)
         overlayRoot.addChild(glow)
 
-        let inner = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(tileSize * 0.58, 0.012, tileSize * 0.58), cornerRadius: tileSize * 0.04),
-            materials: [matte(UIColor(red: 1.0, green: 0.88, blue: 0.54, alpha: 0.34), roughness: 0.32)]
+        let inner = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(tileSize * 0.58, 0.012, tileSize * 0.58),
+            material: matte(UIColor(red: 1.0, green: 0.88, blue: 0.54, alpha: 0.34), roughness: 0.32),
+            cornerRadius: tileSize * 0.04
         )
         inner.name = "world3d_selection"
         inner.position = position(for: coordinate) + SIMD3<Float>(0, 0.102 + tileElevation(for: coordinate), 0)
@@ -359,7 +366,7 @@ final class World3DRenderer {
     }
 
     private func matte(_ color: UIColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
-        SimpleMaterial(color: color, roughness: MaterialScalarParameter(floatLiteral: roughness), isMetallic: metallic)
+        World3DRenderResources.material(color, roughness: roughness, metallic: metallic)
     }
 
     private func terrainElevation(for biome: BiomeKind, coordinate: GridCoordinate) -> Float {

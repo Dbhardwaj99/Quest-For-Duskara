@@ -2,6 +2,19 @@ import RealityKit
 import UIKit
 
 struct World3DTileEntity {
+    private enum TemplateKind: Hashable {
+        case tree
+        case mountain
+    }
+
+    private struct TemplateKey: Hashable {
+        let kind: TemplateKind
+        let tileSizeBucket: Int
+    }
+
+    private static let placementOverlayName = "world3d_placement_overlay"
+    private static var templateCache: [TemplateKey: Entity] = [:]
+
     static func makeTile(
         snapshot: World3DTileSnapshot,
         tileSize: Float,
@@ -12,13 +25,14 @@ struct World3DTileEntity {
         root.name = entityName(for: snapshot.coordinate)
 
         let baseHeight = tileHeight * heightMultiplier(for: snapshot.coordinate)
-        let tile = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(tileSize, baseHeight, tileSize), cornerRadius: tileSize * 0.045),
-            materials: [material]
+        let tile = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(tileSize, baseHeight, tileSize),
+            material: material,
+            cornerRadius: tileSize * 0.045
         )
         tile.name = root.name
         tile.position.y = -baseHeight / 2
-        tile.components.set(CollisionComponent(shapes: [.generateBox(size: SIMD3<Float>(tileSize, tileHeight * 2.4, tileSize))]))
+        tile.components.set(CollisionComponent(shapes: [World3DRenderResources.collisionBox(size: SIMD3<Float>(tileSize, tileHeight * 2.4, tileSize))]))
         root.addChild(tile)
 
         addGroundDetail(for: snapshot, to: root, tileSize: tileSize)
@@ -53,8 +67,15 @@ struct World3DTileEntity {
         return nil
     }
 
+    static func updatePlacementOverlay(_ state: TilePlacementState, on root: Entity, tileSize: Float) {
+        root.children
+            .filter { $0.name == placementOverlayName }
+            .forEach { $0.removeFromParent() }
+        addPlacementOverlay(state, to: root, tileSize: tileSize)
+    }
+
     static func addTree(to root: Entity, tileSize: Float) {
-        addTree(to: root, tileSize: tileSize, coordinate: GridCoordinate(x: 0, y: 0))
+        root.addChild(template(kind: .tree, tileSize: tileSize))
     }
 
     static func addTree(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
@@ -139,7 +160,7 @@ struct World3DTileEntity {
     }
 
     static func addMountain(to root: Entity, tileSize: Float) {
-        addMountain(to: root, tileSize: tileSize, coordinate: GridCoordinate(x: 0, y: 0))
+        root.addChild(template(kind: .mountain, tileSize: tileSize))
     }
 
     static func addMountain(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
@@ -188,6 +209,25 @@ struct World3DTileEntity {
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(0.18, -0.26), radius: 0.25, count: 6, scale: 0.95)
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.24, 0.24), radius: 0.18, count: 4, scale: 0.78)
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(0.03, 0.18), radius: 0.32, color: Palette.deepStone)
+    }
+
+    private static func template(kind: TemplateKind, tileSize: Float) -> Entity {
+        let key = TemplateKey(kind: kind, tileSizeBucket: Int((tileSize * 10_000).rounded()))
+        if let cached = templateCache[key] {
+            return cached.clone(recursive: true)
+        }
+
+        let root = Entity()
+        let coordinate = GridCoordinate(x: 0, y: 0)
+        switch kind {
+        case .tree:
+            addTree(to: root, tileSize: tileSize, coordinate: coordinate)
+        case .mountain:
+            addMountain(to: root, tileSize: tileSize, coordinate: coordinate)
+        }
+
+        templateCache[key] = root
+        return root.clone(recursive: true)
     }
 
     private static func coordinate(fromName name: String) -> GridCoordinate? {
@@ -276,18 +316,22 @@ struct World3DTileEntity {
             height = 0.018
         }
 
-        let overlay = ModelEntity(
-            mesh: .generateBox(size: SIMD3<Float>(tileSize * 0.82, height, tileSize * 0.82), cornerRadius: tileSize * 0.04),
-            materials: [material(color, roughness: 0.56)]
+        let overlay = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(tileSize * 0.82, height, tileSize * 0.82),
+            material: material(color, roughness: 0.56),
+            cornerRadius: tileSize * 0.04
         )
+        overlay.name = placementOverlayName
         overlay.position.y = 0.052
         root.addChild(overlay)
 
         if state == .valid {
-            let glint = ModelEntity(
-                mesh: .generateBox(size: SIMD3<Float>(tileSize * 0.62, 0.012, tileSize * 0.07), cornerRadius: tileSize * 0.01),
-                materials: [material(UIColor(red: 1.0, green: 0.87, blue: 0.48, alpha: 0.72), roughness: 0.32)]
+            let glint = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(tileSize * 0.62, 0.012, tileSize * 0.07),
+                material: material(UIColor(red: 1.0, green: 0.87, blue: 0.48, alpha: 0.72), roughness: 0.32),
+                cornerRadius: tileSize * 0.01
             )
+            glint.name = placementOverlayName
             glint.position.y = 0.075
             glint.orientation = simd_quatf(angle: 0.72, axis: SIMD3<Float>(0, 1, 0))
             root.addChild(glint)
@@ -479,12 +523,12 @@ struct World3DTileEntity {
     }
 
     private static func addCanopyBlob(to root: Entity, tileSize: Float, radius: Float, position: SIMD3<Float>, scale: SIMD3<Float>, color: UIColor) {
-        let blob = ModelEntity(
-            mesh: .generateSphere(radius: tileSize * radius),
-            materials: [material(color, roughness: 0.86)]
+        let blob = World3DRenderResources.makeSphere(
+            radius: tileSize * radius,
+            material: material(color, roughness: 0.86),
+            scale: scale
         )
         blob.position = position * tileSize
-        blob.scale = scale
         root.addChild(blob)
     }
 
@@ -840,9 +884,10 @@ struct World3DTileEntity {
         roughness: Float = 0.78,
         cornerRadius: Float = 0
     ) -> ModelEntity {
-        let box = ModelEntity(
-            mesh: .generateBox(size: size, cornerRadius: cornerRadius),
-            materials: [material(color, roughness: roughness)]
+        let box = World3DRenderResources.makeBox(
+            size: size,
+            material: material(color, roughness: roughness),
+            cornerRadius: cornerRadius
         )
         box.position = position
         root.addChild(box)
@@ -864,7 +909,7 @@ struct World3DTileEntity {
     }
 
     private static func material(_ color: UIColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
-        SimpleMaterial(color: color, roughness: MaterialScalarParameter(floatLiteral: roughness), isMetallic: metallic)
+        World3DRenderResources.material(color, roughness: roughness, metallic: metallic)
     }
 
     private static func heightMultiplier(for coordinate: GridCoordinate) -> Float {
