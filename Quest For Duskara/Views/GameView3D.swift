@@ -59,12 +59,12 @@ struct GameView3D: View {
             topHUD
                 .padding(.top, 8)
             Spacer(minLength: isTownViewExpanded ? 0 : 12)
-            if isTownViewExpanded == false {
-                InspectorPanelView(viewModel: viewModel)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+//            if isTownViewExpanded == false {
+//                InspectorPanelView(viewModel: viewModel)
+//                    .padding(.horizontal, 14)
+//                    .padding(.bottom, 8)
+//                    .transition(.move(edge: .bottom).combined(with: .opacity))
+//            }
             bottomBar
                 .padding(.bottom, isTownViewExpanded ? 10 : 8)
         }
