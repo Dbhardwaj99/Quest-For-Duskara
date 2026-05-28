@@ -14,7 +14,8 @@ struct ContentView: View {
                 onStartNewGame: startNewGame,
                 onLoadGame: loadGame,
                 onPlay2D: openGame,
-                onPlay3D: openGame3D
+                onPlay3D: openGame3D,
+                onOpenAssetGallery: openAssetGallery
             )
             .navigationDestination(for: GameRoute.self) { route in
                 switch route {
@@ -24,6 +25,8 @@ struct ContentView: View {
                 case .game3D:
                     GameView3D(viewModel: viewModel)
                         .navigationBarBackButtonHidden()
+                case .assetGallery:
+                    World3DAssetGalleryView()
                 }
             }
         }
@@ -67,6 +70,10 @@ struct ContentView: View {
         path = [.game2D]
     }
 
+    private func openAssetGallery() {
+        path = [.assetGallery]
+    }
+
     private func refreshSavedGameSummary() {
         savedGameSummary = saveStore.savedGameSummary()
     }
@@ -75,6 +82,7 @@ struct ContentView: View {
 private enum GameRoute: Hashable {
     case game2D
     case game3D
+    case assetGallery
 }
 
 #Preview {

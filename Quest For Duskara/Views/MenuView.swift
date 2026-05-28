@@ -6,6 +6,7 @@ struct MenuView: View {
     let onLoadGame: () -> Void
     let onPlay2D: () -> Void
     let onPlay3D: () -> Void
+    let onOpenAssetGallery: () -> Void
 
     @State private var isStartConfirmationPresented = false
     @State private var isLoadConfirmationPresented = false
@@ -34,6 +35,12 @@ struct MenuView: View {
 
                 Button(action: onPlay3D) {
                     Label("Play 3D", systemImage: "cube.transparent.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(DuskaraButtonStyle())
+
+                Button(action: onOpenAssetGallery) {
+                    Label("3D Asset Viewer", systemImage: "cube.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(DuskaraButtonStyle())
@@ -88,6 +95,7 @@ struct MenuView: View {
         onStartNewGame: { },
         onLoadGame: { },
         onPlay2D: { },
-        onPlay3D: { }
+        onPlay3D: { },
+        onOpenAssetGallery: { }
     )
 }
