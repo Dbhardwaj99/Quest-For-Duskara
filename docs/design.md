@@ -1,163 +1,104 @@
-# Quest for Duskara Design and Technical Notes
+# Quest for Duskara Design Notes
 
-This document records the current design patterns, gameplay systems, and technical intent for the project.
+This document describes the current RealityKit-first game architecture and the gameplay systems that support it.
 
 ## Product Direction
 
-Quest for Duskara is a cozy medieval strategy simulation game. The target experience is a portrait-mode mobile town-management loop with expandable systems:
+Quest for Duskara is a portrait-mode medieval strategy simulation. The player founds a settlement, builds a resource economy, trains soldiers, conquers connected towns, and transfers resources across the controlled realm.
 
-- Town construction
-- Resource production
-- Biome specialization
-- Soldier training
-- World conquest
-- Resource transfer between controlled towns
-
-The game should feel like a deep strategy simulation, not a static prototype.
+The current game is built around one gameplay presentation: SwiftUI interface layers over a RealityKit town board.
 
 ## Core Loop
 
-1. Player distributes a configurable starting bonus pool.
-2. Player enters the active town.
-3. Buildings are placed on a grid.
-4. Buildings generate resources each game day.
-5. Some buildings unlock actions, such as Barracks training.
-6. Army strength enables conquest on the world map.
-7. Conquered towns produce independently and can receive transfers.
+1. The player starts a game and allocates the starting bonus stockpile.
+2. `GameViewModel.startGame()` commits the initial resources and enters town play.
+3. The RealityKit town board renders the active town from `GameState`.
+4. Buildings are placed on valid plots through shared placement validation.
+5. Each game day, simulation systems apply income, time progress, and persistence.
+6. The player opens the world map to conquer towns or transfer resources.
+7. Loading a save restores `GameState` and presents the same RealityKit town view.
 
-## Data-Driven Balance
+## Current Architecture
 
-`GameConfig.swift` is the main balance source.
+- `App/` owns app launch and root navigation.
+- `Core/Models/` stores shared value types, actions, placement state, resources, biomes, and balance configuration.
+- `Core/Systems/` owns deterministic gameplay rules.
+- `Core/Persistence/` stores and loads renderer-agnostic save data.
+- `Gameplay/` groups domain-specific building, resource, world, and combat types.
+- `Presentation/` owns SwiftUI screens, reusable controls, theme, and `GameViewModel`.
+- `Rendering3D/` owns the RealityKit runtime: renderer, camera, entities, render resources, and state adapter.
 
-It defines:
+`GameViewModel` is the app-facing coordinator. It exposes observable state to SwiftUI, forwards user intent to systems, and saves after committed state changes. Game rules should stay in systems unless they are pure presentation coordination.
 
-- Grid size
-- Day duration
-- Base starting resources
-- Bonus pool size
-- Building definitions
-- Soldier definitions
+## World Simulation
 
-Building definitions include:
+`GameState` is the persistent source of truth. It stores the current day, elapsed day time, town list, world nodes, world connections, and active town ID.
 
-- Base cost
-- Base production
-- People required
-- People gained on build
-- Population capacity
-- Max level
-- Placement rules
+`WorldMapSystem` creates the initial world, determines adjacency, and resolves conquest. `SimulationSystem` advances days and applies building income to each controlled town. `TimeSystem` converts elapsed seconds into day progress and determines when the next day begins.
 
-Changing balance should usually mean editing config data, not changing UI or simulation code.
+## Resource Systems
 
-## State and Flow
+`ResourceSystem` applies spending and production through `ResourceWallet`. Resource display metadata lives in `Gameplay/Resources/ResourceDisplay.swift` so UI can render consistent icons, names, and colors without knowing game rules.
 
-`GameState` stores the persistent game state:
+Resource changes should be committed through systems and then saved through `GameViewModel.saveCurrentGame()`.
 
-- Current day
-- Current day progress
-- Town list
-- World nodes
-- Town connections
-- Active town ID
+## Building Systems
 
-`Town` owns:
+`BuildingSystem` handles construction and upgrades. `PlacementValidationSystem` owns tile validation, including biome-adjacency rules through `BiomeSystem`.
 
-- Resource wallet
-- Buildings
-- Biome layout
-- Ownership
-- Enemy army strength
-- Soldier roster
+The placement flow is:
 
-`GameViewModel` exposes state to SwiftUI and coordinates user intent. It should remain thin enough that game rules stay in systems.
+1. `BuildMenuView` calls `GameViewModel.beginPlacement(for:)`.
+2. `World3DStateAdapter` asks `tilePlacementState(for:)` while producing tile snapshots.
+3. `World3DRenderer` renders placement overlays on valid and invalid plots.
+4. Tapping a tile in `World3DTownViewController` calls `selectCell(_:)`.
+5. `GameViewModel` commits the build through `BuildingSystem` or shows feedback from `FeedbackOverlaySystem`.
 
-## Placement Design
+## Camera Controls
 
-Placement is centralized through `PlacementValidationSystem`.
+`World3DCameraController` installs RealityKit camera controls on the ARView. One-finger pan rotates the town board, pinch zooms, and inertia is handled with a display link. The controller exposes `isInteracting` so render sync can avoid fighting active gestures.
 
-The current path is:
+Camera bounds are derived from the current grid size by `World3DRenderer.cameraBounds(for:)`.
 
-1. Build menu calls `beginPlacement(for:)`.
-2. `TownGridView` asks `tilePlacementState(for:)` for each tile.
-3. Valid tiles render green.
-4. Invalid tiles render red/dimmed.
-5. Tapping a valid tile calls `BuildingSystem.build`.
-6. Tapping an invalid tile shows feedback through `FeedbackOverlaySystem`.
+## Rendering Pipeline
 
-Biome-specific placement uses `BiomeSystem`:
+`World3DTownView` bridges SwiftUI to `World3DTownViewController`. The controller creates an ARView in non-AR mode, installs camera gestures, tracks FPS diagnostics, and routes taps to `GameViewModel`.
 
-- Wood Mills require adjacency to `.forest`.
-- Coal Mines require adjacency to `.mountain`.
-- Adjacency means the town tile touches the corresponding border side.
+`World3DStateAdapter` converts the current town into `World3DTileSnapshot` values. `World3DRenderer` consumes those snapshots, rebuilds terrain scaffolding when the biome layout or grid changes, updates changed tile entities, applies selection state, and reports diagnostics. `World3DRenderResources` centralizes mesh, material, quality, and diagnostics helpers. `World3DTileEntity` builds tile, terrain, building, overlay, forest, and mountain entities.
 
-Future placement rules should extend this same validation path.
+## Save and Load Architecture
 
-## Biome Rendering
+`GameSaveStore` encodes `SavedGame` as JSON in the app documents directory. The save payload contains `GameState` and a day label. It does not contain renderer, camera, navigation, sheet, or debug state.
 
-Biome terrain is drawn with SwiftUI shapes in `BiomeBorderView`.
+Root navigation is intentionally simple:
 
-The renderer uses:
-
-- `BiomeBorderView` for the four-sided terrain container.
-- `BiomeTerrainStrip` for per-side rendering.
-- layered tree silhouettes for forests.
-- layered mountain silhouettes for mountains.
-
-The terrain is not interactive. The scrollable `TownGridView` contains both grid and outer biome terrain so the map can exceed the viewport without clipping important edges.
+- Start Game creates a fresh `GameViewModel` and opens `GameView`.
+- Load Game decodes `GameState`, initializes `GameViewModel(savedState:)`, and opens `GameView`.
+- Asset Gallery opens `World3DAssetGalleryView` from the menu and is not part of gameplay flow.
 
 ## Presentation Design
 
-Normal gameplay should avoid system alerts.
+SwiftUI owns presentation surfaces around the renderer:
 
-Current presentation rules:
+- `GameView` composes the RealityKit town, HUD, bottom bar, feedback toast, build sheet, details sheet, and world map cover.
+- `BuildMenuView` selects building placement.
+- `BuildingDetailsSheetView` handles upgrades and barracks training.
+- `WorldMapView` handles conquest and transfer interactions.
+- `World3DAssetGalleryView` is a developer/debugging tool for inspecting render assets.
 
-- Build menu is a sheet.
-- Building details and upgrades are a sheet.
-- World map is a full-screen cover.
-- Feedback is an in-game toast banner.
-
-This prevents nested presentation conflicts such as trying to show an alert while a sheet is already active.
-
-## UI Patterns
-
-Use compact strategy-game UI:
-
-- Resource pills in the HUD.
-- Bottom action bar for common commands.
-- Sheets for focused interactions.
-- Grid highlights for placement feedback.
-- SwiftUI-only placeholder building art.
-
-Avoid marketing-page styling, large decorative cards, or instructional copy inside gameplay screens.
+Normal gameplay feedback should use in-game toast state, not system alerts. Alerts are reserved for menu-level confirmation.
 
 ## Performance Notes
 
-The town grid uses a `LazyVGrid` and lightweight SwiftUI shapes.
+RealityKit work should stay incremental. `World3DRenderer` compares snapshots and updates only changed tiles where possible. Terrain scaffolding is rebuilt only when the grid or biome layout changes. Render resources are cached and can adapt quality based on diagnostics and device conditions.
 
-Avoid:
+Avoid adding per-frame SwiftUI state churn, rebuilding the whole ARView for ordinary model changes, or placing gameplay rules inside render entities.
 
-- Deep nested `GeometryReader` chains.
-- Putting all state in one massive observable object.
-- Recomputing expensive derived state in every small cell.
-- External renderers before the gameplay needs them.
+## Planned Gameplay Roadmap
 
-For future larger maps, cache valid placement sets per selected building and town revision if tile counts grow substantially.
-
-## Future Systems
-
-The architecture is intended to support:
-
-- Roads
-- Workers
-- Logistics
-- Research trees
-- Weather
-- Random events
-- AI diplomacy
-- Factions
-- Trading
-- Combat visuals
-- Multiplayer
-
-Add these as focused models and systems. Keep UI as a consumer of system output, not the source of truth for game rules.
+- More building roles, upgrade effects, and biome dependencies.
+- Persistent decorative terrain and town beautification where it affects gameplay.
+- Research, logistics, weather, and random events.
+- Enemy town progression and richer conquest results.
+- Combat visualization inside the 3D renderer.
+- Larger maps with continued RealityKit performance tuning.

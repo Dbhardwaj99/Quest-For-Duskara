@@ -1,147 +1,57 @@
-# ⚔️ Quest for Duskara
+# Quest for Duskara
 
-> *A medieval strategy game built for iOS, where empires are forged one tile at a time.*
+Quest for Duskara is a portrait-oriented iOS strategy game about founding towns, managing resources, training soldiers, and expanding across a connected world map before dusk overtakes the realm. The primary game experience is a RealityKit-rendered town board wrapped by SwiftUI HUD, menus, sheets, and world-map controls.
 
-Quest for Duskara is an open-source, portrait-mode iOS strategy game built entirely in SwiftUI. Inspired by the depth of classic Flash-era city builders and conquest games, it is being built from scratch with one goal: to create a real, living strategy world in your pocket.
+## Technology Stack
 
-This is not a prototype. It's a foundation, designed to grow into something genuinely ambitious.
+- Swift and SwiftUI for app flow, HUD, menus, and gameplay sheets.
+- Observation for app-facing state in `GameViewModel`.
+- RealityKit in non-AR mode for the interactive town renderer.
+- UIKit view-controller hosting where RealityKit needs gesture and lifecycle control.
+- Codable JSON persistence through `GameSaveStore`.
 
----
+## Architecture Overview
 
-## 🌍 Vision
-<p align="center">
-  <img src="docs/screen.png" width="320" alt="Quest for Duskara Gameplay Screenshot" />
-</p>
-Most mobile strategy games sacrifice depth for retention loops. Quest for Duskara aims to do the opposite: bring back the joy of *actual strategy*, where resource decisions matter, terrain shapes your options, towns have distinct identities, and wars have real consequences.
- 
-The architecture is built to support this. Every system (buildings, soldiers, biomes, world maps) is modular and configurable. When the game grows, it grows cleanly.
+The project is organized around the runtime boundaries used by the game:
 
----
+- `App/`: app entry point and root navigation.
+- `Core/Models/`: value models and balance configuration shared across systems.
+- `Core/Systems/`: deterministic gameplay rules for simulation, building, placement, resources, time, transfer, and conquest.
+- `Core/Persistence/`: save and load support for renderer-agnostic `GameState`.
+- `Gameplay/`: domain models and display metadata for buildings, resources, combat, and world data.
+- `Presentation/`: SwiftUI screens, components, theme, and `GameViewModel`.
+- `Rendering3D/`: RealityKit renderer, camera controller, tile entities, render resources, and state adapter.
+- `Assets/`: app asset catalog.
+- `docs/`: design notes, contributor guidance, and screenshots.
 
-## ✨ What Exists Today
+## RealityKit Rendering
 
-The core loop is playable. Here's what you can do right now:
+`GameView` is the only gameplay presentation. It embeds `World3DTownView`, which hosts `World3DTownViewController`. The controller owns an ARView configured in non-AR mode, installs `World3DCameraController`, and asks `World3DRenderer` to render snapshots produced by `World3DStateAdapter`.
 
-- **Allocate a starting pool:** Distribute bonus resources (Gold, Wood, Coal, Tech) before founding your capital. Your choices shape your early game.
-- **Build your town:** Place and upgrade modular structures on a grid. Buildings have costs, production rates, population effects, and terrain requirements.
-- **Manage biomes:** Wood Mills only go near forests. Coal Mines belong near mountain tiles. Terrain isn't decoration; it constrains your plans.
-- **Run the daily simulation:** Each new day, buildings generate resources, armies consume upkeep, and the world advances.
-- **Train soldiers:** Build a Barracks to recruit Archers and Knights with distinct combat profiles.
-- **Conquer the world map:** Expand outward through adjacent towns. Weaker towns fall. Stronger ones push back.
-- **Transfer resources:** Move surplus production between your towns to specialize regions.
+The renderer builds the terrain scaffold, biome ring, town tiles, buildings, selection state, placement overlays, and adaptive render resources. SwiftUI remains responsible for HUD, build sheets, building details, feedback toasts, and the world map.
 
----
+## Save and Load
 
-## 🗺️ Roadmap
+Saves contain `GameState`, not presentation state. `MenuView` exposes Start Game, Load Game, and Asset Gallery. Start Game creates a fresh `GameViewModel` and opens `GameView`; Load Game restores `GameState` into `GameViewModel(savedState:)` and opens the same `GameView` path.
 
-These are the real things being worked on and planned, in no particular order. The end goal is multiplayer, but there's a lot of ground to cover first.
+## Build Instructions
 
-| # | Feature | Status | Notes |
-|---|---|---|---|
-| 1 | **UI/UX Redesign** | 🔴 In Progress | The current visuals are placeholder-grade. Every screen needs a design pass: typography, color, layout hierarchy, and component consistency. |
-| 2 | **Game State Persistence** | 🔴 In Progress | The game doesn't save yet. Implementing persistent storage (SwiftData or Codable + file storage) so campaigns survive app restarts. |
-| 3 | **Remove Hardcoded Data** | 🔴 In Progress | Cities, map layouts, and several game values are currently hardcoded. These need to move into configurable data so the world is dynamic and extensible. |
-| 4 | **Portrait Layout Polish** | 🟡 Planned | Several views have layout issues in portrait mode. UI needs to be properly constrained and tested across iPhone sizes. |
-| 5 | **More Building Types** | 🟡 Planned | Adding Armory, Temple, and Park buildings, each with distinct mechanics and town effects. |
-| 6 | **2D/3D Assets & Animations** | 🟡 Planned | Replace SwiftUI placeholder visuals with real illustrated assets and tile animations. The game should look and feel like a world. |
-| 7 | **Multiplayer Mode** | 🔵 Long-term | The endgame goal. Async or real-time multiplayer via Game Center, where players build, trade, and fight against each other. |
+1. Open `Quest For Duskara.xcodeproj` in Xcode.
+2. Select the `Quest For Duskara` app scheme.
+3. Build and run on an iOS simulator or device that supports RealityKit.
 
----
+## Screenshots
 
-## 🏗️ Project Architecture
+Current reference screenshot:
 
-The codebase is deliberately layered. If you want to contribute, here's where things live:
+- `docs/screen.png`
 
-```
-Quest For Duskara/
-├── Models/         # Core data types: resources, biomes, placement, soldiers
-├── Buildings/      # Building definitions and upgrade configs
-├── Systems/        # All game logic: simulation, placement, resources, world, transfers
-├── ViewModels/     # GameViewModel, the single coordinator between logic and UI
-├── Views/          # Screen-level SwiftUI views (thin, presentation-only)
-├── Components/     # Reusable UI primitives and drawing helpers
-├── World/          # World map state and town graph models
-├── Resources/      # Resource display helpers
-├── Managers/       # Message coordination and presentation managers
-└── UI/             # Shared theme, colors, typography constants
-```
+Add new screenshots to `docs/` when UI or renderer changes materially.
 
-**The golden rule:** Game rules live in `Systems/` and `GameConfig.swift`. SwiftUI views should only handle presentation and forward user intent to the ViewModel.
+## Development Roadmap
 
----
-
-## 🚀 Getting Started
-
-### Requirements
-
-- Xcode with SwiftUI support
-- iOS deployment target as configured in the project
-- No external packages, no asset dependencies, just open and build
-
-### Running the Game
-
-```bash
-git clone https://github.com/Dbhardwaj99/Quest-For-Duskara
-```
-
-Open `Quest For Duskara.xcodeproj` in Xcode, select a simulator or device, and hit Run. That's it.
-
----
-
-## 🤝 Contributing
-
-First time contributing to an open-source iOS game? **This is a great place to start.** The architecture is explicitly designed so that adding a feature doesn't require touching everything.
-
-### The Contribution Workflow
-
-1. **Pick an issue from the roadmap.** Each item maps to a clear area of the codebase.
-2. **Open an issue or comment first.** Avoids duplicate work and lets us align on approach before you write code.
-3. **Add data before logic.** New features begin as models and `GameConfig.swift` entries, not view code.
-4. **Put rules in systems.** Logic goes in `Systems/`, not in views.
-5. **Wire it up in the ViewModel.** `GameViewModel` is the single bridge between game logic and the UI.
-6. **Keep views thin.** SwiftUI files receive state and fire intents. Nothing else.
-
-### Good First Issues
-
-These are well-scoped entry points tied directly to the active roadmap:
-
-- 🟢 **Add a new building type** (Armory, Temple, or Park): define it in `Buildings/`, wire up its effects, add costs to `GameConfig.swift`
-- 🟢 **Fix a portrait layout issue** on any screen that clips or overflows on standard iPhone sizes
-- 🟡 **Move a hardcoded city or map value into `GameConfig.swift`** and replace its references throughout the codebase
-- 🟡 **Design the persistence model**: propose a `Codable` save/load structure for `GameViewModel` state and open a discussion
-- 🔴 **Audit all hardcoded data** and open issues for each instance so they can be tackled incrementally
-
-### Code Style
-
-- Swift idioms throughout, value types preferred, classes where shared state is needed
-- No forced unwraps in game logic
-- Every new configurable value goes in `GameConfig.swift`, never hardcoded in a view
-- Leave the architecture cleaner than you found it
-
----
-
-## 📋 Design Principles
-
-A few things that guide decisions in this project:
-
-**Depth over retention.** The game should reward thinking, not just clicking. 
-
-**Terrain should matter.** Every biome, river, and mountain range should create genuine strategic tradeoffs, not just cosmetic variation.
-
-**The map should feel alive.** AI towns should behave plausibly.  Events should surprise you.
-
-**Modularity is non-negotiable.** Any system (combat, diplomacy, research) should be addable without rewriting existing systems.
-
----
-
-## 📄 License
-
-[MIT](LICENSE): free to use, modify, and distribute. Attribution appreciated.
-
----
-
-## 💬 Discussion
-
-Have ideas? Found a bug? Want to propose a system design before writing code? Open an issue or start a discussion. This project benefits from design conversations as much as pull requests.
-
-*Quest for Duskara is in active development. The world is small now. It won't stay that way.*
+- Expand town-building variety and biome-specific rules.
+- Persist decorative terrain state where it becomes gameplay relevant.
+- Add richer conquest outcomes and enemy town progression.
+- Add research, events, weather, and logistics systems.
+- Continue tuning RealityKit performance for larger maps and older devices.

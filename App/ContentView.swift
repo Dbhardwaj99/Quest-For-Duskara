@@ -11,19 +11,14 @@ struct ContentView: View {
         NavigationStack(path: $path) {
             MenuView(
                 savedGameSummary: savedGameSummary,
-                onStartNewGame: startNewGame,
+                onStartGame: startGame,
                 onLoadGame: loadGame,
-                onPlay2D: openGame,
-                onPlay3D: openGame3D,
                 onOpenAssetGallery: openAssetGallery
             )
             .navigationDestination(for: GameRoute.self) { route in
                 switch route {
-                case .game2D:
+                case .game:
                     GameView(viewModel: viewModel)
-                        .navigationBarBackButtonHidden()
-                case .game3D:
-                    GameView3D(viewModel: viewModel)
                         .navigationBarBackButtonHidden()
                 case .assetGallery:
                     World3DAssetGalleryView()
@@ -33,7 +28,7 @@ struct ContentView: View {
         .onAppear(perform: refreshSavedGameSummary)
     }
 
-    private func startNewGame() {
+    private func startGame() {
         let newViewModel = GameViewModel()
         newViewModel.saveCurrentGame()
         viewModel.stopClock()
@@ -45,13 +40,6 @@ struct ContentView: View {
     private func loadGame() {
         guard loadSavedGameIntoViewModel() else { return }
         openGame()
-    }
-
-    private func openGame3D() {
-        if viewModel.phase == .setup {
-            _ = loadSavedGameIntoViewModel()
-        }
-        path = [.game3D]
     }
 
     @discardableResult
@@ -67,7 +55,7 @@ struct ContentView: View {
     }
 
     private func openGame() {
-        path = [.game2D]
+        path = [.game]
     }
 
     private func openAssetGallery() {
@@ -80,8 +68,7 @@ struct ContentView: View {
 }
 
 private enum GameRoute: Hashable {
-    case game2D
-    case game3D
+    case game
     case assetGallery
 }
 

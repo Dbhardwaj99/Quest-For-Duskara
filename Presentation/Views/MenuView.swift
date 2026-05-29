@@ -2,10 +2,8 @@ import SwiftUI
 
 struct MenuView: View {
     let savedGameSummary: SavedGameSummary?
-    let onStartNewGame: () -> Void
+    let onStartGame: () -> Void
     let onLoadGame: () -> Void
-    let onPlay2D: () -> Void
-    let onPlay3D: () -> Void
     let onOpenAssetGallery: () -> Void
 
     @State private var isStartConfirmationPresented = false
@@ -27,29 +25,11 @@ struct MenuView: View {
             }
 
             VStack(spacing: 12) {
-                Button(action: onPlay2D) {
-                    Label("Play 2D", systemImage: "square.grid.3x3.fill")
+                Button(action: startGameTapped) {
+                    Label("Start Game", systemImage: "sparkles")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(DuskaraButtonStyle(prominent: true))
-
-                Button(action: onPlay3D) {
-                    Label("Play 3D", systemImage: "cube.transparent.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(DuskaraButtonStyle())
-
-                Button(action: onOpenAssetGallery) {
-                    Label("3D Asset Viewer", systemImage: "cube.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(DuskaraButtonStyle())
-
-                Button(action: startNewGameTapped) {
-                    Label("Start New Game", systemImage: "sparkles")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(DuskaraButtonStyle())
 
                 Button(action: { isLoadConfirmationPresented = true }) {
                     Label("Load Game", systemImage: "tray.and.arrow.down.fill")
@@ -58,6 +38,12 @@ struct MenuView: View {
                 .buttonStyle(DuskaraButtonStyle())
                 .disabled(savedGameSummary == nil)
                 .opacity(savedGameSummary == nil ? 0.55 : 1)
+
+                Button(action: onOpenAssetGallery) {
+                    Label("Asset Gallery", systemImage: "cube.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(DuskaraButtonStyle())
             }
             .padding(16)
             .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: 8))
@@ -67,7 +53,7 @@ struct MenuView: View {
         }
         .background(DuskaraTheme.background.ignoresSafeArea())
         .alert("Overwrite Saved Game?", isPresented: $isStartConfirmationPresented) {
-            Button("Start New Game", role: .destructive, action: onStartNewGame)
+            Button("Start Game", role: .destructive, action: onStartGame)
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Starting a new game will overwrite your existing save.")
@@ -80,9 +66,9 @@ struct MenuView: View {
         }
     }
 
-    private func startNewGameTapped() {
+    private func startGameTapped() {
         if savedGameSummary == nil {
-            onStartNewGame()
+            onStartGame()
         } else {
             isStartConfirmationPresented = true
         }
@@ -92,10 +78,8 @@ struct MenuView: View {
 #Preview {
     MenuView(
         savedGameSummary: SavedGameSummary(dayLabel: "Day 3"),
-        onStartNewGame: { },
+        onStartGame: { },
         onLoadGame: { },
-        onPlay2D: { },
-        onPlay3D: { },
         onOpenAssetGallery: { }
     )
 }

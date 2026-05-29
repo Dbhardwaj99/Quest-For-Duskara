@@ -12,15 +12,3 @@ struct World3DTownView: UIViewControllerRepresentable {
         uiViewController.syncFromGameState()
     }
 }
-
-struct World3DGameView: UIViewControllerRepresentable {
-    let sourceViewModel: GameViewModel
-
-    func makeUIViewController(context: Context) -> World3DGameViewController {
-        World3DGameViewController(sourceViewModel: sourceViewModel)
-    }
-
-    func updateUIViewController(_ uiViewController: World3DGameViewController, context: Context) {
-        uiViewController.syncFromGameState()
-    }
-}

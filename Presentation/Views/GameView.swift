@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct GameView3D: View {
+struct GameView: View {
     @Bindable var viewModel: GameViewModel
     @State private var isTownViewExpanded = false
 
@@ -32,7 +32,7 @@ struct GameView3D: View {
                 .zIndex(2)
 
             if let feedback = viewModel.feedback {
-                Game3DFeedbackToastView(message: feedback.text)
+                GameFeedbackToastView(message: feedback.text)
                     .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(10)
@@ -59,12 +59,6 @@ struct GameView3D: View {
             topHUD
                 .padding(.top, 8)
             Spacer(minLength: isTownViewExpanded ? 0 : 12)
-//            if isTownViewExpanded == false {
-//                InspectorPanelView(viewModel: viewModel)
-//                    .padding(.horizontal, 14)
-//                    .padding(.bottom, 8)
-//                    .transition(.move(edge: .bottom).combined(with: .opacity))
-//            }
             bottomBar
                 .padding(.bottom, isTownViewExpanded ? 10 : 8)
         }
@@ -96,7 +90,7 @@ struct GameView3D: View {
                         .shadow(color: .black.opacity(0.28), radius: 12, y: 6)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isTownViewExpanded ? "Collapse 3D town view" : "Expand 3D town view")
+                .accessibilityLabel(isTownViewExpanded ? "Collapse town view" : "Expand town view")
                 .padding(.top, 78)
                 .padding(.trailing, 14)
             }
@@ -133,7 +127,7 @@ struct GameView3D: View {
     }
 }
 
-private struct Game3DFeedbackToastView: View {
+private struct GameFeedbackToastView: View {
     let message: String
 
     var body: some View {
@@ -151,5 +145,5 @@ private struct Game3DFeedbackToastView: View {
 }
 
 #Preview {
-    GameView3D(viewModel: GameViewModel())
+    GameView(viewModel: GameViewModel())
 }
