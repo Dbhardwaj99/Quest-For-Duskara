@@ -4,6 +4,7 @@ struct WorldMapSystem {
     func makeInitialState(balance: GameBalance) -> GameState {
         var towns = makeTowns(balance: balance)
         towns[0].isPlayerControlled = true
+        towns[0].faction = .player
         towns[0].resources = ResourceWallet(balance.baseStartingResources)
 
         let nodes = towns.enumerated().map { index, town in
@@ -42,6 +43,7 @@ struct WorldMapSystem {
         guard let targetIndex = state.towns.firstIndex(where: { $0.id == targetID }) else { return false }
         guard playerPower > state.towns[targetIndex].enemyArmyStrength else { return false }
         state.towns[targetIndex].isPlayerControlled = true
+        state.towns[targetIndex].faction = .player
         state.towns[targetIndex].enemyArmyStrength = 0
         return true
     }
@@ -56,8 +58,8 @@ struct WorldMapSystem {
             TownBiomeLayout(sides: [.left: .forest, .right: .mountain, .top: .mountain, .bottom: .mountain])
         ]
         let names = [
-            "Duskara", "Green Hollow", "Ironridge", "Mosswatch", "Ashbarrow", "Pinefall", "Stonewake", "Rivergate", "Brindle Keep", "Oakmere",
-            "Frostford", "Briarwall", "Greyfen", "Sunreach", "Valehold", "Cinder Pass", "Deepwood", "Crownhill", "Hearthglen", "Moonford",
+            "Hearthglen", "Green Hollow", "Ironridge", "Mosswatch", "Ashbarrow", "Pinefall", "Stonewake", "Rivergate", "Brindle Keep", "Oakmere",
+            "Frostford", "Briarwall", "Duskara", "Sunreach", "Valehold", "Cinder Pass", "Deepwood", "Crownhill", "Greyfen", "Moonford",
             "Redspire", "Westmere", "Northbarrow", "Dawnfield", "Elderwick"
         ]
 
@@ -72,13 +74,32 @@ struct WorldMapSystem {
                 .people: 4,
                 .soldiers: 0
             ])
+            let isDuskara = name == "Duskara"
+            let faction: TownFaction
+            if isDuskara {
+                faction = .duskara
+            } else if index == names.count - 1 {
+                faction = .enemy
+            } else {
+                faction = .neutral
+            }
+            let defense: Int
+            if isDuskara {
+                defense = 180
+            } else if faction == .enemy {
+                defense = 70
+            } else {
+                defense = 25 + (index % 5) * 8
+            }
             return Town(
                 name: name,
                 resources: resources,
                 buildings: starterBuildings(for: index, balance: balance),
                 biomeLayout: layout,
                 isPlayerControlled: false,
-                enemyArmyStrength: 25 + index * 8
+                faction: faction,
+                isDuskara: isDuskara,
+                enemyArmyStrength: defense
             )
         }
     }

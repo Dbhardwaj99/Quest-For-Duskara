@@ -11,5 +11,10 @@ struct SimulationSystem {
             let income = buildingSystem.income(for: state.towns[index], balance: balance)
             resourceSystem.applyIncome(income, to: &state.towns[index].resources)
         }
+
+        let enemyAI = EnemyAISystem()
+        if enemyAI.shouldAct(on: state.day) {
+            enemyAI.takeTurn(state: &state, balance: balance)
+        }
     }
 }

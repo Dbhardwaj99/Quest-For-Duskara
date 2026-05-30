@@ -88,9 +88,12 @@ struct WorldMapView: View {
                         Text(town.name)
                             .font(.headline.weight(.heavy))
                             .foregroundStyle(DuskaraTheme.ink)
-                        Text(town.isPlayerControlled ? "Controlled town" : "Enemy strength \(town.enemyArmyStrength)")
+                        Text(statusText(for: town))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
+                        Text(town.specializationSummary)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(specializationColor(for: town))
                     }
                     Spacer()
                     if town.isPlayerControlled {
@@ -132,6 +135,19 @@ struct WorldMapView: View {
         guard let node = viewModel.state.worldNodes.first(where: { $0.townID == townID }) else { return .zero }
         return CGPoint(x: size.width * node.x, y: size.height * node.y)
     }
+
+    private func statusText(for town: Town) -> String {
+        if town.isPlayerControlled { return "Controlled town" }
+        if town.isDuskara { return "Duskara stronghold · Defense \(town.enemyArmyStrength)" }
+        if town.faction == .enemy { return "Enemy town · Strength \(town.enemyArmyStrength)" }
+        return "Neutral town · Defense \(town.enemyArmyStrength)"
+    }
+
+    private func specializationColor(for town: Town) -> Color {
+        if town.forestSideCount >= 3 { return .green }
+        if town.mountainSideCount >= 3 { return .gray }
+        return .secondary
+    }
 }
 
 private struct WorldTownNodeView: View {
@@ -144,9 +160,9 @@ private struct WorldTownNodeView: View {
         VStack(spacing: 3) {
             ZStack {
                 Circle()
-                    .fill(town.isPlayerControlled ? Color.green.gradient : Color.red.gradient)
-                    .frame(width: isActive ? 34 : 28, height: isActive ? 34 : 28)
-                Image(systemName: town.isPlayerControlled ? "house.fill" : "shield.fill")
+                    .fill(nodeFill)
+                    .frame(width: nodeSize, height: nodeSize)
+                Image(systemName: nodeIcon)
                     .font(.caption)
                     .foregroundStyle(.white)
             }
@@ -164,6 +180,25 @@ private struct WorldTownNodeView: View {
                 .frame(width: 42, height: 42)
                 .offset(y: -8)
         )
+    }
+
+    private var nodeFill: AnyShapeStyle {
+        if town.isPlayerControlled { return AnyShapeStyle(Color.green.gradient) }
+        if town.isDuskara { return AnyShapeStyle(Color.purple.gradient) }
+        if town.faction == .enemy { return AnyShapeStyle(Color.red.gradient) }
+        return AnyShapeStyle(Color.gray.gradient)
+    }
+
+    private var nodeIcon: String {
+        if town.isPlayerControlled { return "house.fill" }
+        if town.isDuskara { return "crown.fill" }
+        if town.faction == .enemy { return "shield.fill" }
+        return "circle.fill"
+    }
+
+    private var nodeSize: CGFloat {
+        if isActive { return 34 }
+        return town.isDuskara ? 36 : 28
     }
 }
 

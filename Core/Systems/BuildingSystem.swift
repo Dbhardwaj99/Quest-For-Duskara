@@ -18,7 +18,7 @@ struct BuildingSystem {
         for building in town.buildings {
             guard let definition = balance.buildingDefinitions[building.kind] else { continue }
             for (kind, amount) in definition.production(for: building.level) {
-                total[kind, default: 0] += amount
+                total[kind, default: 0] += modifiedProduction(amount, for: kind, from: building.kind, in: town)
             }
         }
         return total
@@ -54,6 +54,29 @@ struct BuildingSystem {
             town.resources.add(.people, amount: definition.peopleOnBuild(for: town.buildings[index].level))
         }
         return nil
+    }
+
+    private func modifiedProduction(_ amount: Int, for resource: ResourceKind, from building: BuildingKind, in town: Town) -> Int {
+        switch (building, resource) {
+        case (.woodMill, .wood):
+            return scaled(amount, byBiomeSideCount: town.forestSideCount)
+        case (.coalMine, .coal):
+            return scaled(amount, byBiomeSideCount: town.mountainSideCount)
+        default:
+            return amount
+        }
+    }
+
+    private func scaled(_ amount: Int, byBiomeSideCount count: Int) -> Int {
+        let multiplier: Double
+        switch count {
+        case 0: multiplier = 0.5
+        case 1: multiplier = 0.5
+        case 2: multiplier = 1.0
+        case 3: multiplier = 1.5
+        default: multiplier = 2.0
+        }
+        return max(1, Int((Double(amount) * multiplier).rounded()))
     }
 
 }

@@ -41,7 +41,7 @@ struct StartSetupView: View {
                 }
 
                 Button(action: viewModel.startGame) {
-                    Label("Found Duskara", systemImage: "flag.fill")
+                    Label("Found Settlement", systemImage: "flag.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(DuskaraButtonStyle(prominent: true))

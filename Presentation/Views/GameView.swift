@@ -11,6 +11,8 @@ struct GameView: View {
                 StartSetupView(viewModel: viewModel)
             case .town:
                 townBody
+            case .victory:
+                VictoryView(day: viewModel.state.day)
             }
         }
     }
@@ -124,6 +126,23 @@ struct GameView: View {
         withAnimation(.smooth(duration: 0.34)) {
             isTownViewExpanded.toggle()
         }
+    }
+}
+
+private struct VictoryView: View {
+    let day: Int
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("Victory")
+                .font(.largeTitle.weight(.black))
+                .foregroundStyle(.white)
+            Text("Duskara fell on Day \(day).")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.82))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DuskaraTheme.background.ignoresSafeArea())
     }
 }
 

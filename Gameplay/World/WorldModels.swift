@@ -1,5 +1,12 @@
 import Foundation
 
+enum TownFaction: String, Codable, Equatable {
+    case player
+    case neutral
+    case enemy
+    case duskara
+}
+
 struct Town: Identifiable, Codable, Equatable {
     var id: UUID
     var name: String
@@ -7,6 +14,8 @@ struct Town: Identifiable, Codable, Equatable {
     var buildings: [BuildingInstance]
     var biomeLayout: TownBiomeLayout
     var isPlayerControlled: Bool
+    var faction: TownFaction
+    var isDuskara: Bool
     var enemyArmyStrength: Int
     var soldierRoster: SoldierRoster
 
@@ -17,6 +26,8 @@ struct Town: Identifiable, Codable, Equatable {
         buildings: [BuildingInstance] = [],
         biomeLayout: TownBiomeLayout,
         isPlayerControlled: Bool = false,
+        faction: TownFaction = .neutral,
+        isDuskara: Bool = false,
         enemyArmyStrength: Int = 0,
         soldierRoster: SoldierRoster = SoldierRoster()
     ) {
@@ -26,8 +37,51 @@ struct Town: Identifiable, Codable, Equatable {
         self.buildings = buildings
         self.biomeLayout = biomeLayout
         self.isPlayerControlled = isPlayerControlled
+        self.faction = isPlayerControlled ? .player : faction
+        self.isDuskara = isDuskara
         self.enemyArmyStrength = enemyArmyStrength
         self.soldierRoster = soldierRoster
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case resources
+        case buildings
+        case biomeLayout
+        case isPlayerControlled
+        case faction
+        case isDuskara
+        case enemyArmyStrength
+        case soldierRoster
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        resources = try container.decode(ResourceWallet.self, forKey: .resources)
+        buildings = try container.decode([BuildingInstance].self, forKey: .buildings)
+        biomeLayout = try container.decode(TownBiomeLayout.self, forKey: .biomeLayout)
+        isPlayerControlled = try container.decode(Bool.self, forKey: .isPlayerControlled)
+        faction = try container.decodeIfPresent(TownFaction.self, forKey: .faction) ?? (isPlayerControlled ? .player : .neutral)
+        isDuskara = try container.decodeIfPresent(Bool.self, forKey: .isDuskara) ?? false
+        enemyArmyStrength = try container.decode(Int.self, forKey: .enemyArmyStrength)
+        soldierRoster = try container.decode(SoldierRoster.self, forKey: .soldierRoster)
+    }
+
+    var forestSideCount: Int {
+        biomeLayout.sides.values.filter { $0 == .forest }.count
+    }
+
+    var mountainSideCount: Int {
+        biomeLayout.sides.values.filter { $0 == .mountain }.count
+    }
+
+    var specializationSummary: String {
+        if forestSideCount >= 3 { return "Wood-rich settlement" }
+        if mountainSideCount >= 3 { return "Coal-rich settlement" }
+        return "Balanced settlement"
     }
 }
 
@@ -69,4 +123,5 @@ struct GameState: Codable, Equatable {
 enum GamePhase: Equatable {
     case setup
     case town
+    case victory
 }

@@ -47,8 +47,10 @@ final class GameViewModel {
         self.balance = balance
         self.state = savedState
         normalizeBuildingsToCurrentGrid()
-        self.phase = .town
-        startClock()
+        self.phase = savedState.towns.contains { $0.isDuskara && $0.isPlayerControlled } ? .victory : .town
+        if phase == .town {
+            startClock()
+        }
     }
 
     var startingResourceKinds: [ResourceKind] {
@@ -132,8 +134,9 @@ final class GameViewModel {
     }
 
     func startGame() {
+        guard phase == .setup else { return }
         guard remainingBonus == 0 else {
-            show("Distribute the full bonus pool before founding Duskara.")
+            show("Distribute the full bonus pool before founding your settlement.")
             return
         }
         state.updateTown(id: state.activeTownID) { town in
@@ -147,6 +150,7 @@ final class GameViewModel {
     }
 
     func selectCell(_ coordinate: GridCoordinate) {
+        guard phase == .town else { return }
         selectedCoordinate = coordinate
 
         if let placementBuildingKind {
@@ -164,6 +168,7 @@ final class GameViewModel {
     }
 
     func beginPlacement(for kind: BuildingKind) {
+        guard phase == .town else { return }
         placementBuildingKind = kind
         selectedBuildingID = nil
         selectedCoordinate = nil
@@ -183,6 +188,7 @@ final class GameViewModel {
     }
 
     func build(_ kind: BuildingKind) {
+        guard phase == .town else { return }
         guard let coordinate = selectedCoordinate else {
             beginPlacement(for: kind)
             return
@@ -191,6 +197,7 @@ final class GameViewModel {
     }
 
     func upgradeSelectedBuilding() {
+        guard phase == .town else { return }
         guard let selectedBuildingID else { return }
         var didUpgrade = false
         state.updateTown(id: state.activeTownID) { town in
@@ -207,6 +214,7 @@ final class GameViewModel {
     }
 
     func train(_ soldier: SoldierKind) {
+        guard phase == .town else { return }
         var didTrain = false
         state.updateTown(id: state.activeTownID) { town in
             if let failure = soldierTrainingSystem.train(soldier, in: &town, balance: balance) {
@@ -222,12 +230,14 @@ final class GameViewModel {
     }
 
     func advanceDayManually() {
+        guard phase == .town else { return }
         simulationSystem.advanceDay(state: &state, balance: balance)
         saveCurrentGame()
         show("Day \(state.day) begins.")
     }
 
     func switchToTown(_ townID: UUID) {
+        guard phase == .town else { return }
         guard state.town(id: townID)?.isPlayerControlled == true else { return }
         state.activeTownID = townID
         selectedCoordinate = nil
@@ -238,9 +248,18 @@ final class GameViewModel {
     }
 
     func attackTown(_ targetID: UUID) {
+        guard phase == .town else { return }
+        let targetWasDuskara = state.town(id: targetID)?.isDuskara == true
         let won = worldMapSystem.attack(targetID: targetID, from: state.activeTownID, state: &state, balance: balance)
         if won {
-            show("Town conquered.")
+            if targetWasDuskara {
+                phase = .victory
+                isWorldMapPresented = false
+                stopClock()
+                show("Duskara conquered. Victory is yours.")
+            } else {
+                show("Town conquered.")
+            }
             saveCurrentGame()
         } else {
             show("Only adjacent weaker towns can be conquered.")
@@ -248,7 +267,8 @@ final class GameViewModel {
     }
 
     func canAttack(_ targetID: UUID) -> Bool {
-        worldMapSystem.canAttack(targetID: targetID, from: state.activeTownID, in: state)
+        guard phase == .town else { return false }
+        return worldMapSystem.canAttack(targetID: targetID, from: state.activeTownID, in: state)
     }
 
     func isAdjacentToActiveTown(_ targetID: UUID) -> Bool {
