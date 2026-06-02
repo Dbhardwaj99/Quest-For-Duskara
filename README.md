@@ -1,6 +1,9 @@
 # Quest for Duskara
 
 Quest for Duskara is a portrait-oriented iOS strategy game about founding towns, managing resources, training soldiers, and expanding across a connected world map before dusk overtakes the realm. The primary game experience is a RealityKit-rendered town board wrapped by SwiftUI HUD, menus, sheets, and world-map controls.
+<p align="center">
+  <img src="docs/screen.png" width="320" alt="Quest for Duskara Gameplay Screenshot" />
+</p>
 
 ## Technology Stack
 
