@@ -6,11 +6,14 @@ struct WorldMapSystem {
         towns[0].isPlayerControlled = true
         towns[0].faction = .player
         towns[0].resources = ResourceWallet(balance.baseStartingResources)
+        towns[0].armyStrength = 0
+        towns[0].enemyArmyStrength = 0
 
         let nodes = towns.enumerated().map { index, town in
             WorldTownNode(townID: town.id, x: nodePosition(for: index).0, y: nodePosition(for: index).1)
         }
         let connections = makeConnections(townIDs: towns.map(\.id))
+        applyInitialDefenses(to: &towns, connections: connections)
 
         return GameState(
             day: 1,
@@ -31,20 +34,70 @@ struct WorldMapSystem {
     }
 
     func canAttack(targetID: UUID, from sourceID: UUID, in state: GameState) -> Bool {
-        guard state.towns.first(where: { $0.id == sourceID })?.isPlayerControlled == true else { return false }
-        guard state.towns.first(where: { $0.id == targetID })?.isPlayerControlled == false else { return false }
-        return state.connections.contains { $0.connects(sourceID, targetID) }
+        guard let source = state.towns.first(where: { $0.id == sourceID }), source.isPlayerControlled else { return false }
+        guard let target = state.towns.first(where: { $0.id == targetID }), target.isPlayerControlled == false else { return false }
+        guard state.connections.contains(where: { $0.connects(sourceID, targetID) }) else { return false }
+        return source.armyStrength > target.armyStrength
     }
 
     func attack(targetID: UUID, from sourceID: UUID, state: inout GameState, balance: GameBalance) -> Bool {
         guard canAttack(targetID: targetID, from: sourceID, in: state) else { return false }
-        guard let source = state.towns.first(where: { $0.id == sourceID }) else { return false }
-        let playerPower = source.soldierRoster.armyStrength(using: balance.soldierDefinitions)
+        guard let sourceIndex = state.towns.firstIndex(where: { $0.id == sourceID }) else { return false }
         guard let targetIndex = state.towns.firstIndex(where: { $0.id == targetID }) else { return false }
-        guard playerPower > state.towns[targetIndex].enemyArmyStrength else { return false }
-        state.towns[targetIndex].isPlayerControlled = true
-        state.towns[targetIndex].faction = .player
-        state.towns[targetIndex].enemyArmyStrength = 0
+        return resolveAttack(
+            sourceIndex: sourceIndex,
+            targetIndex: targetIndex,
+            attackerFaction: .player,
+            committedStrength: state.towns[sourceIndex].armyStrength,
+            state: &state
+        )
+    }
+
+    func resolveAttack(
+        sourceIndex: Int,
+        targetIndex: Int,
+        attackerFaction: TownFaction,
+        committedStrength: Int,
+        state: inout GameState
+    ) -> Bool {
+        guard sourceIndex != targetIndex else { return false }
+        guard state.towns.indices.contains(sourceIndex), state.towns.indices.contains(targetIndex) else { return false }
+        let sourceStrength = state.towns[sourceIndex].armyStrength
+        let attackStrength = min(committedStrength, sourceStrength)
+        let defenderStrength = state.towns[targetIndex].armyStrength
+        let survivors = attackStrength - defenderStrength
+        guard survivors > 0 else {
+            state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
+            if state.towns[sourceIndex].isPlayerControlled == false {
+                state.towns[sourceIndex].enemyArmyStrength = state.towns[sourceIndex].armyStrength
+            }
+            state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
+            state.towns[sourceIndex].soldierRoster.clear()
+
+            state.towns[targetIndex].armyStrength = max(0, defenderStrength - attackStrength)
+            if state.towns[targetIndex].isPlayerControlled {
+                state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
+                state.towns[targetIndex].soldierRoster.clear()
+            } else {
+                state.towns[targetIndex].enemyArmyStrength = state.towns[targetIndex].armyStrength
+                state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
+            }
+            return false
+        }
+
+        state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
+        if state.towns[sourceIndex].isPlayerControlled == false {
+            state.towns[sourceIndex].enemyArmyStrength = state.towns[sourceIndex].armyStrength
+        }
+        state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
+        state.towns[sourceIndex].soldierRoster.clear()
+
+        state.towns[targetIndex].isPlayerControlled = attackerFaction == .player
+        state.towns[targetIndex].faction = attackerFaction
+        state.towns[targetIndex].armyStrength = survivors
+        state.towns[targetIndex].enemyArmyStrength = attackerFaction == .player ? 0 : survivors
+        state.towns[targetIndex].resources[.soldiers] = survivors
+        state.towns[targetIndex].soldierRoster.clear()
         return true
     }
 
@@ -83,14 +136,6 @@ struct WorldMapSystem {
             } else {
                 faction = .neutral
             }
-            let defense: Int
-            if isDuskara {
-                defense = 180
-            } else if faction == .enemy {
-                defense = 70
-            } else {
-                defense = 25 + (index % 5) * 8
-            }
             return Town(
                 name: name,
                 resources: resources,
@@ -99,9 +144,57 @@ struct WorldMapSystem {
                 isPlayerControlled: false,
                 faction: faction,
                 isDuskara: isDuskara,
-                enemyArmyStrength: defense
+                enemyArmyStrength: 0,
+                armyStrength: 0
             )
         }
+    }
+
+    private func applyInitialDefenses(to towns: inout [Town], connections: [TownConnection]) {
+        guard let duskaraID = towns.first(where: \.isDuskara)?.id else { return }
+        let distances = graphDistances(from: duskaraID, connections: connections)
+        let maxDistance = max(distances.values.max() ?? 1, 1)
+
+        for index in towns.indices {
+            let defense: Int
+            if towns[index].isDuskara {
+                defense = 180
+            } else {
+                let distance = distances[towns[index].id] ?? maxDistance
+                let variation = index % 6
+                if distance <= 1 {
+                    defense = 35 + variation * 5
+                } else if distance <= max(2, maxDistance / 2) {
+                    defense = 20 + min(15, variation * 3)
+                } else if distance < maxDistance {
+                    defense = 10 + min(10, variation * 2)
+                } else {
+                    defense = 3 + min(5, variation)
+                }
+            }
+            towns[index].enemyArmyStrength = towns[index].isPlayerControlled ? 0 : defense
+            towns[index].armyStrength = towns[index].isPlayerControlled ? 0 : defense
+            towns[index].resources[.soldiers] = towns[index].armyStrength
+        }
+    }
+
+    private func graphDistances(from sourceID: UUID, connections: [TownConnection]) -> [UUID: Int] {
+        var distances: [UUID: Int] = [sourceID: 0]
+        var queue = [sourceID]
+        var cursor = 0
+
+        while cursor < queue.count {
+            let current = queue[cursor]
+            cursor += 1
+            let nextDistance = (distances[current] ?? 0) + 1
+            for connection in connections where connection.contains(current) {
+                let next = connection.from == current ? connection.to : connection.from
+                guard distances[next] == nil else { continue }
+                distances[next] = nextDistance
+                queue.append(next)
+            }
+        }
+        return distances
     }
 
     private func starterBuildings(for index: Int, balance: GameBalance) -> [BuildingInstance] {

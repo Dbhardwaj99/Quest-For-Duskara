@@ -38,4 +38,8 @@ struct SoldierRoster: Codable, Equatable {
             partial + entry.value * (definitions[entry.key]?.power ?? 0)
         }
     }
+
+    mutating func clear() {
+        counts.removeAll()
+    }
 }

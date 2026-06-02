@@ -75,8 +75,21 @@ private struct BarracksTrainingSheetSection: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Training")
                 .font(.headline.weight(.heavy))
+            Text("Current Soldiers: \(viewModel.activeTown.armyStrength)")
+                .font(.subheadline.weight(.bold))
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Available Resources")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                FlowLayout(spacing: 6) {
+                    ForEach([ResourceKind.gold, .wood, .coal, .tech, .food], id: \.self) { kind in
+                        ResourcePill(kind: kind, amount: viewModel.activeTown.resources[kind])
+                    }
+                }
+            }
             ForEach(SoldierKind.allCases) { soldier in
                 if let definition = viewModel.definition(for: soldier) {
+                    let unavailableReason = viewModel.trainingUnavailableReason(for: soldier)
                     HStack(spacing: 12) {
                         Image(systemName: soldier == .archer ? "arrow.up.right" : "shield.fill")
                             .frame(width: 34, height: 34)
@@ -93,12 +106,18 @@ private struct BarracksTrainingSheetSection: View {
                         Button("Train") { viewModel.train(soldier) }
                             .buttonStyle(DuskaraButtonStyle(prominent: true))
                             .frame(width: 92)
+                            .disabled(unavailableReason != nil)
+                            .opacity(unavailableReason == nil ? 1 : 0.55)
                     }
-                    ResourceCostRow(title: "Cost", values: definition.trainingCost)
+                    ResourceCostRow(title: "Training Cost", values: definition.trainingCost)
+                    Text(unavailableReason ?? "Ready to train")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(unavailableReason == nil ? .green : .red)
                 }
             }
         }
         .padding(12)
         .background(.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 8))
     }
+
 }

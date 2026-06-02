@@ -5,6 +5,7 @@ struct GameBalance {
     var dayDuration: TimeInterval
     var baseStartingResources: [ResourceKind: Int]
     var bonusPool: Int
+    var aiReserveThreshold: Int
     var buildingDefinitions: [BuildingKind: BuildingDefinition]
     var soldierDefinitions: [SoldierKind: SoldierDefinition]
 
@@ -21,6 +22,7 @@ struct GameBalance {
             .soldiers: 0
         ],
         bonusPool: 100,
+        aiReserveThreshold: 12,
         buildingDefinitions: [
             .house: BuildingDefinition(
                 kind: .house,

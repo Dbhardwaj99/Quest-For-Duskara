@@ -29,6 +29,7 @@ final class GameViewModel {
     private let timeSystem = TimeSystem()
     private let placementValidationSystem = PlacementValidationSystem()
     private let feedbackOverlaySystem = FeedbackOverlaySystem()
+    private let newsStore = NewsStore()
     private let saveStore = GameSaveStore()
 
     init() {
@@ -47,6 +48,7 @@ final class GameViewModel {
         self.balance = balance
         self.state = savedState
         normalizeBuildingsToCurrentGrid()
+        sanitizeActiveTownSelection()
         self.phase = savedState.towns.contains { $0.isDuskara && $0.isPlayerControlled } ? .victory : .town
         if phase == .town {
             startClock()
@@ -84,13 +86,13 @@ final class GameViewModel {
     }
 
     var activeArmyStrength: Int {
-        activeTown.soldierRoster.armyStrength(using: balance.soldierDefinitions)
+        activeTown.armyStrength
     }
 
     var empireArmyStrength: Int {
         state.towns
             .filter(\.isPlayerControlled)
-            .reduce(0) { $0 + $1.soldierRoster.armyStrength(using: balance.soldierDefinitions) }
+            .reduce(0) { $0 + $1.armyStrength }
     }
 
     var freePeople: Int {
@@ -164,6 +166,7 @@ final class GameViewModel {
             isBuildMenuPresented = false
         } else {
             selectedBuildingID = nil
+            buildingPresentation = nil
         }
     }
 
@@ -216,15 +219,20 @@ final class GameViewModel {
     func train(_ soldier: SoldierKind) {
         guard phase == .town else { return }
         var didTrain = false
+        var newsMessage: String?
         state.updateTown(id: state.activeTownID) { town in
             if let failure = soldierTrainingSystem.train(soldier, in: &town, balance: balance) {
                 show(failure.rawValue)
             } else {
                 show("Trained 1 \(soldier.title).")
+                newsMessage = "You trained \(soldier.title) in \(town.name)"
                 didTrain = true
             }
         }
         if didTrain {
+            if let newsMessage {
+                newsStore.record(.soldierTraining, message: newsMessage, state: &state)
+            }
             saveCurrentGame()
         }
     }
@@ -232,6 +240,7 @@ final class GameViewModel {
     func advanceDayManually() {
         guard phase == .town else { return }
         simulationSystem.advanceDay(state: &state, balance: balance)
+        sanitizePresentationState()
         saveCurrentGame()
         show("Day \(state.day) begins.")
     }
@@ -242,6 +251,7 @@ final class GameViewModel {
         state.activeTownID = townID
         selectedCoordinate = nil
         selectedBuildingID = nil
+        buildingPresentation = nil
         placementBuildingKind = nil
         isWorldMapPresented = false
         saveCurrentGame()
@@ -250,6 +260,7 @@ final class GameViewModel {
     func attackTown(_ targetID: UUID) {
         guard phase == .town else { return }
         let targetWasDuskara = state.town(id: targetID)?.isDuskara == true
+        let targetName = state.town(id: targetID)?.name ?? "Town"
         let won = worldMapSystem.attack(targetID: targetID, from: state.activeTownID, state: &state, balance: balance)
         if won {
             if targetWasDuskara {
@@ -257,12 +268,18 @@ final class GameViewModel {
                 isWorldMapPresented = false
                 stopClock()
                 show("Duskara conquered. Victory is yours.")
+                newsStore.record(.duskaraAttack, message: "You conquered Duskara", state: &state)
             } else {
                 show("Town conquered.")
             }
+            newsStore.record(.cityCapture, message: "You captured \(targetName)", state: &state)
             saveCurrentGame()
         } else {
-            show("Only adjacent weaker towns can be conquered.")
+            if targetWasDuskara {
+                newsStore.record(.duskaraAttack, message: "You attacked Duskara but failed", state: &state)
+            }
+            show("Attack failed. Your committed soldiers were lost.")
+            saveCurrentGame()
         }
     }
 
@@ -281,8 +298,30 @@ final class GameViewModel {
             show(failure.rawValue)
         } else {
             show("Sent \(amount) \(kind.title).")
+            if let destination = state.town(id: destinationID) {
+                newsStore.record(.resourceTransfer, message: "You sent \(amount) \(kind.title) to \(destination.name)", state: &state)
+            }
             saveCurrentGame()
         }
+    }
+
+    func canTrain(_ soldier: SoldierKind) -> Bool {
+        trainingUnavailableReason(for: soldier) == nil
+    }
+
+    func trainingUnavailableReason(for soldier: SoldierKind) -> String? {
+        guard activeTown.buildings.contains(where: { $0.kind == .barracks }) else {
+            return SoldierTrainingSystem.TrainingFailure.noBarracks.rawValue
+        }
+        guard let definition = balance.soldierDefinitions[soldier] else {
+            return SoldierTrainingSystem.TrainingFailure.missingDefinition.rawValue
+        }
+        let missing = definition.trainingCost.positiveEntries.compactMap { kind, amount -> String? in
+            let available = activeTown.resources[kind]
+            guard available < amount else { return nil }
+            return "Need \(amount - available) more \(kind.title)"
+        }
+        return missing.isEmpty ? nil : missing.joined(separator: ", ")
     }
 
     func definition(for kind: BuildingKind) -> BuildingDefinition? {
@@ -309,17 +348,25 @@ final class GameViewModel {
 
     private func place(_ kind: BuildingKind, at coordinate: GridCoordinate) {
         var didBuild = false
+        var newsMessage: String?
         state.updateTown(id: state.activeTownID) { town in
             if let failure = buildingSystem.build(kind, at: coordinate, in: &town, balance: balance) {
                 show(feedbackOverlaySystem.text(for: failure, building: kind))
             } else {
                 selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
+                if let selectedBuildingID {
+                    buildingPresentation = .details(selectedBuildingID)
+                }
                 placementBuildingKind = nil
                 show("Built \(kind.title).")
+                newsMessage = "You built \(kind.title) in \(town.name)"
                 didBuild = true
             }
         }
         if didBuild {
+            if let newsMessage {
+                newsStore.record(.buildingConstruction, message: newsMessage, state: &state)
+            }
             saveCurrentGame()
         }
     }
@@ -378,7 +425,27 @@ final class GameViewModel {
         state.elapsedSecondsInDay += 1
         if timeSystem.shouldAdvanceDay(elapsedSeconds: state.elapsedSecondsInDay, balance: balance) {
             simulationSystem.advanceDay(state: &state, balance: balance)
+            sanitizePresentationState()
             saveCurrentGame()
+        }
+    }
+
+    private func sanitizeActiveTownSelection() {
+        if state.town(id: state.activeTownID)?.isPlayerControlled != true,
+           let nextPlayerTown = state.towns.first(where: \.isPlayerControlled) {
+            state.activeTownID = nextPlayerTown.id
+        }
+    }
+
+    private func sanitizePresentationState() {
+        sanitizeActiveTownSelection()
+        if let selectedBuildingID,
+           activeTown.buildings.contains(where: { $0.id == selectedBuildingID }) == false {
+            self.selectedBuildingID = nil
+        }
+        if let buildingPresentation,
+           activeTown.buildings.contains(where: { $0.id == buildingPresentation.id }) == false {
+            self.buildingPresentation = nil
         }
     }
 

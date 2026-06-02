@@ -50,7 +50,7 @@ final class World3DRenderer {
     func render(adapter: World3DStateAdapter) {
         updateVisualQuality()
         let nextGridSize = adapter.gridSize
-        let nextSignature = signature(gridSize: nextGridSize, layout: adapter.town.biomeLayout)
+        let nextSignature = signature(townID: adapter.town.id, gridSize: nextGridSize, layout: adapter.town.biomeLayout)
         if nextSignature != scaffoldSignature {
             gridSize = nextGridSize
             rebuildScaffold(layout: adapter.town.biomeLayout, gridSize: nextGridSize)
@@ -813,10 +813,10 @@ final class World3DRenderer {
         Float(stablePercent(coordinate, salt: salt) - 50) / 50
     }
 
-    private func signature(gridSize: GridSize, layout: TownBiomeLayout) -> String {
+    private func signature(townID: UUID, gridSize: GridSize, layout: TownBiomeLayout) -> String {
         let sides = BiomeSide.allCases
             .map { side in "\(side.rawValue):\(layout.biome(on: side)?.rawValue ?? "none")" }
             .joined(separator: "|")
-        return "\(gridSize.columns)x\(gridSize.rows)|\(sides)"
+        return "\(townID.uuidString)|\(gridSize.columns)x\(gridSize.rows)|\(sides)"
     }
 }

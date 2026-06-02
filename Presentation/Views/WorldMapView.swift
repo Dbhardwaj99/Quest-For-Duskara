@@ -26,6 +26,9 @@ struct WorldMapView: View {
         .onAppear {
             selectedTownID = viewModel.state.activeTownID
         }
+        .onChange(of: viewModel.state.activeTownID) { _, activeTownID in
+            selectedTownID = activeTownID
+        }
     }
 
     private var header: some View {
@@ -112,7 +115,7 @@ struct WorldMapView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(ResourceKind.allCases) { kind in
-                            ResourcePill(kind: kind, amount: town.resources[kind])
+                            ResourcePill(kind: kind, amount: kind == .soldiers ? town.armyStrength : town.resources[kind])
                         }
                     }
                 }
@@ -121,6 +124,7 @@ struct WorldMapView: View {
                     TransferPanel(
                         kind: $transferKind,
                         amount: $transferAmount,
+                        available: availableTransferAmount(for: transferKind),
                         onSend: { viewModel.transfer(transferKind, amount: transferAmount, to: town.id) }
                     )
                 }
@@ -141,6 +145,10 @@ struct WorldMapView: View {
         if town.isDuskara { return "Duskara stronghold · Defense \(town.enemyArmyStrength)" }
         if town.faction == .enemy { return "Enemy town · Strength \(town.enemyArmyStrength)" }
         return "Neutral town · Defense \(town.enemyArmyStrength)"
+    }
+
+    private func availableTransferAmount(for kind: ResourceKind) -> Int {
+        kind == .soldiers ? viewModel.activeTown.armyStrength : viewModel.activeTown.resources[kind]
     }
 
     private func specializationColor(for town: Town) -> Color {
@@ -205,6 +213,7 @@ private struct WorldTownNodeView: View {
 private struct TransferPanel: View {
     @Binding var kind: ResourceKind
     @Binding var amount: Int
+    let available: Int
     let onSend: () -> Void
 
     var body: some View {
@@ -212,21 +221,32 @@ private struct TransferPanel: View {
             Text("Transfer from active town")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.secondary)
+            Text("Available \(kind.title): \(available)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
             HStack(spacing: 10) {
                 Picker("Resource", selection: $kind) {
-                    ForEach(ResourceKind.allCases.filter { $0 != .people && $0 != .soldiers }) { resource in
+                    ForEach(ResourceKind.allCases.filter { $0 != .people }) { resource in
                         Text(resource.title).tag(resource)
                     }
                 }
                 .pickerStyle(.menu)
 
-                Stepper("\(amount)", value: $amount, in: 10...100, step: 10)
+                Stepper("\(amount)", value: $amount, in: 1...max(1, min(100, available)), step: kind == .soldiers ? 1 : 10)
                     .font(.caption.monospacedDigit().weight(.semibold))
 
                 Button("Send", action: onSend)
                     .buttonStyle(DuskaraButtonStyle(prominent: true))
                     .frame(width: 88)
+                    .disabled(available <= 0 || amount > available)
+                    .opacity(available <= 0 || amount > available ? 0.45 : 1)
             }
+        }
+        .onChange(of: kind) { _, _ in
+            amount = min(max(1, amount), max(1, available))
+        }
+        .onChange(of: available) { _, available in
+            amount = min(max(1, amount), max(1, available))
         }
     }
 }

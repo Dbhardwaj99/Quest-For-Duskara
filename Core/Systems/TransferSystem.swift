@@ -16,6 +16,16 @@ struct TransferSystem {
         guard let toIndex = state.towns.firstIndex(where: { $0.id == order.toTownID }) else { return .destinationNotOwned }
         guard state.towns[fromIndex].isPlayerControlled else { return .sourceNotOwned }
         guard state.towns[toIndex].isPlayerControlled else { return .destinationNotOwned }
+        if let soldiers = order.amounts[.soldiers], soldiers > 0 {
+            guard state.towns[fromIndex].armyStrength >= soldiers else { return .insufficientResources }
+            state.towns[fromIndex].armyStrength -= soldiers
+            state.towns[toIndex].armyStrength += soldiers
+            state.towns[fromIndex].resources[.soldiers] = state.towns[fromIndex].armyStrength
+            state.towns[toIndex].resources[.soldiers] = state.towns[toIndex].armyStrength
+            state.towns[fromIndex].soldierRoster.clear()
+            state.towns[toIndex].soldierRoster.clear()
+            return nil
+        }
         guard state.towns[fromIndex].resources.canAfford(order.amounts) else { return .insufficientResources }
 
         _ = state.towns[fromIndex].resources.spend(order.amounts)

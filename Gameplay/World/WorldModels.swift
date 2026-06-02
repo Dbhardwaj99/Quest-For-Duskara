@@ -17,6 +17,7 @@ struct Town: Identifiable, Codable, Equatable {
     var faction: TownFaction
     var isDuskara: Bool
     var enemyArmyStrength: Int
+    var armyStrength: Int
     var soldierRoster: SoldierRoster
 
     init(
@@ -29,6 +30,7 @@ struct Town: Identifiable, Codable, Equatable {
         faction: TownFaction = .neutral,
         isDuskara: Bool = false,
         enemyArmyStrength: Int = 0,
+        armyStrength: Int? = nil,
         soldierRoster: SoldierRoster = SoldierRoster()
     ) {
         self.id = id
@@ -40,6 +42,7 @@ struct Town: Identifiable, Codable, Equatable {
         self.faction = isPlayerControlled ? .player : faction
         self.isDuskara = isDuskara
         self.enemyArmyStrength = enemyArmyStrength
+        self.armyStrength = armyStrength ?? (isPlayerControlled ? 0 : enemyArmyStrength)
         self.soldierRoster = soldierRoster
     }
 
@@ -53,6 +56,7 @@ struct Town: Identifiable, Codable, Equatable {
         case faction
         case isDuskara
         case enemyArmyStrength
+        case armyStrength
         case soldierRoster
     }
 
@@ -68,6 +72,7 @@ struct Town: Identifiable, Codable, Equatable {
         isDuskara = try container.decodeIfPresent(Bool.self, forKey: .isDuskara) ?? false
         enemyArmyStrength = try container.decode(Int.self, forKey: .enemyArmyStrength)
         soldierRoster = try container.decode(SoldierRoster.self, forKey: .soldierRoster)
+        armyStrength = try container.decodeIfPresent(Int.self, forKey: .armyStrength) ?? (isPlayerControlled ? resources[.soldiers] * 10 : enemyArmyStrength)
     }
 
     var forestSideCount: Int {
@@ -114,6 +119,46 @@ struct GameState: Codable, Equatable {
     var worldNodes: [WorldTownNode]
     var connections: [TownConnection]
     var activeTownID: UUID
+    var newsEvents: [NewsEvent]
+
+    init(
+        day: Int,
+        elapsedSecondsInDay: TimeInterval,
+        towns: [Town],
+        worldNodes: [WorldTownNode],
+        connections: [TownConnection],
+        activeTownID: UUID,
+        newsEvents: [NewsEvent] = []
+    ) {
+        self.day = day
+        self.elapsedSecondsInDay = elapsedSecondsInDay
+        self.towns = towns
+        self.worldNodes = worldNodes
+        self.connections = connections
+        self.activeTownID = activeTownID
+        self.newsEvents = newsEvents
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case day
+        case elapsedSecondsInDay
+        case towns
+        case worldNodes
+        case connections
+        case activeTownID
+        case newsEvents
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        day = try container.decode(Int.self, forKey: .day)
+        elapsedSecondsInDay = try container.decode(TimeInterval.self, forKey: .elapsedSecondsInDay)
+        towns = try container.decode([Town].self, forKey: .towns)
+        worldNodes = try container.decode([WorldTownNode].self, forKey: .worldNodes)
+        connections = try container.decode([TownConnection].self, forKey: .connections)
+        activeTownID = try container.decode(UUID.self, forKey: .activeTownID)
+        newsEvents = try container.decodeIfPresent([NewsEvent].self, forKey: .newsEvents) ?? []
+    }
 
     var activeTown: Town? {
         towns.first { $0.id == activeTownID }

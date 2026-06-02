@@ -3,6 +3,7 @@ import SwiftUI
 struct GameView: View {
     @Bindable var viewModel: GameViewModel
     @State private var isTownViewExpanded = false
+    @State private var isNewsPresented = false
 
     var body: some View {
         Group {
@@ -33,6 +34,14 @@ struct GameView: View {
             townControls
                 .zIndex(2)
 
+            if isNewsPresented {
+                NewsFeedPanel(events: viewModel.state.newsEvents, onClose: { isNewsPresented = false })
+                    .padding(.top, 74)
+                    .padding(.horizontal, 14)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(8)
+            }
+
             if let feedback = viewModel.feedback {
                 GameFeedbackToastView(message: feedback.text)
                     .padding(.top, 12)
@@ -42,6 +51,7 @@ struct GameView: View {
         }
         .animation(.snappy, value: viewModel.feedback?.id)
         .animation(.smooth(duration: 0.34), value: isTownViewExpanded)
+        .animation(.snappy, value: isNewsPresented)
         .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
             BuildMenuView(viewModel: viewModel)
@@ -67,19 +77,35 @@ struct GameView: View {
     }
 
     private var topHUD: some View {
-        TopHUDView(
-            town: viewModel.activeTown,
-            day: viewModel.state.day,
-            progress: viewModel.dayProgress,
-            income: viewModel.activeTownIncome,
-            armyStrength: viewModel.activeArmyStrength,
-            freePeople: viewModel.freePeople,
-            capacity: viewModel.populationCapacity
-        )
+        HStack(alignment: .top, spacing: 8) {
+            TopHUDView(
+                town: viewModel.activeTown,
+                day: viewModel.state.day,
+                progress: viewModel.dayProgress,
+                income: viewModel.activeTownIncome,
+                armyStrength: viewModel.activeArmyStrength,
+                freePeople: viewModel.freePeople,
+                capacity: viewModel.populationCapacity
+            )
+            Button {
+                isNewsPresented.toggle()
+            } label: {
+                Image(systemName: "newspaper.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.94))
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("World news")
+        }
+        .padding(.horizontal, 8)
     }
 
     private var townView3D: some View {
         World3DTownView(sourceViewModel: viewModel)
+            .id(viewModel.state.activeTownID)
             .background(DuskaraTheme.worldBackdrop)
             .overlay(alignment: .topTrailing) {
                 Button(action: toggleTownViewExpansion) {
@@ -160,6 +186,48 @@ private struct GameFeedbackToastView: View {
             .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
             .shadow(color: .black.opacity(0.26), radius: 14, y: 7)
             .padding(.horizontal, 18)
+    }
+}
+
+private struct NewsFeedPanel: View {
+    let events: [NewsEvent]
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("World News")
+                    .font(.headline.weight(.heavy))
+                Spacer()
+                Button("Close", action: onClose)
+                    .font(.caption.weight(.bold))
+            }
+            if events.isEmpty {
+                Text("No world events yet.")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(events) { event in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Day \(event.day)")
+                                    .font(.caption.weight(.heavy))
+                                    .foregroundStyle(.secondary)
+                                Text(event.message)
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .frame(maxHeight: 260)
+            }
+        }
+        .padding(14)
+        .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.20), lineWidth: 1))
+        .shadow(color: .black.opacity(0.24), radius: 18, y: 8)
     }
 }
 

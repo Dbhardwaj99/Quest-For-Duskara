@@ -15,7 +15,8 @@ struct SoldierTrainingSystem {
         guard town.resources.canAfford(definition.trainingCost) else { return .insufficientResources }
         _ = town.resources.spend(definition.trainingCost)
         town.soldierRoster.add(kind, count: 1)
-        town.resources.add(.soldiers, amount: 1)
+        town.armyStrength += definition.power
+        town.resources[.soldiers] = town.armyStrength
         return nil
     }
 }

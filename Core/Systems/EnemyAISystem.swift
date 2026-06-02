@@ -2,6 +2,7 @@ import Foundation
 
 struct EnemyAISystem {
     private let turnsBetweenActions = 20
+    private let newsStore = NewsStore()
 
     func shouldAct(on day: Int) -> Bool {
         day.isMultiple(of: turnsBetweenActions)
@@ -30,8 +31,10 @@ struct EnemyAISystem {
         for soldier in trainingOrder {
             guard let definition = balance.soldierDefinitions[soldier] else { continue }
             if state.towns[townIndex].resources.spend(definition.trainingCost) {
-                state.towns[townIndex].enemyArmyStrength += definition.power
-                state.towns[townIndex].resources.add(.soldiers, amount: 1)
+                state.towns[townIndex].armyStrength += definition.power
+                state.towns[townIndex].enemyArmyStrength = state.towns[townIndex].armyStrength
+                state.towns[townIndex].resources[.soldiers] = state.towns[townIndex].armyStrength
+                newsStore.record(.soldierTraining, message: "Red Kingdom trained \(soldier.title) in \(state.towns[townIndex].name)", state: &state)
                 return
             }
         }
@@ -39,7 +42,7 @@ struct EnemyAISystem {
 
     private func attackBestAdjacentTarget(from sourceID: UUID, state: inout GameState, balance: GameBalance) {
         guard let sourceIndex = state.towns.firstIndex(where: { $0.id == sourceID }) else { return }
-        let sourceStrength = state.towns[sourceIndex].enemyArmyStrength
+        let sourceStrength = state.towns[sourceIndex].armyStrength
         let adjacentIDs = adjacentTownIDs(to: sourceID, in: state)
         let duskaraNode = state.worldNodes.first { node in
             state.town(id: node.townID)?.isDuskara == true
@@ -47,8 +50,8 @@ struct EnemyAISystem {
 
         let targets = adjacentIDs.compactMap { targetID -> AttackCandidate? in
             guard let target = state.town(id: targetID), target.faction != .enemy else { return nil }
-            let defense = defenseStrength(of: target, balance: balance)
-            guard sourceStrength > defense else { return nil }
+            let defense = defenseStrength(of: target)
+            guard sourceStrength > defense + balance.aiReserveThreshold else { return nil }
             return AttackCandidate(
                 townID: targetID,
                 defense: defense,
@@ -58,13 +61,25 @@ struct EnemyAISystem {
         }
 
         guard let target = targets.sorted(by: targetPriority).first,
-              let targetIndex = state.towns.firstIndex(where: { $0.id == target.townID }) else { return }
+               let targetIndex = state.towns.firstIndex(where: { $0.id == target.townID }) else { return }
 
-        state.towns[targetIndex].isPlayerControlled = false
-        state.towns[targetIndex].faction = .enemy
-        state.towns[targetIndex].enemyArmyStrength = max(15, sourceStrength / 2)
-        state.towns[targetIndex].soldierRoster = SoldierRoster()
-        state.towns[sourceIndex].enemyArmyStrength = max(10, sourceStrength - max(10, target.defense / 2))
+        let committedStrength = sourceStrength - balance.aiReserveThreshold
+        let sourceName = state.towns[sourceIndex].name
+        let targetName = state.towns[targetIndex].name
+        let targetIsDuskara = state.towns[targetIndex].isDuskara
+        let didCapture = WorldMapSystem().resolveAttack(
+            sourceIndex: sourceIndex,
+            targetIndex: targetIndex,
+            attackerFaction: .enemy,
+            committedStrength: committedStrength,
+            state: &state
+        )
+        if didCapture {
+            newsStore.record(.cityCapture, message: "Red Kingdom captured \(targetName) from \(sourceName)", state: &state)
+            if targetIsDuskara {
+                newsStore.record(.duskaraAttack, message: "Red Kingdom breached Duskara", state: &state)
+            }
+        }
     }
 
     private func targetPriority(_ lhs: AttackCandidate, _ rhs: AttackCandidate) -> Bool {
@@ -73,11 +88,11 @@ struct EnemyAISystem {
         return lhs.defense < rhs.defense
     }
 
-    private func defenseStrength(of town: Town, balance: GameBalance) -> Int {
+    private func defenseStrength(of town: Town) -> Int {
         if town.isPlayerControlled {
-            return town.soldierRoster.armyStrength(using: balance.soldierDefinitions)
+            return town.armyStrength
         }
-        return town.enemyArmyStrength
+        return town.armyStrength
     }
 
     private func adjacentTownIDs(to townID: UUID, in state: GameState) -> [UUID] {
