@@ -44,6 +44,7 @@ struct GameBalance {
         garrisonDefenseBonusRate: 0.35,
         importantCityDefenseBonus: 18,
         duskaraDefenseBonus: 55,
+        defenseBonusPerStepFromDuskara: 4,
         buildingDefinitions: [
             .house: BuildingDefinition(
                 kind: .house,
