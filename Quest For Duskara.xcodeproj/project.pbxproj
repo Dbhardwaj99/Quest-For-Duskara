@@ -7,12 +7,34 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0018CE062FC9652B00307E36 /* World3DAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD22FC9652B00307E36 /* World3DAdapter.swift */; };
+		0018CE072FC9652B00307E36 /* World3DCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD32FC9652B00307E36 /* World3DCameraController.swift */; };
+		0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD42FC9652B00307E36 /* World3DRenderer.swift */; };
+		0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */; };
+		0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */; };
+		0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */; };
+		0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDDB2FC9652B00307E36 /* ContentView.swift */; };
+		0018CE0E2FC9652B00307E36 /* Quest_For_DuskaraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDDC2FC9652B00307E36 /* Quest_For_DuskaraApp.swift */; };
+		0018CE0F2FC9652B00307E36 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0018CDDA2FC9652B00307E36 /* Assets.xcassets */; };
+		0018CE282FC9672100307E36 /* SoldierModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CE212FC9672100307E36 /* SoldierModels.swift */; };
+		0018CE3A2FC9672600307E36 /* GameSaveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CE2C2FC9672600307E36 /* GameSaveStore.swift */; };
 		003AC6E32FBB30B9007CEC60 /* agents.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6DF2FBB30B9007CEC60 /* agents.md */; };
 		003AC6E42FBB30B9007CEC60 /* design.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E02FBB30B9007CEC60 /* design.md */; };
 		003AC6E52FBB30B9007CEC60 /* screen.png in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E12FBB30B9007CEC60 /* screen.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0018CDD22FC9652B00307E36 /* World3DAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DAdapter.swift; sourceTree = "<group>"; };
+		0018CDD32FC9652B00307E36 /* World3DCameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DCameraController.swift; sourceTree = "<group>"; };
+		0018CDD42FC9652B00307E36 /* World3DRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DRenderer.swift; sourceTree = "<group>"; };
+		0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DRenderResources.swift; sourceTree = "<group>"; };
+		0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTileEntity.swift; sourceTree = "<group>"; };
+		0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTownViewController.swift; sourceTree = "<group>"; };
+		0018CDDA2FC9652B00307E36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0018CDDB2FC9652B00307E36 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0018CDDC2FC9652B00307E36 /* Quest_For_DuskaraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quest_For_DuskaraApp.swift; sourceTree = "<group>"; };
+		0018CE212FC9672100307E36 /* SoldierModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoldierModels.swift; sourceTree = "<group>"; };
+		0018CE2C2FC9672600307E36 /* GameSaveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSaveStore.swift; sourceTree = "<group>"; };
 		003AC6DF2FBB30B9007CEC60 /* agents.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = agents.md; sourceTree = "<group>"; };
 		003AC6E02FBB30B9007CEC60 /* design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = design.md; sourceTree = "<group>"; };
 		003AC6E12FBB30B9007CEC60 /* screen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = screen.png; sourceTree = "<group>"; };
@@ -20,6 +42,56 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0018CE222FC9672100307E36 /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		0018CE362FC9672600307E36 /* Systems */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Systems;
+			sourceTree = "<group>";
+		};
+		0018CE462FC9672900307E36 /* Managers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		0018CE4A2FC9672D00307E36 /* Buildings */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Buildings;
+			sourceTree = "<group>";
+		};
+		0018CE4D2FC9672F00307E36 /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		0018CE502FC9673100307E36 /* World */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = World;
+			sourceTree = "<group>";
+		};
+		0018CE552FC9673600307E36 /* Components */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Components;
+			sourceTree = "<group>";
+		};
+		0018CE5A2FC9673800307E36 /* ViewModels */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		0018CE652FC9673B00307E36 /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
+		0018CE702FC9673D00307E36 /* Theme */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Theme;
+			sourceTree = "<group>";
+		};
 		005C617B2FB7949100C85FA6 /* Quest For Duskara */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Quest For Duskara";
@@ -38,6 +110,125 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0018CE102FC9670000307E36 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDDB2FC9652B00307E36 /* ContentView.swift */,
+				0018CDDC2FC9652B00307E36 /* Quest_For_DuskaraApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		0018CE112FC9670200307E36 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				0018CE122FC9670500307E36 /* Persistence */,
+				0018CE222FC9672100307E36 /* Models */,
+				0018CE362FC9672600307E36 /* Systems */,
+				0018CE462FC9672900307E36 /* Managers */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		0018CE122FC9670500307E36 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				0018CE2C2FC9672600307E36 /* GameSaveStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		0018CE132FC9670700307E36 /* Gameplay */ = {
+			isa = PBXGroup;
+			children = (
+				0018CE142FC9670900307E36 /* Combat */,
+				0018CE4A2FC9672D00307E36 /* Buildings */,
+				0018CE4D2FC9672F00307E36 /* Resources */,
+				0018CE502FC9673100307E36 /* World */,
+			);
+			path = Gameplay;
+			sourceTree = "<group>";
+		};
+		0018CE142FC9670900307E36 /* Combat */ = {
+			isa = PBXGroup;
+			children = (
+				0018CE212FC9672100307E36 /* SoldierModels.swift */,
+			);
+			path = Combat;
+			sourceTree = "<group>";
+		};
+		0018CE152FC9670D00307E36 /* Presentation */ = {
+			isa = PBXGroup;
+			children = (
+				0018CE552FC9673600307E36 /* Components */,
+				0018CE5A2FC9673800307E36 /* ViewModels */,
+				0018CE652FC9673B00307E36 /* Views */,
+				0018CE702FC9673D00307E36 /* Theme */,
+			);
+			path = Presentation;
+			sourceTree = "<group>";
+		};
+		0018CE162FC9670F00307E36 /* Rendering3D */ = {
+			isa = PBXGroup;
+			children = (
+				0018CE172FC9671100307E36 /* Renderer */,
+				0018CE182FC9671300307E36 /* Camera */,
+				0018CE192FC9671500307E36 /* Entities */,
+				0018CE1A2FC9671700307E36 /* Resources */,
+				0018CE1B2FC9671900307E36 /* Adapters */,
+			);
+			path = Rendering3D;
+			sourceTree = "<group>";
+		};
+		0018CE172FC9671100307E36 /* Renderer */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDD42FC9652B00307E36 /* World3DRenderer.swift */,
+				0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */,
+			);
+			path = Renderer;
+			sourceTree = "<group>";
+		};
+		0018CE182FC9671300307E36 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDD32FC9652B00307E36 /* World3DCameraController.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		0018CE192FC9671500307E36 /* Entities */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */,
+			);
+			path = Entities;
+			sourceTree = "<group>";
+		};
+		0018CE1A2FC9671700307E36 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		0018CE1B2FC9671900307E36 /* Adapters */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDD22FC9652B00307E36 /* World3DAdapter.swift */,
+			);
+			path = Adapters;
+			sourceTree = "<group>";
+		};
+		0018CE722FC9675200307E36 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				0018CDDA2FC9652B00307E36 /* Assets.xcassets */,
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
 		003AC6E22FBB30B9007CEC60 /* docs */ = {
 			isa = PBXGroup;
 			children = (
@@ -54,6 +245,12 @@
 				003AC6E22FBB30B9007CEC60 /* docs */,
 				005C617B2FB7949100C85FA6 /* Quest For Duskara */,
 				005C617A2FB7949100C85FA6 /* Products */,
+				0018CE102FC9670000307E36 /* App */,
+				0018CE112FC9670200307E36 /* Core */,
+				0018CE132FC9670700307E36 /* Gameplay */,
+				0018CE152FC9670D00307E36 /* Presentation */,
+				0018CE162FC9670F00307E36 /* Rendering3D */,
+				0018CE722FC9675200307E36 /* Assets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -81,6 +278,16 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				0018CE222FC9672100307E36 /* Models */,
+				0018CE362FC9672600307E36 /* Systems */,
+				0018CE462FC9672900307E36 /* Managers */,
+				0018CE4A2FC9672D00307E36 /* Buildings */,
+				0018CE4D2FC9672F00307E36 /* Resources */,
+				0018CE502FC9673100307E36 /* World */,
+				0018CE552FC9673600307E36 /* Components */,
+				0018CE5A2FC9673800307E36 /* ViewModels */,
+				0018CE652FC9673B00307E36 /* Views */,
+				0018CE702FC9673D00307E36 /* Theme */,
 				005C617B2FB7949100C85FA6 /* Quest For Duskara */,
 			);
 			name = "Quest For Duskara";
@@ -131,6 +338,7 @@
 			files = (
 				003AC6E32FBB30B9007CEC60 /* agents.md in Resources */,
 				003AC6E42FBB30B9007CEC60 /* design.md in Resources */,
+				0018CE0F2FC9652B00307E36 /* Assets.xcassets in Resources */,
 				003AC6E52FBB30B9007CEC60 /* screen.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -142,6 +350,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0018CE282FC9672100307E36 /* SoldierModels.swift in Sources */,
+				0018CE3A2FC9672600307E36 /* GameSaveStore.swift in Sources */,
+				0018CE062FC9652B00307E36 /* World3DAdapter.swift in Sources */,
+				0018CE072FC9652B00307E36 /* World3DCameraController.swift in Sources */,
+				0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */,
+				0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */,
+				0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */,
+				0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */,
+				0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */,
+				0018CE0E2FC9652B00307E36 /* Quest_For_DuskaraApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
