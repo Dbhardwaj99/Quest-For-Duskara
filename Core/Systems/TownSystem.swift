@@ -18,6 +18,19 @@ struct TownSystem {
         max(0, town.resources[.people] - usedWorkers(in: town, balance: balance))
     }
 
+    func militaryManpower(in town: Town, balance: GameBalance) -> Int {
+        town.soldierRoster.manpowerCommitted(using: balance.soldierDefinitions)
+    }
+
+    func totalPopulation(in town: Town, balance: GameBalance) -> Int {
+        town.resources[.people] + militaryManpower(in: town, balance: balance)
+    }
+
+    func canAddMilitary(peopleRequired: Int, in town: Town, balance: GameBalance) -> Bool {
+        let capacity = max(1, populationCapacity(for: town, balance: balance))
+        return militaryManpower(in: town, balance: balance) + peopleRequired <= capacity
+    }
+
     func ownedTowns(in state: GameState) -> [Town] {
         state.towns.filter(\.isPlayerControlled)
     }

@@ -141,10 +141,11 @@ struct WorldMapView: View {
     }
 
     private func statusText(for town: Town) -> String {
-        if town.isPlayerControlled { return "Controlled town" }
-        if town.isDuskara { return "Duskara stronghold · Defense \(town.enemyArmyStrength)" }
-        if town.faction == .enemy { return "Enemy town · Strength \(town.enemyArmyStrength)" }
-        return "Neutral town · Defense \(town.enemyArmyStrength)"
+        if town.isPlayerControlled { return "Controlled town · Army \(town.armyStrength)" }
+        let defense = viewModel.effectiveDefenseStrength(for: town)
+        if town.isDuskara { return "Duskara stronghold · Defense \(defense)" }
+        if town.faction == .enemy { return "Enemy town · Strength \(defense)" }
+        return "Neutral town · Defense \(defense)"
     }
 
     private func availableTransferAmount(for kind: ResourceKind) -> Int {

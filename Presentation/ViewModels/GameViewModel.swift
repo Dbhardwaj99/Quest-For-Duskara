@@ -49,7 +49,7 @@ final class GameViewModel {
         self.state = savedState
         normalizeBuildingsToCurrentGrid()
         sanitizeActiveTownSelection()
-        self.phase = savedState.towns.contains { $0.isDuskara && $0.isPlayerControlled } ? .victory : .town
+        self.phase = savedState.towns.contains { $0.isDuskara && $0.faction == .player } ? .victory : .town
         if phase == .town {
             startClock()
         }
@@ -285,7 +285,11 @@ final class GameViewModel {
 
     func canAttack(_ targetID: UUID) -> Bool {
         guard phase == .town else { return false }
-        return worldMapSystem.canAttack(targetID: targetID, from: state.activeTownID, in: state)
+        return worldMapSystem.canAttack(targetID: targetID, from: state.activeTownID, in: state, balance: balance)
+    }
+
+    func effectiveDefenseStrength(for town: Town) -> Int {
+        worldMapSystem.effectiveDefenseStrength(for: town, in: state, balance: balance)
     }
 
     func isAdjacentToActiveTown(_ targetID: UUID) -> Bool {
@@ -310,18 +314,7 @@ final class GameViewModel {
     }
 
     func trainingUnavailableReason(for soldier: SoldierKind) -> String? {
-        guard activeTown.buildings.contains(where: { $0.kind == .barracks }) else {
-            return SoldierTrainingSystem.TrainingFailure.noBarracks.rawValue
-        }
-        guard let definition = balance.soldierDefinitions[soldier] else {
-            return SoldierTrainingSystem.TrainingFailure.missingDefinition.rawValue
-        }
-        let missing = definition.trainingCost.positiveEntries.compactMap { kind, amount -> String? in
-            let available = activeTown.resources[kind]
-            guard available < amount else { return nil }
-            return "Need \(amount - available) more \(kind.title)"
-        }
-        return missing.isEmpty ? nil : missing.joined(separator: ", ")
+        soldierTrainingSystem.trainingUnavailableReason(for: soldier, in: activeTown, balance: balance)
     }
 
     func definition(for kind: BuildingKind) -> BuildingDefinition? {
@@ -333,7 +326,7 @@ final class GameViewModel {
     }
 
     func buildingIncome(_ building: BuildingInstance) -> [ResourceKind: Int] {
-        balance.buildingDefinitions[building.kind]?.production(for: building.level) ?? [:]
+        buildingSystem.production(for: building, in: activeTown, balance: balance)
     }
 
     func upgradeCost(_ building: BuildingInstance) -> [ResourceKind: Int] {

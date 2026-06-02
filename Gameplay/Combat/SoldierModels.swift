@@ -19,6 +19,8 @@ struct SoldierDefinition: Identifiable, Codable, Equatable {
     var kind: SoldierKind
     var trainingCost: [ResourceKind: Int]
     var power: Int
+    var peopleRequired: Int
+    var dailyFoodUpkeep: Int
 }
 
 struct SoldierRoster: Codable, Equatable {
@@ -41,5 +43,22 @@ struct SoldierRoster: Codable, Equatable {
 
     mutating func clear() {
         counts.removeAll()
+    }
+
+    func manpowerCommitted(using definitions: [SoldierKind: SoldierDefinition]) -> Int {
+        counts.reduce(0) { partial, entry in
+            partial + entry.value * (definitions[entry.key]?.peopleRequired ?? 0)
+        }
+    }
+
+    mutating func removeHighestUpkeepUnit(using definitions: [SoldierKind: SoldierDefinition]) -> SoldierKind? {
+        let order = SoldierKind.allCases.sorted {
+            (definitions[$1]?.dailyFoodUpkeep ?? 0) < (definitions[$0]?.dailyFoodUpkeep ?? 0)
+        }
+        for kind in order where self[kind] > 0 {
+            self[kind] -= 1
+            return kind
+        }
+        return nil
     }
 }

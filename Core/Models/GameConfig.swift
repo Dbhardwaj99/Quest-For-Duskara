@@ -6,6 +6,14 @@ struct GameBalance {
     var baseStartingResources: [ResourceKind: Int]
     var bonusPool: Int
     var aiReserveThreshold: Int
+    var aiMinimumFoodReserve: Int
+    var aiMinimumGoldReserve: Int
+    var captureResourceLossRates: [ResourceKind: Double]
+    var combatWinnerCasualtyRate: Double
+    var garrisonDefenseBonusRate: Double
+    var importantCityDefenseBonus: Int
+    var duskaraDefenseBonus: Int
+    var defenseBonusPerStepFromDuskara: Int
     var buildingDefinitions: [BuildingKind: BuildingDefinition]
     var soldierDefinitions: [SoldierKind: SoldierDefinition]
 
@@ -23,6 +31,19 @@ struct GameBalance {
         ],
         bonusPool: 100,
         aiReserveThreshold: 12,
+        aiMinimumFoodReserve: 40,
+        aiMinimumGoldReserve: 80,
+        captureResourceLossRates: [
+            .gold: 0.50,
+            .food: 0.50,
+            .tech: 0.50,
+            .wood: 0.25,
+            .coal: 0.25
+        ],
+        combatWinnerCasualtyRate: 0.25,
+        garrisonDefenseBonusRate: 0.35,
+        importantCityDefenseBonus: 18,
+        duskaraDefenseBonus: 55,
         buildingDefinitions: [
             .house: BuildingDefinition(
                 kind: .house,
@@ -92,8 +113,20 @@ struct GameBalance {
             )
         ],
         soldierDefinitions: [
-            .archer: SoldierDefinition(kind: .archer, trainingCost: [.gold: 20, .tech: 5, .food: 10], power: 10),
-            .knight: SoldierDefinition(kind: .knight, trainingCost: [.gold: 45, .tech: 15, .food: 25], power: 20)
+            .archer: SoldierDefinition(
+                kind: .archer,
+                trainingCost: [.gold: 20, .tech: 5, .food: 10],
+                power: 10,
+                peopleRequired: 1,
+                dailyFoodUpkeep: 2
+            ),
+            .knight: SoldierDefinition(
+                kind: .knight,
+                trainingCost: [.gold: 45, .tech: 15, .food: 25],
+                power: 20,
+                peopleRequired: 2,
+                dailyFoodUpkeep: 4
+            )
         ]
     )
 }

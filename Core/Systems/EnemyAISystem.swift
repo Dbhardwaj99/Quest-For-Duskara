@@ -3,6 +3,13 @@ import Foundation
 struct EnemyAISystem {
     private let turnsBetweenActions = 20
     private let newsStore = NewsStore()
+    private let soldierTrainingSystem = SoldierTrainingSystem()
+    private let buildingSystem = BuildingSystem()
+    private let placementValidationSystem = PlacementValidationSystem()
+    private let armyUpkeepSystem = ArmyUpkeepSystem()
+    private let worldMapSystem = WorldMapSystem()
+
+    private let infrastructurePriority: [BuildingKind] = [.house, .farm, .barracks, .lab]
 
     func shouldAct(on day: Int) -> Bool {
         day.isMultiple(of: turnsBetweenActions)
@@ -14,6 +21,7 @@ struct EnemyAISystem {
             .map(\.id)
 
         for townID in enemyTownIDs {
+            developInfrastructure(in: townID, state: &state, balance: balance)
             trainSoldier(in: townID, state: &state, balance: balance)
             attackBestAdjacentTarget(from: townID, state: &state, balance: balance)
         }
@@ -24,17 +32,58 @@ struct EnemyAISystem {
         }
     }
 
+    private func developInfrastructure(in townID: UUID, state: inout GameState, balance: GameBalance) {
+        guard let townIndex = state.towns.firstIndex(where: { $0.id == townID }) else { return }
+
+        for kind in infrastructurePriority {
+            if state.towns[townIndex].buildings.contains(where: { $0.kind == kind }) {
+                continue
+            }
+            guard let coordinate = preferredCoordinate(
+                for: kind,
+                in: state.towns[townIndex],
+                balance: balance
+            ) else {
+                continue
+            }
+            if buildingSystem.build(kind, at: coordinate, in: &state.towns[townIndex], balance: balance) == nil {
+                newsStore.record(
+                    .buildingConstruction,
+                    message: "Red Kingdom built \(kind.title) in \(state.towns[townIndex].name)",
+                    state: &state
+                )
+                return
+            }
+        }
+    }
+
+    private func preferredCoordinate(
+        for kind: BuildingKind,
+        in town: Town,
+        balance: GameBalance
+    ) -> GridCoordinate? {
+        let valid = placementValidationSystem.validCoordinates(for: kind, in: town, balance: balance)
+        guard valid.isEmpty == false else { return nil }
+        let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
+        return valid.min { lhs, rhs in
+            let lhsDistance = abs(lhs.x - center.x) + abs(lhs.y - center.y)
+            let rhsDistance = abs(rhs.x - center.x) + abs(rhs.y - center.y)
+            return lhsDistance < rhsDistance
+        }
+    }
+
     private func trainSoldier(in townID: UUID, state: inout GameState, balance: GameBalance) {
         guard let townIndex = state.towns.firstIndex(where: { $0.id == townID }) else { return }
-        let trainingOrder: [SoldierKind] = [.knight, .archer]
+        guard state.towns[townIndex].buildings.contains(where: { $0.kind == .barracks }) else { return }
 
+        let trainingOrder: [SoldierKind] = [.archer, .knight]
         for soldier in trainingOrder {
-            guard let definition = balance.soldierDefinitions[soldier] else { continue }
-            if state.towns[townIndex].resources.spend(definition.trainingCost) {
-                state.towns[townIndex].armyStrength += definition.power
-                state.towns[townIndex].enemyArmyStrength = state.towns[townIndex].armyStrength
-                state.towns[townIndex].resources[.soldiers] = state.towns[townIndex].armyStrength
-                newsStore.record(.soldierTraining, message: "Red Kingdom trained \(soldier.title) in \(state.towns[townIndex].name)", state: &state)
+            if soldierTrainingSystem.train(soldier, in: &state.towns[townIndex], balance: balance) == nil {
+                newsStore.record(
+                    .soldierTraining,
+                    message: "Red Kingdom trained \(soldier.title) in \(state.towns[townIndex].name)",
+                    state: &state
+                )
                 return
             }
         }
@@ -42,7 +91,12 @@ struct EnemyAISystem {
 
     private func attackBestAdjacentTarget(from sourceID: UUID, state: inout GameState, balance: GameBalance) {
         guard let sourceIndex = state.towns.firstIndex(where: { $0.id == sourceID }) else { return }
-        let sourceStrength = state.towns[sourceIndex].armyStrength
+        let sourceTown = state.towns[sourceIndex]
+        guard armyUpkeepSystem.hasStableEconomy(for: sourceTown, balance: balance) else { return }
+
+        let sourceStrength = sourceTown.armyStrength
+        guard sourceStrength > balance.aiReserveThreshold else { return }
+
         let adjacentIDs = adjacentTownIDs(to: sourceID, in: state)
         let duskaraNode = state.worldNodes.first { node in
             state.town(id: node.townID)?.isDuskara == true
@@ -50,7 +104,7 @@ struct EnemyAISystem {
 
         let targets = adjacentIDs.compactMap { targetID -> AttackCandidate? in
             guard let target = state.town(id: targetID), target.faction != .enemy else { return nil }
-            let defense = defenseStrength(of: target)
+            let defense = worldMapSystem.effectiveDefenseStrength(for: target, in: state, balance: balance)
             guard sourceStrength > defense + balance.aiReserveThreshold else { return nil }
             return AttackCandidate(
                 townID: targetID,
@@ -61,18 +115,19 @@ struct EnemyAISystem {
         }
 
         guard let target = targets.sorted(by: targetPriority).first,
-               let targetIndex = state.towns.firstIndex(where: { $0.id == target.townID }) else { return }
+              let targetIndex = state.towns.firstIndex(where: { $0.id == target.townID }) else { return }
 
         let committedStrength = sourceStrength - balance.aiReserveThreshold
         let sourceName = state.towns[sourceIndex].name
         let targetName = state.towns[targetIndex].name
         let targetIsDuskara = state.towns[targetIndex].isDuskara
-        let didCapture = WorldMapSystem().resolveAttack(
+        let didCapture = worldMapSystem.resolveAttack(
             sourceIndex: sourceIndex,
             targetIndex: targetIndex,
             attackerFaction: .enemy,
             committedStrength: committedStrength,
-            state: &state
+            state: &state,
+            balance: balance
         )
         if didCapture {
             newsStore.record(.cityCapture, message: "Red Kingdom captured \(targetName) from \(sourceName)", state: &state)
@@ -86,13 +141,6 @@ struct EnemyAISystem {
         if lhs.isDuskara != rhs.isDuskara { return lhs.isDuskara }
         if lhs.distanceToDuskara != rhs.distanceToDuskara { return lhs.distanceToDuskara < rhs.distanceToDuskara }
         return lhs.defense < rhs.defense
-    }
-
-    private func defenseStrength(of town: Town) -> Int {
-        if town.isPlayerControlled {
-            return town.armyStrength
-        }
-        return town.armyStrength
     }
 
     private func adjacentTownIDs(to townID: UUID, in state: GameState) -> [UUID] {

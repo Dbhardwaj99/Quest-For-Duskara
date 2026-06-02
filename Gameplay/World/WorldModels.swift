@@ -13,10 +13,8 @@ struct Town: Identifiable, Codable, Equatable {
     var resources: ResourceWallet
     var buildings: [BuildingInstance]
     var biomeLayout: TownBiomeLayout
-    var isPlayerControlled: Bool
     var faction: TownFaction
     var isDuskara: Bool
-    var enemyArmyStrength: Int
     var armyStrength: Int
     var soldierRoster: SoldierRoster
 
@@ -26,11 +24,9 @@ struct Town: Identifiable, Codable, Equatable {
         resources: ResourceWallet = ResourceWallet(),
         buildings: [BuildingInstance] = [],
         biomeLayout: TownBiomeLayout,
-        isPlayerControlled: Bool = false,
         faction: TownFaction = .neutral,
         isDuskara: Bool = false,
-        enemyArmyStrength: Int = 0,
-        armyStrength: Int? = nil,
+        armyStrength: Int = 0,
         soldierRoster: SoldierRoster = SoldierRoster()
     ) {
         self.id = id
@@ -38,11 +34,9 @@ struct Town: Identifiable, Codable, Equatable {
         self.resources = resources
         self.buildings = buildings
         self.biomeLayout = biomeLayout
-        self.isPlayerControlled = isPlayerControlled
-        self.faction = isPlayerControlled ? .player : faction
+        self.faction = faction
         self.isDuskara = isDuskara
-        self.enemyArmyStrength = enemyArmyStrength
-        self.armyStrength = armyStrength ?? (isPlayerControlled ? 0 : enemyArmyStrength)
+        self.armyStrength = armyStrength
         self.soldierRoster = soldierRoster
     }
 
@@ -52,12 +46,12 @@ struct Town: Identifiable, Codable, Equatable {
         case resources
         case buildings
         case biomeLayout
-        case isPlayerControlled
         case faction
         case isDuskara
-        case enemyArmyStrength
         case armyStrength
         case soldierRoster
+        case isPlayerControlled
+        case enemyArmyStrength
     }
 
     init(from decoder: Decoder) throws {
@@ -67,12 +61,33 @@ struct Town: Identifiable, Codable, Equatable {
         resources = try container.decode(ResourceWallet.self, forKey: .resources)
         buildings = try container.decode([BuildingInstance].self, forKey: .buildings)
         biomeLayout = try container.decode(TownBiomeLayout.self, forKey: .biomeLayout)
-        isPlayerControlled = try container.decode(Bool.self, forKey: .isPlayerControlled)
-        faction = try container.decodeIfPresent(TownFaction.self, forKey: .faction) ?? (isPlayerControlled ? .player : .neutral)
         isDuskara = try container.decodeIfPresent(Bool.self, forKey: .isDuskara) ?? false
-        enemyArmyStrength = try container.decode(Int.self, forKey: .enemyArmyStrength)
-        soldierRoster = try container.decode(SoldierRoster.self, forKey: .soldierRoster)
-        armyStrength = try container.decodeIfPresent(Int.self, forKey: .armyStrength) ?? (isPlayerControlled ? resources[.soldiers] * 10 : enemyArmyStrength)
+        soldierRoster = try container.decodeIfPresent(SoldierRoster.self, forKey: .soldierRoster) ?? SoldierRoster()
+
+        if let decodedFaction = try container.decodeIfPresent(TownFaction.self, forKey: .faction) {
+            faction = decodedFaction
+        } else if try container.decodeIfPresent(Bool.self, forKey: .isPlayerControlled) == true {
+            faction = .player
+        } else {
+            faction = .neutral
+        }
+
+        let legacyEnemyStrength = try container.decodeIfPresent(Int.self, forKey: .enemyArmyStrength) ?? 0
+        armyStrength = try container.decodeIfPresent(Int.self, forKey: .armyStrength)
+            ?? (faction == .player ? resources[.soldiers] : legacyEnemyStrength)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(resources, forKey: .resources)
+        try container.encode(buildings, forKey: .buildings)
+        try container.encode(biomeLayout, forKey: .biomeLayout)
+        try container.encode(faction, forKey: .faction)
+        try container.encode(isDuskara, forKey: .isDuskara)
+        try container.encode(armyStrength, forKey: .armyStrength)
+        try container.encode(soldierRoster, forKey: .soldierRoster)
     }
 
     var forestSideCount: Int {

@@ -1,13 +1,14 @@
 import Foundation
 
 struct WorldMapSystem {
+    private let combatSystem = CombatSystem()
+    private let occupationSystem = OccupationSystem()
+
     func makeInitialState(balance: GameBalance) -> GameState {
         var towns = makeTowns(balance: balance)
-        towns[0].isPlayerControlled = true
         towns[0].faction = .player
         towns[0].resources = ResourceWallet(balance.baseStartingResources)
         towns[0].armyStrength = 0
-        towns[0].enemyArmyStrength = 0
 
         let nodes = towns.enumerated().map { index, town in
             WorldTownNode(townID: town.id, x: nodePosition(for: index).0, y: nodePosition(for: index).1)
@@ -33,15 +34,20 @@ struct WorldMapSystem {
         }
     }
 
-    func canAttack(targetID: UUID, from sourceID: UUID, in state: GameState) -> Bool {
+    func effectiveDefenseStrength(for town: Town, in state: GameState, balance: GameBalance) -> Int {
+        combatSystem.effectiveDefenseStrength(for: town, in: state, balance: balance)
+    }
+
+    func canAttack(targetID: UUID, from sourceID: UUID, in state: GameState, balance: GameBalance) -> Bool {
         guard let source = state.towns.first(where: { $0.id == sourceID }), source.isPlayerControlled else { return false }
         guard let target = state.towns.first(where: { $0.id == targetID }), target.isPlayerControlled == false else { return false }
         guard state.connections.contains(where: { $0.connects(sourceID, targetID) }) else { return false }
-        return source.armyStrength > target.armyStrength
+        let defense = effectiveDefenseStrength(for: target, in: state, balance: balance)
+        return source.armyStrength > defense
     }
 
     func attack(targetID: UUID, from sourceID: UUID, state: inout GameState, balance: GameBalance) -> Bool {
-        guard canAttack(targetID: targetID, from: sourceID, in: state) else { return false }
+        guard canAttack(targetID: targetID, from: sourceID, in: state, balance: balance) else { return false }
         guard let sourceIndex = state.towns.firstIndex(where: { $0.id == sourceID }) else { return false }
         guard let targetIndex = state.towns.firstIndex(where: { $0.id == targetID }) else { return false }
         return resolveAttack(
@@ -49,7 +55,8 @@ struct WorldMapSystem {
             targetIndex: targetIndex,
             attackerFaction: .player,
             committedStrength: state.towns[sourceIndex].armyStrength,
-            state: &state
+            state: &state,
+            balance: balance
         )
     }
 
@@ -58,47 +65,67 @@ struct WorldMapSystem {
         targetIndex: Int,
         attackerFaction: TownFaction,
         committedStrength: Int,
-        state: inout GameState
+        state: inout GameState,
+        balance: GameBalance
     ) -> Bool {
         guard sourceIndex != targetIndex else { return false }
         guard state.towns.indices.contains(sourceIndex), state.towns.indices.contains(targetIndex) else { return false }
+
         let sourceStrength = state.towns[sourceIndex].armyStrength
         let attackStrength = min(committedStrength, sourceStrength)
-        let defenderStrength = state.towns[targetIndex].armyStrength
-        let survivors = attackStrength - defenderStrength
-        guard survivors > 0 else {
-            state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
-            if state.towns[sourceIndex].isPlayerControlled == false {
-                state.towns[sourceIndex].enemyArmyStrength = state.towns[sourceIndex].armyStrength
-            }
-            state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
-            state.towns[sourceIndex].soldierRoster.clear()
+        let target = state.towns[targetIndex]
+        let effectiveDefense = combatSystem.effectiveDefenseStrength(for: target, in: state, balance: balance)
+        let survivors = combatSystem.winnerSurvivors(
+            attackStrength: attackStrength,
+            effectiveDefense: effectiveDefense,
+            balance: balance
+        )
 
-            state.towns[targetIndex].armyStrength = max(0, defenderStrength - attackStrength)
-            if state.towns[targetIndex].isPlayerControlled {
-                state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
-                state.towns[targetIndex].soldierRoster.clear()
-            } else {
-                state.towns[targetIndex].enemyArmyStrength = state.towns[targetIndex].armyStrength
-                state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
-            }
+        guard survivors > 0 else {
+            applyFailedAttack(
+                sourceIndex: sourceIndex,
+                targetIndex: targetIndex,
+                attackStrength: attackStrength,
+                sourceStrength: sourceStrength,
+                effectiveDefense: effectiveDefense,
+                state: &state
+            )
             return false
         }
 
         state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
-        if state.towns[sourceIndex].isPlayerControlled == false {
-            state.towns[sourceIndex].enemyArmyStrength = state.towns[sourceIndex].armyStrength
-        }
         state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
         state.towns[sourceIndex].soldierRoster.clear()
 
-        state.towns[targetIndex].isPlayerControlled = attackerFaction == .player
-        state.towns[targetIndex].faction = attackerFaction
+        occupationSystem.applyCapturePenalties(to: &state.towns[targetIndex], balance: balance)
+        state.towns[targetIndex].setFaction(attackerFaction)
         state.towns[targetIndex].armyStrength = survivors
-        state.towns[targetIndex].enemyArmyStrength = attackerFaction == .player ? 0 : survivors
         state.towns[targetIndex].resources[.soldiers] = survivors
         state.towns[targetIndex].soldierRoster.clear()
         return true
+    }
+
+    private func applyFailedAttack(
+        sourceIndex: Int,
+        targetIndex: Int,
+        attackStrength: Int,
+        sourceStrength: Int,
+        effectiveDefense: Int,
+        state: inout GameState
+    ) {
+        state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
+        state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
+        state.towns[sourceIndex].soldierRoster.clear()
+
+        let defenderGarrison = state.towns[targetIndex].armyStrength
+        let defenderReduction = min(attackStrength, defenderGarrison)
+        state.towns[targetIndex].armyStrength = max(0, defenderGarrison - defenderReduction)
+        if state.towns[targetIndex].isPlayerControlled {
+            state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
+            state.towns[targetIndex].soldierRoster.clear()
+        } else {
+            state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
+        }
     }
 
     private func makeTowns(balance: GameBalance) -> [Town] {
@@ -141,10 +168,8 @@ struct WorldMapSystem {
                 resources: resources,
                 buildings: starterBuildings(for: index, balance: balance),
                 biomeLayout: layout,
-                isPlayerControlled: false,
                 faction: faction,
                 isDuskara: isDuskara,
-                enemyArmyStrength: 0,
                 armyStrength: 0
             )
         }
@@ -172,7 +197,6 @@ struct WorldMapSystem {
                     defense = 3 + min(5, variation)
                 }
             }
-            towns[index].enemyArmyStrength = towns[index].isPlayerControlled ? 0 : defense
             towns[index].armyStrength = towns[index].isPlayerControlled ? 0 : defense
             towns[index].resources[.soldiers] = towns[index].armyStrength
         }

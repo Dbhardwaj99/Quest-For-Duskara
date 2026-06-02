@@ -16,12 +16,24 @@ struct BuildingSystem {
     func income(for town: Town, balance: GameBalance) -> [ResourceKind: Int] {
         var total: [ResourceKind: Int] = [:]
         for building in town.buildings {
-            guard let definition = balance.buildingDefinitions[building.kind] else { continue }
-            for (kind, amount) in definition.production(for: building.level) {
-                total[kind, default: 0] += modifiedProduction(amount, for: kind, from: building.kind, in: town)
+            for (kind, amount) in production(for: building, in: town, balance: balance) {
+                total[kind, default: 0] += amount
             }
         }
         return total
+    }
+
+    func production(
+        for building: BuildingInstance,
+        in town: Town,
+        balance: GameBalance
+    ) -> [ResourceKind: Int] {
+        guard let definition = balance.buildingDefinitions[building.kind] else { return [:] }
+        var production: [ResourceKind: Int] = [:]
+        for (kind, amount) in definition.production(for: building.level) {
+            production[kind] = modifiedProduction(amount, for: kind, from: building.kind, in: town)
+        }
+        return production
     }
 
     func canBuild(_ kind: BuildingKind, at coordinate: GridCoordinate, in town: Town, balance: GameBalance) -> BuildFailure? {

@@ -98,7 +98,7 @@ private struct BarracksTrainingSheetSection: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(soldier.title)
                                 .font(.subheadline.weight(.bold))
-                            Text("+\(definition.power) army power")
+                            Text("+\(definition.power) power · \(definition.peopleRequired) people · \(definition.dailyFoodUpkeep) food/day")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

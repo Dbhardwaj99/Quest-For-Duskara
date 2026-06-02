@@ -1,6 +1,8 @@
 import Foundation
 
 struct SimulationSystem {
+    private let armyUpkeepSystem = ArmyUpkeepSystem()
+
     func advanceDay(state: inout GameState, balance: GameBalance) {
         state.day += 1
         state.elapsedSecondsInDay = 0
@@ -10,6 +12,7 @@ struct SimulationSystem {
         for index in state.towns.indices {
             let income = buildingSystem.income(for: state.towns[index], balance: balance)
             resourceSystem.applyIncome(income, to: &state.towns[index].resources)
+            armyUpkeepSystem.applyDailyUpkeep(to: &state.towns[index], balance: balance)
         }
 
         let enemyAI = EnemyAISystem()
