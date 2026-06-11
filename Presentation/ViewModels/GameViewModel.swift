@@ -188,6 +188,8 @@ final class GameViewModel {
     func cancelPlacement() {
         placementBuildingKind = nil
         selectedCoordinate = nil
+        selectedBuildingID = nil
+        buildingPresentation = nil
         show("Placement cancelled.")
     }
 

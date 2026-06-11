@@ -2,9 +2,6 @@ import Foundation
 
 enum ResourceKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case gold
-    case wood
-    case coal
-    case tech
     case food
     case people
     case soldiers
@@ -15,9 +12,6 @@ enum ResourceKind: String, CaseIterable, Identifiable, Codable, Hashable {
     var title: String {
         switch self {
         case .gold: "Gold"
-        case .wood: "Wood"
-        case .coal: "Coal"
-        case .tech: "Tech"
         case .food: "Food"
         case .people: "People"
         case .soldiers: "Soldiers"
@@ -28,9 +22,6 @@ enum ResourceKind: String, CaseIterable, Identifiable, Codable, Hashable {
     var symbol: String {
         switch self {
         case .gold: "G"
-        case .wood: "W"
-        case .coal: "C"
-        case .tech: "T"
         case .food: "F"
         case .people: "P"
         case .soldiers: "A"

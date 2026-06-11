@@ -481,11 +481,7 @@ struct World3DTileEntity {
             addHouse(level: level, to: root, tileSize: tileSize, coordinate: coordinate)
         case .farm:
             addFarm(level: level, to: root, tileSize: tileSize, coordinate: coordinate)
-        case .woodMill:
-            addWoodMill(level: level, to: root, tileSize: tileSize, coordinate: coordinate)
-        case .coalMine:
-            addCoalMine(level: level, to: root, tileSize: tileSize, coordinate: coordinate)
-        case .lab:
+        case .factory:
             addLab(level: level, to: root, tileSize: tileSize, coordinate: coordinate)
         case .barracks:
             addBarracks(level: level, to: root, tileSize: tileSize, coordinate: coordinate)

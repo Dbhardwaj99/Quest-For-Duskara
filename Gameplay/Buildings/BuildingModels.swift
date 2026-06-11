@@ -3,9 +3,7 @@ import Foundation
 enum BuildingKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case house
     case farm
-    case woodMill
-    case coalMine
-    case lab
+    case factory
     case barracks
 
     var id: String { rawValue }
@@ -14,9 +12,7 @@ enum BuildingKind: String, CaseIterable, Identifiable, Codable, Hashable {
         switch self {
         case .house: "House"
         case .farm: "Farm"
-        case .woodMill: "Wood Mill"
-        case .coalMine: "Coal Mine"
-        case .lab: "Lab"
+        case .factory: "Factory"
         case .barracks: "Barracks"
         }
     }

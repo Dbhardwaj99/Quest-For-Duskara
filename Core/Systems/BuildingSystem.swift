@@ -69,14 +69,16 @@ struct BuildingSystem {
     }
 
     private func modifiedProduction(_ amount: Int, for resource: ResourceKind, from building: BuildingKind, in town: Town) -> Int {
-        switch (building, resource) {
-        case (.woodMill, .wood):
-            return scaled(amount, byBiomeSideCount: town.forestSideCount)
-        case (.coalMine, .coal):
-            return scaled(amount, byBiomeSideCount: town.mountainSideCount)
-        default:
-            return amount
-        }
+		return 0
+//		This can be used later
+//        switch (building, resource) {
+//        case (.woodMill, .wood):
+//            return scaled(amount, byBiomeSideCount: town.forestSideCount)
+//        case (.coalMine, .coal):
+//            return scaled(amount, byBiomeSideCount: town.mountainSideCount)
+//        default:
+//            return amount
+//        }
     }
 
     private func scaled(_ amount: Int, byBiomeSideCount count: Int) -> Int {

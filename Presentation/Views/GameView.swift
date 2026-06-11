@@ -71,6 +71,8 @@ struct GameView: View {
             topHUD
                 .padding(.top, 8)
             Spacer(minLength: isTownViewExpanded ? 0 : 12)
+            placementCancelButton
+                .padding(.bottom, 8)
             bottomBar
                 .padding(.bottom, isTownViewExpanded ? 10 : 8)
         }
@@ -146,6 +148,28 @@ struct GameView: View {
             onWorld: { viewModel.isWorldMapPresented = true },
             onNextDay: viewModel.advanceDayManually
         )
+    }
+
+    @ViewBuilder
+    private var placementCancelButton: some View {
+        if let kind = viewModel.placementBuildingKind {
+            Button(action: viewModel.cancelPlacement) {
+                Label("Cancel \(kind.title)", systemImage: "xmark.circle.fill")
+                    .font(.subheadline.weight(.heavy))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().stroke(DuskaraTheme.glassStroke, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.28), radius: 14, y: 7)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityLabel("Cancel building placement")
+        }
     }
 
     private func toggleTownViewExpansion() {

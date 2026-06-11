@@ -233,9 +233,7 @@ struct World3DAssetPreview: Identifiable, Hashable {
         switch kind {
         case .house: "house.fill"
         case .farm: "carrot.fill"
-        case .woodMill: "tree.circle.fill"
-        case .coalMine: "mountain.2.circle.fill"
-        case .lab: "flask.fill"
+        case .factory: "flask.fill"
         case .barracks: "shield.lefthalf.filled"
         }
     }

@@ -22,11 +22,6 @@ struct BuildMenuView: View {
                                 .padding(.horizontal, 16)
                             }
                         }
-                    } header: {
-                        BuildResourcesHeader(
-                            town: viewModel.activeTown,
-                            income: viewModel.activeTownIncome
-                        )
                     }
                 }
                 .padding(.bottom, 16)
@@ -34,6 +29,12 @@ struct BuildMenuView: View {
             .background(DuskaraTheme.panel.opacity(0.35))
             .navigationTitle("Build")
             .toolbar {
+				ToolbarItem(placement: .status){
+					BuildResourcesHeader(
+						town: viewModel.activeTown,
+						income: viewModel.activeTownIncome
+					)
+				}
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { viewModel.isBuildMenuPresented = false }
                 }
@@ -62,12 +63,12 @@ private struct BuildResourcesHeader: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(DuskaraTheme.panel)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(.black.opacity(0.12))
-                .frame(height: 1)
-        }
+//        .background(DuskaraTheme.panel)
+//        .overlay(alignment: .bottom) {
+//            Rectangle()
+//                .fill(.black.opacity(0.12))
+//                .frame(height: 1)
+//        }
     }
 }
 

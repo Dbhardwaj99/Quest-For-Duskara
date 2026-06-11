@@ -55,17 +55,7 @@ struct BuildingArtView: View {
             }
             .foregroundStyle(.white.opacity(0.9))
             .offset(y: 4)
-        case .woodMill:
-            Image(systemName: "fanblades.fill")
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.85))
-                .rotationEffect(.degrees(Double(building.level) * 12))
-        case .coalMine:
-            Image(systemName: "mountain.2.fill")
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.86))
-                .offset(y: 4)
-        case .lab:
+        case .factory:
             Image(systemName: "sparkles")
                 .font(.title3)
                 .foregroundStyle(.white)

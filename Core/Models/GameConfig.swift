@@ -34,7 +34,6 @@ struct GameBalance {
         captureResourceLossRates: [
             .gold: 0.50,
             .skill: 0.50,
-            .tech: 0.50
         ],
         combatWinnerCasualtyRate: 0.25,
         garrisonDefenseBonusRate: 0.35,
@@ -64,30 +63,8 @@ struct GameBalance {
                 maxLevel: 3,
                 placementRules: [.none]
             ),
-            .woodMill: BuildingDefinition(
-                kind: .woodMill,
-                summary: "Harvests wood when built beside a forest edge.",
-                baseCost: [.gold: 30, .skill: 10],
-				baseProduction: [:],
-                peopleRequired: 2,
-                peopleOnBuild: 0,
-                populationCapacity: 0,
-                maxLevel: 3,
-                placementRules: [.adjacentToBiome(.forest)]
-            ),
-            .coalMine: BuildingDefinition(
-                kind: .coalMine,
-                summary: "Extracts coal when built beside mountain terrain.",
-                baseCost: [.gold: 35, .skill: 10],
-				baseProduction: [:],
-                peopleRequired: 2,
-                peopleOnBuild: 0,
-                populationCapacity: 0,
-                maxLevel: 3,
-                placementRules: [.adjacentToBiome(.mountain)]
-            ),
-            .lab: BuildingDefinition(
-                kind: .lab,
+            .factory: BuildingDefinition(
+                kind: .factory,
                 summary: "Generates technology for upgrades and soldiers.",
                 baseCost: [.gold: 45, .skill: 10],
                 baseProduction: [.skill: 7],
