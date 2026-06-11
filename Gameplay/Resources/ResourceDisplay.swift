@@ -10,6 +10,7 @@ extension ResourceKind {
         case .food: Color(red: 0.45, green: 0.70, blue: 0.36)
         case .people: Color(red: 0.74, green: 0.47, blue: 0.33)
         case .soldiers: Color(red: 0.68, green: 0.18, blue: 0.18)
+		case .skill: Color(red: 0.90, green: 0.90, blue: 0.90)
         }
     }
 }

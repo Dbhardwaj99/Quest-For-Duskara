@@ -8,6 +8,7 @@ enum ResourceKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case food
     case people
     case soldiers
+	case skill
 
     var id: String { rawValue }
 
@@ -20,6 +21,7 @@ enum ResourceKind: String, CaseIterable, Identifiable, Codable, Hashable {
         case .food: "Food"
         case .people: "People"
         case .soldiers: "Soldiers"
+		case .skill: "Skill"
         }
     }
 
@@ -31,7 +33,8 @@ enum ResourceKind: String, CaseIterable, Identifiable, Codable, Hashable {
         case .tech: "T"
         case .food: "F"
         case .people: "P"
-        case .soldiers: "S"
+        case .soldiers: "A"
+		case .skill: "S"
         }
     }
 }

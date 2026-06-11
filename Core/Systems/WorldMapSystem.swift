@@ -147,9 +147,7 @@ struct WorldMapSystem {
             let layout = layouts[index % layouts.count]
             let resources = ResourceWallet([
                 .gold: 60 + index * 6,
-                .wood: layout.sides.values.contains(.forest) ? 120 : 50,
-                .coal: layout.sides.values.contains(.mountain) ? 110 : 45,
-                .tech: 20 + index,
+                .skill: 20 + index,
                 .food: 30,
                 .people: 4,
                 .soldiers: 0

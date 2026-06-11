@@ -56,8 +56,10 @@ final class GameViewModel {
     }
 
     var startingResourceKinds: [ResourceKind] {
-        [.gold, .wood, .coal, .tech]
+		[.gold, .skill]
     }
+	
+	var difficulty: [Difficulty] = Difficulty.allCases
 
     var remainingBonus: Int {
         balance.bonusPool - bonusAllocation.values.reduce(0, +)
@@ -134,13 +136,17 @@ final class GameViewModel {
         let spentWithoutKind = bonusAllocation.values.reduce(0, +) - current
         bonusAllocation[kind] = min(next, balance.bonusPool - spentWithoutKind)
     }
+	
+	func adjustBonusPresets(for mode: Difficulty) {
+		bonusAllocation = mode.modebalance
+	}
 
     func startGame() {
         guard phase == .setup else { return }
-        guard remainingBonus == 0 else {
-            show("Distribute the full bonus pool before founding your settlement.")
-            return
-        }
+//        guard remainingBonus == 0 else {
+//            show("Distribute the full bonus pool before founding your settlement.")
+//            return
+//        }
         state.updateTown(id: state.activeTownID) { town in
             var resources = ResourceWallet(balance.baseStartingResources)
             resources.apply(bonusAllocation)

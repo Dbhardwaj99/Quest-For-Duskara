@@ -82,7 +82,7 @@ private struct BarracksTrainingSheetSection: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 FlowLayout(spacing: 6) {
-                    ForEach([ResourceKind.gold, .wood, .coal, .tech, .food], id: \.self) { kind in
+                    ForEach([ResourceKind.gold, .skill, .food], id: \.self) { kind in
                         ResourcePill(kind: kind, amount: viewModel.activeTown.resources[kind])
                     }
                 }

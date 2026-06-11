@@ -42,6 +42,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0001C7502FDB2363005F1F84 /* history */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = history;
+			sourceTree = "<group>";
+		};
 		0018CE222FC9672100307E36 /* Models */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Models;
@@ -90,11 +95,6 @@
 		0018CE702FC9673D00307E36 /* Theme */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Theme;
-			sourceTree = "<group>";
-		};
-		005C617B2FB7949100C85FA6 /* Quest For Duskara */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Quest For Duskara";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -232,6 +232,7 @@
 		003AC6E22FBB30B9007CEC60 /* docs */ = {
 			isa = PBXGroup;
 			children = (
+				0001C7502FDB2363005F1F84 /* history */,
 				003AC6DF2FBB30B9007CEC60 /* agents.md */,
 				003AC6E02FBB30B9007CEC60 /* design.md */,
 				003AC6E12FBB30B9007CEC60 /* screen.png */,
@@ -243,7 +244,6 @@
 			isa = PBXGroup;
 			children = (
 				003AC6E22FBB30B9007CEC60 /* docs */,
-				005C617B2FB7949100C85FA6 /* Quest For Duskara */,
 				005C617A2FB7949100C85FA6 /* Products */,
 				0018CE102FC9670000307E36 /* App */,
 				0018CE112FC9670200307E36 /* Core */,
@@ -278,6 +278,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				0001C7502FDB2363005F1F84 /* history */,
 				0018CE222FC9672100307E36 /* Models */,
 				0018CE362FC9672600307E36 /* Systems */,
 				0018CE462FC9672900307E36 /* Managers */,
@@ -288,7 +289,6 @@
 				0018CE5A2FC9673800307E36 /* ViewModels */,
 				0018CE652FC9673B00307E36 /* Views */,
 				0018CE702FC9673D00307E36 /* Theme */,
-				005C617B2FB7949100C85FA6 /* Quest For Duskara */,
 			);
 			name = "Quest For Duskara";
 			packageProductDependencies = (

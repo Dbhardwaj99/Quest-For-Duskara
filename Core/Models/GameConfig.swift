@@ -18,13 +18,11 @@ struct GameBalance {
     var soldierDefinitions: [SoldierKind: SoldierDefinition]
 
     static let duskDefault = GameBalance(
-        gridSize: GridSize(columns: 5, rows: 5),
+        gridSize: GridSize(columns: 3, rows: 3),
         dayDuration: 60,
         baseStartingResources: [
             .gold: 100,
-            .wood: 100,
-            .coal: 100,
-            .tech: 50,
+            .skill: 50,
             .food: 0,
             .people: 0,
             .soldiers: 0
@@ -35,10 +33,8 @@ struct GameBalance {
         aiMinimumGoldReserve: 80,
         captureResourceLossRates: [
             .gold: 0.50,
-            .food: 0.50,
-            .tech: 0.50,
-            .wood: 0.25,
-            .coal: 0.25
+            .skill: 0.50,
+            .tech: 0.50
         ],
         combatWinnerCasualtyRate: 0.25,
         garrisonDefenseBonusRate: 0.35,
@@ -49,7 +45,7 @@ struct GameBalance {
             .house: BuildingDefinition(
                 kind: .house,
                 summary: "Adds people and raises population capacity.",
-                baseCost: [.gold: 25, .wood: 30, .coal: 10],
+				baseCost: [.gold: 25, .skill: 10],
                 baseProduction: [:],
                 peopleRequired: 0,
                 peopleOnBuild: 4,
@@ -60,7 +56,7 @@ struct GameBalance {
             .farm: BuildingDefinition(
                 kind: .farm,
                 summary: "Turns labor into daily food and gold.",
-                baseCost: [.gold: 35, .wood: 35, .coal: 10],
+                baseCost: [.gold: 35, .skill: 20],
                 baseProduction: [.gold: 8, .food: 14],
                 peopleRequired: 2,
                 peopleOnBuild: 0,
@@ -71,8 +67,8 @@ struct GameBalance {
             .woodMill: BuildingDefinition(
                 kind: .woodMill,
                 summary: "Harvests wood when built beside a forest edge.",
-                baseCost: [.gold: 30, .wood: 20, .coal: 12],
-                baseProduction: [.wood: 18],
+                baseCost: [.gold: 30, .skill: 10],
+				baseProduction: [:],
                 peopleRequired: 2,
                 peopleOnBuild: 0,
                 populationCapacity: 0,
@@ -82,8 +78,8 @@ struct GameBalance {
             .coalMine: BuildingDefinition(
                 kind: .coalMine,
                 summary: "Extracts coal when built beside mountain terrain.",
-                baseCost: [.gold: 35, .wood: 25, .coal: 10],
-                baseProduction: [.coal: 16],
+                baseCost: [.gold: 35, .skill: 10],
+				baseProduction: [:],
                 peopleRequired: 2,
                 peopleOnBuild: 0,
                 populationCapacity: 0,
@@ -93,8 +89,8 @@ struct GameBalance {
             .lab: BuildingDefinition(
                 kind: .lab,
                 summary: "Generates technology for upgrades and soldiers.",
-                baseCost: [.gold: 45, .wood: 25, .coal: 25],
-                baseProduction: [.tech: 7],
+                baseCost: [.gold: 45, .skill: 10],
+                baseProduction: [.skill: 7],
                 peopleRequired: 3,
                 peopleOnBuild: 0,
                 populationCapacity: 0,
@@ -104,7 +100,7 @@ struct GameBalance {
             .barracks: BuildingDefinition(
                 kind: .barracks,
                 summary: "Unlocks soldier training actions.",
-                baseCost: [.gold: 60, .wood: 40, .coal: 30],
+                baseCost: [.gold: 60, .skill: 30],
                 baseProduction: [:],
                 peopleRequired: 4,
                 peopleOnBuild: 0,
@@ -116,14 +112,14 @@ struct GameBalance {
         soldierDefinitions: [
             .archer: SoldierDefinition(
                 kind: .archer,
-                trainingCost: [.gold: 20, .tech: 5, .food: 10],
+                trainingCost: [.gold: 20, .skill: 5, .food: 10],
                 power: 10,
                 peopleRequired: 1,
                 dailyFoodUpkeep: 2
             ),
             .knight: SoldierDefinition(
                 kind: .knight,
-                trainingCost: [.gold: 45, .tech: 15, .food: 25],
+                trainingCost: [.gold: 45, .skill: 15, .food: 25],
                 power: 20,
                 peopleRequired: 2,
                 dailyFoodUpkeep: 4
