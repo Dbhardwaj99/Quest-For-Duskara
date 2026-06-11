@@ -47,6 +47,7 @@ final class GameViewModel {
         let balance = GameBalance.duskDefault
         self.balance = balance
         self.state = savedState
+        worldMapSystem.ensureWorldAndTerritory(in: &state)
         normalizeBuildingsToCurrentGrid()
         sanitizeActiveTownSelection()
         self.phase = savedState.towns.contains { $0.isDuskara && $0.faction == .player } ? .victory : .town

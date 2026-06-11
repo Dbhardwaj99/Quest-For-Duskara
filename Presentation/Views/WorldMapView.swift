@@ -53,33 +53,28 @@ struct WorldMapView: View {
     }
 
     private var mapCanvas: some View {
-        GeometryReader { proxy in
-            ZStack {
-                ForEach(viewModel.state.connections) { connection in
-                    Path { path in
-                        path.move(to: point(for: connection.from, in: proxy.size))
-                        path.addLine(to: point(for: connection.to, in: proxy.size))
-                    }
-                    .stroke(.white.opacity(0.20), lineWidth: 2)
-                }
+        let adjacentIDs = Set(viewModel.state.worldNodes.map(\.townID).filter { viewModel.isAdjacentToActiveTown($0) })
 
-                ForEach(viewModel.state.worldNodes) { node in
-                    if let town = viewModel.state.town(id: node.townID) {
-                        WorldTownNodeView(
-                            town: town,
-                            isActive: node.townID == viewModel.state.activeTownID,
-                            isSelected: node.townID == selectedTownID,
-                            isAdjacent: viewModel.isAdjacentToActiveTown(node.townID)
-                        )
-                        .position(point(for: node.townID, in: proxy.size))
-                        .onTapGesture { selectedTownID = node.townID }
-                    }
-                }
-            }
+        return TerritoryRenderer(
+            world: viewModel.state.world,
+            territory: viewModel.state.territory,
+            towns: viewModel.state.towns,
+            nodes: viewModel.state.worldNodes,
+            connections: viewModel.state.connections,
+            activeTownID: viewModel.state.activeTownID,
+            selectedTownID: selectedTownID,
+            adjacentTownIDs: adjacentIDs,
+            onSelectTown: { selectedTownID = $0 }
+        )
+        .frame(height: 540)
+        .overlay(alignment: .bottomTrailing) {
+            Text("\(viewModel.state.towns.count) cities · \(viewModel.state.world.terrainTiles.count) terrain sectors")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white.opacity(0.66))
+                .padding(8)
+                .background(.black.opacity(0.26), in: Capsule())
+                .padding(10)
         }
-        .frame(height: 500)
-        .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(0.18), lineWidth: 1))
     }
 
     @ViewBuilder
@@ -97,6 +92,9 @@ struct WorldMapView: View {
                         Text(town.specializationSummary)
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(specializationColor(for: town))
+                        Text(territoryText(for: town))
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
                     }
                     Spacer()
                     if town.isPlayerControlled {
@@ -135,17 +133,20 @@ struct WorldMapView: View {
         }
     }
 
-    private func point(for townID: UUID, in size: CGSize) -> CGPoint {
-        guard let node = viewModel.state.worldNodes.first(where: { $0.townID == townID }) else { return .zero }
-        return CGPoint(x: size.width * node.x, y: size.height * node.y)
-    }
-
     private func statusText(for town: Town) -> String {
         if town.isPlayerControlled { return "Controlled town · Army \(town.armyStrength)" }
         let defense = viewModel.effectiveDefenseStrength(for: town)
         if town.isDuskara { return "Duskara stronghold · Defense \(defense)" }
         if town.faction == .enemy { return "Enemy town · Strength \(defense)" }
         return "Neutral town · Defense \(defense)"
+    }
+
+    private func territoryText(for town: Town) -> String {
+        guard let region = viewModel.state.territory.region(for: town.id) else {
+            return "Territory survey pending"
+        }
+        let dominantTerrain = region.terrainMix.max { lhs, rhs in lhs.value < rhs.value }?.key.title ?? "Mixed"
+        return "Territory \(region.cellCount) sectors · Dominant \(dominantTerrain)"
     }
 
     private func availableTransferAmount(for kind: ResourceKind) -> Int {
@@ -156,58 +157,6 @@ struct WorldMapView: View {
         if town.forestSideCount >= 3 { return .green }
         if town.mountainSideCount >= 3 { return .gray }
         return .secondary
-    }
-}
-
-private struct WorldTownNodeView: View {
-    let town: Town
-    let isActive: Bool
-    let isSelected: Bool
-    let isAdjacent: Bool
-
-    var body: some View {
-        VStack(spacing: 3) {
-            ZStack {
-                Circle()
-                    .fill(nodeFill)
-                    .frame(width: nodeSize, height: nodeSize)
-                Image(systemName: nodeIcon)
-                    .font(.caption)
-                    .foregroundStyle(.white)
-            }
-            Text(town.name)
-                .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.white.opacity(0.88))
-                .lineLimit(1)
-                .frame(width: 54)
-        }
-        .padding(5)
-        .background(isSelected ? .white.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            Circle()
-                .stroke(isAdjacent ? Color.yellow.opacity(0.9) : .clear, lineWidth: 2)
-                .frame(width: 42, height: 42)
-                .offset(y: -8)
-        )
-    }
-
-    private var nodeFill: AnyShapeStyle {
-        if town.isPlayerControlled { return AnyShapeStyle(Color.green.gradient) }
-        if town.isDuskara { return AnyShapeStyle(Color.purple.gradient) }
-        if town.faction == .enemy { return AnyShapeStyle(Color.red.gradient) }
-        return AnyShapeStyle(Color.gray.gradient)
-    }
-
-    private var nodeIcon: String {
-        if town.isPlayerControlled { return "house.fill" }
-        if town.isDuskara { return "crown.fill" }
-        if town.faction == .enemy { return "shield.fill" }
-        return "circle.fill"
-    }
-
-    private var nodeSize: CGFloat {
-        if isActive { return 34 }
-        return town.isDuskara ? 36 : 28
     }
 }
 

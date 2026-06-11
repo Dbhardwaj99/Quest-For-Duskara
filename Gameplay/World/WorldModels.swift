@@ -133,6 +133,8 @@ struct GameState: Codable, Equatable {
     var towns: [Town]
     var worldNodes: [WorldTownNode]
     var connections: [TownConnection]
+    var world: WorldMapState
+    var territory: TerritoryState
     var activeTownID: UUID
     var newsEvents: [NewsEvent]
 
@@ -142,6 +144,8 @@ struct GameState: Codable, Equatable {
         towns: [Town],
         worldNodes: [WorldTownNode],
         connections: [TownConnection],
+        world: WorldMapState = .empty,
+        territory: TerritoryState = .empty,
         activeTownID: UUID,
         newsEvents: [NewsEvent] = []
     ) {
@@ -150,6 +154,8 @@ struct GameState: Codable, Equatable {
         self.towns = towns
         self.worldNodes = worldNodes
         self.connections = connections
+        self.world = world
+        self.territory = territory
         self.activeTownID = activeTownID
         self.newsEvents = newsEvents
     }
@@ -160,6 +166,8 @@ struct GameState: Codable, Equatable {
         case towns
         case worldNodes
         case connections
+        case world
+        case territory
         case activeTownID
         case newsEvents
     }
@@ -171,6 +179,8 @@ struct GameState: Codable, Equatable {
         towns = try container.decode([Town].self, forKey: .towns)
         worldNodes = try container.decode([WorldTownNode].self, forKey: .worldNodes)
         connections = try container.decode([TownConnection].self, forKey: .connections)
+        world = try container.decodeIfPresent(WorldMapState.self, forKey: .world) ?? .empty
+        territory = try container.decodeIfPresent(TerritoryState.self, forKey: .territory) ?? .empty
         activeTownID = try container.decode(UUID.self, forKey: .activeTownID)
         newsEvents = try container.decodeIfPresent([NewsEvent].self, forKey: .newsEvents) ?? []
     }

@@ -69,7 +69,7 @@ struct BuildingSystem {
     }
 
     private func modifiedProduction(_ amount: Int, for resource: ResourceKind, from building: BuildingKind, in town: Town) -> Int {
-		return 0
+		return amount
 //		This can be used later
 //        switch (building, resource) {
 //        case (.woodMill, .wood):

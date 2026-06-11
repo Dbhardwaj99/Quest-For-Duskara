@@ -3,6 +3,8 @@ import Foundation
 struct WorldMapSystem {
     private let combatSystem = CombatSystem()
     private let occupationSystem = OccupationSystem()
+    private let worldGenerator = WorldGenerator()
+    private let territorySystem = TerritorySystem()
 
     func makeInitialState(balance: GameBalance) -> GameState {
         var towns = makeTowns(balance: balance)
@@ -10,20 +12,32 @@ struct WorldMapSystem {
         towns[0].resources = ResourceWallet(balance.baseStartingResources)
         towns[0].armyStrength = 0
 
-        let nodes = towns.enumerated().map { index, town in
-            WorldTownNode(townID: town.id, x: nodePosition(for: index).0, y: nodePosition(for: index).1)
-        }
-        let connections = makeConnections(townIDs: towns.map(\.id))
-        applyInitialDefenses(to: &towns, connections: connections)
+        let generatedWorld = worldGenerator.generate(towns: towns)
+        applyInitialDefenses(to: &towns, connections: generatedWorld.connections)
+        let territory = territorySystem.generateTerritory(
+            towns: towns,
+            nodes: generatedWorld.nodes,
+            world: generatedWorld.world
+        )
 
         return GameState(
             day: 1,
             elapsedSecondsInDay: 0,
             towns: towns,
-            worldNodes: nodes,
-            connections: connections,
+            worldNodes: generatedWorld.nodes,
+            connections: generatedWorld.connections,
+            world: generatedWorld.world,
+            territory: territory,
             activeTownID: towns[0].id
         )
+    }
+
+    func ensureWorldAndTerritory(in state: inout GameState) {
+        territorySystem.ensureWorldAndTerritory(in: &state)
+    }
+
+    func strategicTerritorySnapshot(for townID: UUID, in state: GameState) -> StrategicTerritorySnapshot? {
+        territorySystem.strategicSnapshot(for: townID, in: state)
     }
 
     func adjacentTownIDs(to townID: UUID, in state: GameState) -> [UUID] {
@@ -102,6 +116,7 @@ struct WorldMapSystem {
         state.towns[targetIndex].armyStrength = survivors
         state.towns[targetIndex].resources[.soldiers] = survivors
         state.towns[targetIndex].soldierRoster.clear()
+        territorySystem.reconcileOwnership(in: &state)
         return true
     }
 
@@ -139,9 +154,11 @@ struct WorldMapSystem {
         ]
         let names = [
             "Hearthglen", "Green Hollow", "Ironridge", "Mosswatch", "Ashbarrow", "Pinefall", "Stonewake", "Rivergate", "Brindle Keep", "Oakmere",
-            "Frostford", "Briarwall", "Duskara", "Sunreach", "Valehold", "Cinder Pass", "Deepwood", "Crownhill", "Greyfen", "Moonford",
-            "Redspire", "Westmere", "Northbarrow", "Dawnfield", "Elderwick"
+            "Frostford", "Briarwall", "Duskwatch", "Sunreach", "Valehold", "Cinder Pass", "Deepwood", "Crownhill", "Greyfen", "Moonford",
+            "Westmere", "Northbarrow", "Dawnfield", "Elderwick", "Foxgrove", "Highmere", "Willowdeep", "Amberfall", "Ravenford", "Thornwatch",
+            "Glasswater", "Kingsford", "Mistvale", "Barrowmere", "Emberwick", "Wolfscar", "Blackfen", "Grimhaven", "Redspire", "Duskara"
         ]
+        let enemyTownNames: Set<String> = ["Wolfscar", "Blackfen", "Grimhaven", "Redspire"]
 
         return names.enumerated().map { index, name in
             let layout = layouts[index % layouts.count]
@@ -156,7 +173,7 @@ struct WorldMapSystem {
             let faction: TownFaction
             if isDuskara {
                 faction = .duskara
-            } else if index == names.count - 1 {
+            } else if enemyTownNames.contains(name) {
                 faction = .enemy
             } else {
                 faction = .neutral
@@ -228,28 +245,4 @@ struct WorldMapSystem {
         return buildings
     }
 
-    private func nodePosition(for index: Int) -> (Double, Double) {
-        let column = index / 5
-        let row = index % 5
-        let x = 0.08 + Double(column) * 0.18
-        let yOffsets = [0.12, 0.30, 0.48, 0.66, 0.84]
-        let drift = column.isMultiple(of: 2) ? 0.0 : 0.06
-        return (min(0.94, x), min(0.90, yOffsets[row] + drift))
-    }
-
-    private func makeConnections(townIDs: [UUID]) -> [TownConnection] {
-        var connections: Set<TownConnection> = []
-        for index in townIDs.indices {
-            if index + 5 < townIDs.count {
-                connections.insert(TownConnection(from: townIDs[index], to: townIDs[index + 5]))
-            }
-            if index % 5 < 4 && index + 1 < townIDs.count {
-                connections.insert(TownConnection(from: townIDs[index], to: townIDs[index + 1]))
-            }
-            if index % 5 < 4 && index + 6 < townIDs.count {
-                connections.insert(TownConnection(from: townIDs[index], to: townIDs[index + 6]))
-            }
-        }
-        return Array(connections)
-    }
 }
