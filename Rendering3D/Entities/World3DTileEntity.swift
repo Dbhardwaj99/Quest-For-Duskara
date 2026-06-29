@@ -1,5 +1,5 @@
 import RealityKit
-import UIKit
+import AppKit
 
 struct World3DTileEntity {
     private enum TemplateKind: Hashable {
@@ -244,7 +244,7 @@ struct World3DTileEntity {
             rotation: jitter(coordinate, salt: 143) * 0.28
         )
 
-        let specs: [(SIMD3<Float>, SIMD3<Float>, UIColor, Int)] = [
+        let specs: [(SIMD3<Float>, SIMD3<Float>, NSColor, Int)] = [
             (SIMD3<Float>(-0.12, (0.44 + edgeWeight * 0.11) * heightScale, -0.05), SIMD3<Float>(0.48, (0.88 + edgeWeight * 0.20) * heightScale, 0.38), Palette.warmStone, 151),
             (SIMD3<Float>(0.22, (0.34 + edgeWeight * 0.08) * heightScale, 0.08), SIMD3<Float>(0.38, (0.66 + edgeWeight * 0.15) * heightScale, 0.32), Palette.deepStone, 157),
             (SIMD3<Float>(-0.34, 0.25 * heightScale, 0.10), SIMD3<Float>(0.32, 0.50 * heightScale, 0.28), Palette.paleStone, 163),
@@ -291,7 +291,7 @@ struct World3DTileEntity {
             rotation: jitter(coordinate, salt: 151) * 0.45
         )
 
-        let peakSpecs: [(SIMD3<Float>, SIMD3<Float>, UIColor, Int)] = [
+        let peakSpecs: [(SIMD3<Float>, SIMD3<Float>, NSColor, Int)] = [
             (SIMD3<Float>(-0.04, 0.32, -0.04), SIMD3<Float>(0.34, 0.64, 0.32), Palette.warmStone, 153),
             (SIMD3<Float>(0.18, 0.24, 0.08), SIMD3<Float>(0.27, 0.46, 0.25), Palette.deepStone, 157),
             (SIMD3<Float>(-0.23, 0.19, 0.10), SIMD3<Float>(0.23, 0.38, 0.24), Palette.paleStone, 161),
@@ -363,7 +363,7 @@ struct World3DTileEntity {
         }
 
         let coordinate = snapshot.coordinate
-        let patchColor: UIColor
+        let patchColor: NSColor
         switch snapshot.content {
         case .tree:
             patchColor = Palette.rootSoil
@@ -421,16 +421,16 @@ struct World3DTileEntity {
     }
 
     private static func addPlacementOverlay(_ state: TilePlacementState, to root: Entity, tileSize: Float) {
-        let color: UIColor
+        let color: NSColor
         let height: Float
         switch state {
         case .normal:
             return
         case .valid:
-            color = UIColor(red: 0.93, green: 0.70, blue: 0.28, alpha: 0.52)
+            color = NSColor(red: 0.93, green: 0.70, blue: 0.28, alpha: 0.52)
             height = 0.026
         case .invalid:
-            color = UIColor(red: 0.25, green: 0.24, blue: 0.25, alpha: 0.58)
+            color = NSColor(red: 0.25, green: 0.24, blue: 0.25, alpha: 0.58)
             height = 0.018
         }
 
@@ -446,7 +446,7 @@ struct World3DTileEntity {
         if state == .valid {
             let glint = World3DRenderResources.makeBox(
                 size: SIMD3<Float>(tileSize * 0.62, 0.012, tileSize * 0.07),
-                material: material(UIColor(red: 1.0, green: 0.84, blue: 0.34, alpha: 0.74), roughness: 0.30),
+                material: material(NSColor(red: 1.0, green: 0.84, blue: 0.34, alpha: 0.74), roughness: 0.30),
                 cornerRadius: tileSize * 0.01
             )
             glint.name = placementOverlayName
@@ -636,7 +636,7 @@ struct World3DTileEntity {
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
-    private static func addCanopyBlob(to root: Entity, tileSize: Float, radius: Float, position: SIMD3<Float>, scale: SIMD3<Float>, color: UIColor) {
+    private static func addCanopyBlob(to root: Entity, tileSize: Float, radius: Float, position: SIMD3<Float>, scale: SIMD3<Float>, color: NSColor) {
         let blob = World3DRenderResources.makeSphere(
             radius: tileSize * radius,
             material: material(color, roughness: 0.86),
@@ -646,7 +646,7 @@ struct World3DTileEntity {
         root.addChild(blob)
     }
 
-    private static func addGroundPatch(to root: Entity, tileSize: Float, center: SIMD2<Float>, size: SIMD2<Float>, color: UIColor, rotation: Float) {
+    private static func addGroundPatch(to root: Entity, tileSize: Float, center: SIMD2<Float>, size: SIMD2<Float>, color: NSColor, rotation: Float) {
         let patch = addBox(
             to: root,
             size: SIMD3<Float>(size.x, 0.010, size.y) * tileSize,
@@ -724,7 +724,7 @@ struct World3DTileEntity {
         }
     }
 
-    private static func addDebris(to root: Entity, tileSize: Float, coordinate: GridCoordinate, count: Int, around: SIMD2<Float>, radius: Float, color: UIColor) {
+    private static func addDebris(to root: Entity, tileSize: Float, coordinate: GridCoordinate, count: Int, around: SIMD2<Float>, radius: Float, color: NSColor) {
         for index in 0..<detailCount(count, minimum: 1) {
             let x = around.x + jitter(coordinate, salt: 601 + index * 5) * radius
             let z = around.y + jitter(coordinate, salt: 607 + index * 7) * radius
@@ -841,7 +841,7 @@ struct World3DTileEntity {
         }
     }
 
-    private static func addJaggedPeak(to root: Entity, tileSize: Float, coordinate: GridCoordinate, base: SIMD3<Float>, salt: Int, color: UIColor) {
+    private static func addJaggedPeak(to root: Entity, tileSize: Float, coordinate: GridCoordinate, base: SIMD3<Float>, salt: Int, color: NSColor) {
         for index in 0..<detailCount(3, minimum: 1) {
             let width = 0.17 - Float(index) * 0.035
             let height = 0.18 - Float(index) * 0.035
@@ -871,7 +871,7 @@ struct World3DTileEntity {
         }
     }
 
-    private static func addRoofSlats(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>, width: Float, depth: Float, count: Int, color: UIColor) {
+    private static func addRoofSlats(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD3<Float>, width: Float, depth: Float, count: Int, color: NSColor) {
         for index in 0..<detailCount(count, minimum: 1) {
             let z = center.z - depth * 0.42 + Float(index) * (depth / Float(max(count - 1, 1)))
             let slat = addBox(
@@ -886,7 +886,7 @@ struct World3DTileEntity {
         }
     }
 
-    private static func addTimberFrame(to root: Entity, tileSize: Float, center: SIMD3<Float>, width: Float, height: Float, color: UIColor) {
+    private static func addTimberFrame(to root: Entity, tileSize: Float, center: SIMD3<Float>, width: Float, height: Float, color: NSColor) {
         let z = center.z
         let postHeight = height
         addBox(to: root, size: SIMD3<Float>(0.026, postHeight, 0.026) * tileSize, position: SIMD3<Float>(center.x - width * 0.46, center.y, z) * tileSize, color: color, roughness: 0.92, cornerRadius: tileSize * 0.003)
@@ -994,7 +994,7 @@ struct World3DTileEntity {
         to root: Entity,
         size: SIMD3<Float>,
         position: SIMD3<Float>,
-        color: UIColor,
+        color: NSColor,
         roughness: Float = 0.78,
         cornerRadius: Float = 0
     ) -> ModelEntity {
@@ -1022,11 +1022,11 @@ struct World3DTileEntity {
         }
     }
 
-    private static func material(_ color: UIColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
+    private static func material(_ color: NSColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
         World3DRenderResources.material(color, roughness: roughness, metallic: metallic)
     }
 
-    private static func forestMassColor(index: Int, coordinate: GridCoordinate) -> UIColor {
+    private static func forestMassColor(index: Int, coordinate: GridCoordinate) -> NSColor {
         if index.isMultiple(of: 3) {
             return Palette.forestDeep
         }
@@ -1062,57 +1062,57 @@ struct World3DTileEntity {
 }
 
 private enum Palette {
-    static let grassLight = UIColor(red: 0.42, green: 0.52, blue: 0.29, alpha: 1)
-    static let grassShadow = UIColor(red: 0.22, green: 0.35, blue: 0.25, alpha: 1)
-    static let forestMoss = UIColor(red: 0.14, green: 0.31, blue: 0.23, alpha: 1)
-    static let forestDeep = UIColor(red: 0.08, green: 0.21, blue: 0.18, alpha: 1)
-    static let leafHighlight = UIColor(red: 0.29, green: 0.42, blue: 0.20, alpha: 1)
-    static let bark = UIColor(red: 0.30, green: 0.21, blue: 0.15, alpha: 1)
-    static let rootSoil = UIColor(red: 0.27, green: 0.26, blue: 0.20, alpha: 1)
-    static let warmStone = UIColor(red: 0.52, green: 0.49, blue: 0.41, alpha: 1)
-    static let deepStone = UIColor(red: 0.30, green: 0.34, blue: 0.36, alpha: 1)
-    static let paleStone = UIColor(red: 0.61, green: 0.57, blue: 0.48, alpha: 1)
-    static let smokeStone = UIColor(red: 0.34, green: 0.36, blue: 0.36, alpha: 1)
-    static let stoneDust = UIColor(red: 0.39, green: 0.40, blue: 0.37, alpha: 1)
-    static let coalDust = UIColor(red: 0.16, green: 0.17, blue: 0.18, alpha: 1)
-    static let coalChunk = UIColor(red: 0.08, green: 0.09, blue: 0.10, alpha: 1)
-    static let walkedDirt = UIColor(red: 0.39, green: 0.32, blue: 0.24, alpha: 1)
-    static let fieldDirt = UIColor(red: 0.33, green: 0.28, blue: 0.20, alpha: 1)
-    static let plinthStone = UIColor(red: 0.40, green: 0.37, blue: 0.31, alpha: 1)
-    static let plaster = UIColor(red: 0.69, green: 0.55, blue: 0.41, alpha: 1)
-    static let terracotta = UIColor(red: 0.48, green: 0.22, blue: 0.16, alpha: 1)
-    static let terracottaDark = UIColor(red: 0.34, green: 0.14, blue: 0.11, alpha: 1)
-    static let roofHighlight = UIColor(red: 0.59, green: 0.31, blue: 0.21, alpha: 1)
-    static let sideShed = UIColor(red: 0.55, green: 0.42, blue: 0.30, alpha: 1)
-    static let warmWindow = UIColor(red: 0.98, green: 0.64, blue: 0.25, alpha: 1)
-    static let doorWood = UIColor(red: 0.27, green: 0.18, blue: 0.12, alpha: 1)
-    static let cropGold = UIColor(red: 0.70, green: 0.61, blue: 0.31, alpha: 1)
-    static let cropGreen = UIColor(red: 0.35, green: 0.48, blue: 0.26, alpha: 1)
-    static let barnWood = UIColor(red: 0.49, green: 0.31, blue: 0.21, alpha: 1)
-    static let strawRoof = UIColor(red: 0.68, green: 0.56, blue: 0.34, alpha: 1)
-    static let strawShadow = UIColor(red: 0.50, green: 0.42, blue: 0.25, alpha: 1)
-    static let timber = UIColor(red: 0.40, green: 0.29, blue: 0.19, alpha: 1)
-    static let darkTimber = UIColor(red: 0.23, green: 0.17, blue: 0.12, alpha: 1)
-    static let cutWood = UIColor(red: 0.55, green: 0.39, blue: 0.25, alpha: 1)
-    static let sawPlatform = UIColor(red: 0.32, green: 0.24, blue: 0.17, alpha: 1)
-    static let mineMouth = UIColor(red: 0.07, green: 0.08, blue: 0.09, alpha: 1)
-    static let tunnelShadow = UIColor(red: 0.025, green: 0.030, blue: 0.035, alpha: 1)
-    static let railWood = UIColor(red: 0.23, green: 0.20, blue: 0.17, alpha: 1)
-    static let labStone = UIColor(red: 0.48, green: 0.58, blue: 0.55, alpha: 1)
-    static let labStoneDark = UIColor(red: 0.32, green: 0.43, blue: 0.43, alpha: 1)
-    static let glassGlow = UIColor(red: 0.45, green: 0.72, blue: 0.70, alpha: 1)
-    static let arcaneBlue = UIColor(red: 0.20, green: 0.45, blue: 0.50, alpha: 1)
-    static let warmGold = UIColor(red: 0.74, green: 0.59, blue: 0.31, alpha: 1)
-    static let fortifiedClay = UIColor(red: 0.53, green: 0.34, blue: 0.30, alpha: 1)
-    static let slateRoof = UIColor(red: 0.27, green: 0.31, blue: 0.32, alpha: 1)
-    static let bannerRed = UIColor(red: 0.62, green: 0.22, blue: 0.18, alpha: 1)
-    static let waterSheen = UIColor(red: 0.48, green: 0.68, blue: 0.69, alpha: 0.40)
-    static let mushroomCap = UIColor(red: 0.68, green: 0.27, blue: 0.22, alpha: 1)
-    static let crackShadow = UIColor(red: 0.16, green: 0.18, blue: 0.18, alpha: 1)
-    static let lanternGlow = UIColor(red: 1.0, green: 0.58, blue: 0.20, alpha: 1)
-    static let sackCloth = UIColor(red: 0.60, green: 0.49, blue: 0.34, alpha: 1)
-    static let cauldron = UIColor(red: 0.18, green: 0.24, blue: 0.23, alpha: 1)
-    static let potionPurple = UIColor(red: 0.43, green: 0.35, blue: 0.60, alpha: 1)
+    static let grassLight = NSColor(red: 0.42, green: 0.52, blue: 0.29, alpha: 1)
+    static let grassShadow = NSColor(red: 0.22, green: 0.35, blue: 0.25, alpha: 1)
+    static let forestMoss = NSColor(red: 0.14, green: 0.31, blue: 0.23, alpha: 1)
+    static let forestDeep = NSColor(red: 0.08, green: 0.21, blue: 0.18, alpha: 1)
+    static let leafHighlight = NSColor(red: 0.29, green: 0.42, blue: 0.20, alpha: 1)
+    static let bark = NSColor(red: 0.30, green: 0.21, blue: 0.15, alpha: 1)
+    static let rootSoil = NSColor(red: 0.27, green: 0.26, blue: 0.20, alpha: 1)
+    static let warmStone = NSColor(red: 0.52, green: 0.49, blue: 0.41, alpha: 1)
+    static let deepStone = NSColor(red: 0.30, green: 0.34, blue: 0.36, alpha: 1)
+    static let paleStone = NSColor(red: 0.61, green: 0.57, blue: 0.48, alpha: 1)
+    static let smokeStone = NSColor(red: 0.34, green: 0.36, blue: 0.36, alpha: 1)
+    static let stoneDust = NSColor(red: 0.39, green: 0.40, blue: 0.37, alpha: 1)
+    static let coalDust = NSColor(red: 0.16, green: 0.17, blue: 0.18, alpha: 1)
+    static let coalChunk = NSColor(red: 0.08, green: 0.09, blue: 0.10, alpha: 1)
+    static let walkedDirt = NSColor(red: 0.39, green: 0.32, blue: 0.24, alpha: 1)
+    static let fieldDirt = NSColor(red: 0.33, green: 0.28, blue: 0.20, alpha: 1)
+    static let plinthStone = NSColor(red: 0.40, green: 0.37, blue: 0.31, alpha: 1)
+    static let plaster = NSColor(red: 0.69, green: 0.55, blue: 0.41, alpha: 1)
+    static let terracotta = NSColor(red: 0.48, green: 0.22, blue: 0.16, alpha: 1)
+    static let terracottaDark = NSColor(red: 0.34, green: 0.14, blue: 0.11, alpha: 1)
+    static let roofHighlight = NSColor(red: 0.59, green: 0.31, blue: 0.21, alpha: 1)
+    static let sideShed = NSColor(red: 0.55, green: 0.42, blue: 0.30, alpha: 1)
+    static let warmWindow = NSColor(red: 0.98, green: 0.64, blue: 0.25, alpha: 1)
+    static let doorWood = NSColor(red: 0.27, green: 0.18, blue: 0.12, alpha: 1)
+    static let cropGold = NSColor(red: 0.70, green: 0.61, blue: 0.31, alpha: 1)
+    static let cropGreen = NSColor(red: 0.35, green: 0.48, blue: 0.26, alpha: 1)
+    static let barnWood = NSColor(red: 0.49, green: 0.31, blue: 0.21, alpha: 1)
+    static let strawRoof = NSColor(red: 0.68, green: 0.56, blue: 0.34, alpha: 1)
+    static let strawShadow = NSColor(red: 0.50, green: 0.42, blue: 0.25, alpha: 1)
+    static let timber = NSColor(red: 0.40, green: 0.29, blue: 0.19, alpha: 1)
+    static let darkTimber = NSColor(red: 0.23, green: 0.17, blue: 0.12, alpha: 1)
+    static let cutWood = NSColor(red: 0.55, green: 0.39, blue: 0.25, alpha: 1)
+    static let sawPlatform = NSColor(red: 0.32, green: 0.24, blue: 0.17, alpha: 1)
+    static let mineMouth = NSColor(red: 0.07, green: 0.08, blue: 0.09, alpha: 1)
+    static let tunnelShadow = NSColor(red: 0.025, green: 0.030, blue: 0.035, alpha: 1)
+    static let railWood = NSColor(red: 0.23, green: 0.20, blue: 0.17, alpha: 1)
+    static let labStone = NSColor(red: 0.48, green: 0.58, blue: 0.55, alpha: 1)
+    static let labStoneDark = NSColor(red: 0.32, green: 0.43, blue: 0.43, alpha: 1)
+    static let glassGlow = NSColor(red: 0.45, green: 0.72, blue: 0.70, alpha: 1)
+    static let arcaneBlue = NSColor(red: 0.20, green: 0.45, blue: 0.50, alpha: 1)
+    static let warmGold = NSColor(red: 0.74, green: 0.59, blue: 0.31, alpha: 1)
+    static let fortifiedClay = NSColor(red: 0.53, green: 0.34, blue: 0.30, alpha: 1)
+    static let slateRoof = NSColor(red: 0.27, green: 0.31, blue: 0.32, alpha: 1)
+    static let bannerRed = NSColor(red: 0.62, green: 0.22, blue: 0.18, alpha: 1)
+    static let waterSheen = NSColor(red: 0.48, green: 0.68, blue: 0.69, alpha: 0.40)
+    static let mushroomCap = NSColor(red: 0.68, green: 0.27, blue: 0.22, alpha: 1)
+    static let crackShadow = NSColor(red: 0.16, green: 0.18, blue: 0.18, alpha: 1)
+    static let lanternGlow = NSColor(red: 1.0, green: 0.58, blue: 0.20, alpha: 1)
+    static let sackCloth = NSColor(red: 0.60, green: 0.49, blue: 0.34, alpha: 1)
+    static let cauldron = NSColor(red: 0.18, green: 0.24, blue: 0.23, alpha: 1)
+    static let potionPurple = NSColor(red: 0.43, green: 0.35, blue: 0.60, alpha: 1)
 }
 
 private extension SIMD3 where Scalar == Float {

@@ -61,7 +61,7 @@ struct GameView: View {
             BuildingDetailsSheetView(viewModel: viewModel, buildingID: presentation.id)
                 .presentationDetents([.medium, .large])
         }
-        .fullScreenCover(isPresented: $viewModel.isWorldMapPresented) {
+        .sheet(isPresented: $viewModel.isWorldMapPresented) {
             WorldMapView(viewModel: viewModel)
         }
     }

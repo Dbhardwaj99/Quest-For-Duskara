@@ -1,6 +1,6 @@
 # Quest for Duskara
 
-Quest for Duskara is a portrait-oriented iOS strategy game about founding towns, managing resources, training soldiers, and expanding across a connected world map before dusk overtakes the realm. The primary game experience is a RealityKit-rendered town board wrapped by SwiftUI HUD, menus, sheets, and world-map controls.
+Quest for Duskara is a native macOS strategy game about founding towns, managing resources, training soldiers, and expanding across a connected world map before dusk overtakes the realm. The primary game experience is a RealityKit-rendered town board wrapped by SwiftUI HUD, menus, sheets, and world-map controls.
 <p align="center">
   <img src="docs/screen.png" width="320" alt="Quest for Duskara Gameplay Screenshot" />
 </p>
@@ -10,7 +10,7 @@ Quest for Duskara is a portrait-oriented iOS strategy game about founding towns,
 - Swift and SwiftUI for app flow, HUD, menus, and gameplay sheets.
 - Observation for app-facing state in `GameViewModel`.
 - RealityKit in non-AR mode for the interactive town renderer.
-- UIKit view-controller hosting where RealityKit needs gesture and lifecycle control.
+- AppKit view-controller hosting where RealityKit needs gesture and lifecycle control.
 - Codable JSON persistence through `GameSaveStore`.
 
 ## Architecture Overview
@@ -41,7 +41,7 @@ Saves contain `GameState`, not presentation state. `MenuView` exposes Start Game
 
 1. Open `Quest For Duskara.xcodeproj` in Xcode.
 2. Select the `Quest For Duskara` app scheme.
-3. Build and run on an iOS simulator or device that supports RealityKit.
+3. Build and run the native macOS app.
 
 ## Screenshots
 

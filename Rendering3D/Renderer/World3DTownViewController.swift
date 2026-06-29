@@ -1,15 +1,15 @@
 import RealityKit
-import UIKit
+import AppKit
 
 @MainActor
-final class World3DTownViewController: UIViewController {
+final class World3DTownViewController: NSViewController {
     private let sourceViewModel: GameViewModel
     private var adapter: World3DStateAdapter
     private var renderer: World3DRenderer?
     private let cameraController = World3DCameraController()
-    private var fpsDisplayLink: CADisplayLink?
+    private var fpsTimer: Timer?
     private var fpsFrameCount = 0
-    private var fpsStartTime: CFTimeInterval = 0
+    private var fpsStartTime: TimeInterval = 0
     private var didCountActiveARView = false
 
     init(sourceViewModel: GameViewModel) {
@@ -22,22 +22,26 @@ final class World3DTownViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func loadView() {
+        view = NSView()
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         configureScene()
         syncFromGameState()
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+    override func viewDidAppear() {
+        super.viewDidAppear()
         guard didCountActiveARView == false else { return }
         didCountActiveARView = true
         World3DDiagnostics.arViewDidAppear()
         startFPSReporting()
     }
 
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
+    override func viewDidDisappear() {
+        super.viewDidDisappear()
         guard didCountActiveARView else { return }
         didCountActiveARView = false
         stopFPSReporting()
@@ -45,7 +49,7 @@ final class World3DTownViewController: UIViewController {
     }
 
     deinit {
-        fpsDisplayLink?.invalidate()
+        fpsTimer?.invalidate()
         if didCountActiveARView {
             Task { @MainActor in
                 World3DDiagnostics.arViewDidDisappear()
@@ -59,9 +63,7 @@ final class World3DTownViewController: UIViewController {
     }
 
     private func configureScene() {
-        view.backgroundColor = UIColor(red: 0.31, green: 0.41, blue: 0.52, alpha: 1)
-
-        let arView = ARView(frame: view.bounds, cameraMode: .nonAR, automaticallyConfigureSession: false)
+        let arView = ARView(frame: view.bounds)
         arView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(arView)
 
@@ -80,34 +82,33 @@ final class World3DTownViewController: UIViewController {
         )
         self.renderer = renderer
 
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        let tap = NSClickGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         arView.addGestureRecognizer(tap)
     }
 
     private func startFPSReporting() {
-        fpsDisplayLink?.invalidate()
+        fpsTimer?.invalidate()
         fpsFrameCount = 0
-        fpsStartTime = CACurrentMediaTime()
-        let displayLink = CADisplayLink(target: self, selector: #selector(stepFPS(_:)))
-        displayLink.add(to: .main, forMode: .common)
-        fpsDisplayLink = displayLink
+        fpsStartTime = ProcessInfo.processInfo.systemUptime
+        fpsTimer = Timer.scheduledTimer(timeInterval: 1 / 60, target: self, selector: #selector(stepFPS(_:)), userInfo: nil, repeats: true)
     }
 
     private func stopFPSReporting() {
-        fpsDisplayLink?.invalidate()
-        fpsDisplayLink = nil
+        fpsTimer?.invalidate()
+        fpsTimer = nil
     }
 
-    @objc private func stepFPS(_ displayLink: CADisplayLink) {
+    @objc private func stepFPS(_ timer: Timer) {
         fpsFrameCount += 1
-        let elapsed = displayLink.timestamp - fpsStartTime
+        let now = ProcessInfo.processInfo.systemUptime
+        let elapsed = now - fpsStartTime
         guard elapsed >= 2 else { return }
         World3DDiagnostics.recordFPS(Double(fpsFrameCount) / elapsed)
         fpsFrameCount = 0
-        fpsStartTime = displayLink.timestamp
+        fpsStartTime = now
     }
 
-    @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+    @objc private func handleTap(_ recognizer: NSClickGestureRecognizer) {
         guard let arView = recognizer.view as? ARView, let renderer else { return }
         let location = recognizer.location(in: arView)
         guard let coordinate = renderer.coordinate(for: arView.entity(at: location)) else { return }

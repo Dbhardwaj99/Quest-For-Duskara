@@ -4,7 +4,7 @@ This file gives future coding agents the minimum context needed to work safely o
 
 ## Current State
 
-Quest for Duskara is a SwiftUI and RealityKit iOS strategy game. The production gameplay path is RealityKit-first: menu actions open `GameView`, which embeds the 3D town renderer through `World3DTownView` and `World3DTownViewController`.
+Quest for Duskara is a SwiftUI and RealityKit macOS strategy game. The production gameplay path is RealityKit-first: menu actions open `GameView`, which embeds the 3D town renderer through `World3DTownView` and `World3DTownViewController`.
 
 There is no alternate gameplay mode. Treat the RealityKit path as the application architecture.
 
@@ -20,7 +20,7 @@ There is no alternate gameplay mode. Treat the RealityKit path as the applicatio
 - `Gameplay/Combat/`: soldier and combat-domain models.
 - `Gameplay/World/`: world-map models.
 - `Presentation/ViewModels/`: observable app-facing state and command coordination.
-- `Presentation/Views/`: SwiftUI screens and UIKit representable wrappers.
+- `Presentation/Views/`: SwiftUI screens and AppKit representable wrappers.
 - `Presentation/Components/`: reusable SwiftUI controls.
 - `Presentation/Theme/`: colors and app styling.
 - `Rendering3D/`: RealityKit renderer, camera, entities, render resources, and adapter.

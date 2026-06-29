@@ -1,5 +1,5 @@
 import RealityKit
-import UIKit
+import AppKit
 
 enum World3DVisualQuality: String {
     case low
@@ -226,7 +226,7 @@ enum World3DRenderResources {
         return entity
     }
 
-    static func material(_ color: UIColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
+    static func material(_ color: NSColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
         let key = MaterialKey(color: color, roughness: roughness, metallic: metallic)
         if let cached = materialCache[key] {
             return cached
@@ -275,7 +275,7 @@ enum World3DRenderResources {
 }
 
 private extension World3DRenderResources.MaterialKey {
-    init(color: UIColor, roughness: Float, metallic: Bool) {
+    init(color: NSColor, roughness: Float, metallic: Bool) {
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0

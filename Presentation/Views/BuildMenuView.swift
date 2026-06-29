@@ -35,7 +35,7 @@ struct BuildMenuView: View {
 						income: viewModel.activeTownIncome
 					)
 				}
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .keyboard) {
                     Button("Done") { viewModel.isBuildMenuPresented = false }
                 }
             }

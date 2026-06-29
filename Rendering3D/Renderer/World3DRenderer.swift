@@ -1,5 +1,5 @@
 import RealityKit
-import UIKit
+import AppKit
 
 @MainActor
 final class World3DRenderer {
@@ -23,7 +23,7 @@ final class World3DRenderer {
     private let tileGap: Float = 0.020
     private let tileHeight: Float = 0.060
     private let terrainRingDepth = 1
-    private let duskDepthTint = UIColor(red: 0.23, green: 0.28, blue: 0.36, alpha: 1)
+    private let duskDepthTint = NSColor(red: 0.23, green: 0.28, blue: 0.36, alpha: 1)
 
     var cameraParent: Entity {
         anchor
@@ -116,15 +116,11 @@ final class World3DRenderer {
     }
 
     private func configureView() {
-        arView.cameraMode = .nonAR
-        arView.automaticallyConfigureSession = false
-        arView.environment.background = .color(UIColor(red: 0.31, green: 0.41, blue: 0.52, alpha: 1))
-        arView.renderOptions.insert(.disableDepthOfField)
-        arView.renderOptions.insert(.disableMotionBlur)
+        arView.environment.background = .color(NSColor(red: 0.31, green: 0.41, blue: 0.52, alpha: 1))
 
         let sun = DirectionalLight()
         sun.light.intensity = 5000
-        sun.light.color = UIColor(red: 1.0, green: 0.78, blue: 0.50, alpha: 1)
+        sun.light.color = NSColor(red: 1.0, green: 0.78, blue: 0.50, alpha: 1)
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
     }
@@ -149,7 +145,7 @@ final class World3DRenderer {
 
         let earth = World3DRenderResources.makeBox(
             size: SIMD3<Float>(boardWidth + 0.14, 0.32, boardDepth + 0.14),
-            material: matte(UIColor(red: 0.20, green: 0.23, blue: 0.19, alpha: 1), roughness: 0.96),
+            material: matte(NSColor(red: 0.20, green: 0.23, blue: 0.19, alpha: 1), roughness: 0.96),
             cornerRadius: 0.18
         )
         earth.position.y = -0.25
@@ -159,7 +155,7 @@ final class World3DRenderer {
     }
 
     private func addTerrainSkirt(width: Float, depth: Float) {
-        let sideMaterial = matte(UIColor(red: 0.13, green: 0.13, blue: 0.12, alpha: 1), roughness: 0.98)
+        let sideMaterial = matte(NSColor(red: 0.13, green: 0.13, blue: 0.12, alpha: 1), roughness: 0.98)
         let frontBackSize = SIMD3<Float>(width + 0.10, 0.24, 0.11)
         let sideSize = SIMD3<Float>(0.11, 0.24, depth + 0.10)
 
@@ -198,7 +194,7 @@ final class World3DRenderer {
 
         let tableShadow = World3DRenderResources.makeBox(
             size: SIMD3<Float>(boardWidth + tileSize * 1.6, 0.035, boardDepth + tileSize * 1.6),
-            material: matte(UIColor(red: 0.10, green: 0.13, blue: 0.14, alpha: 1), roughness: 1.0),
+            material: matte(NSColor(red: 0.10, green: 0.13, blue: 0.14, alpha: 1), roughness: 1.0),
             cornerRadius: 0.42
         )
         tableShadow.position.y = -0.43
@@ -206,8 +202,8 @@ final class World3DRenderer {
     }
 
     private func addSurroundingWater(boardWidth: Float, boardDepth: Float) {
-        let waterMaterial = matte(UIColor(red: 0.14, green: 0.38, blue: 0.48, alpha: 1), roughness: 0.32)
-        let waterShadowMaterial = matte(UIColor(red: 0.09, green: 0.28, blue: 0.38, alpha: 1), roughness: 0.36)
+        let waterMaterial = matte(NSColor(red: 0.14, green: 0.38, blue: 0.48, alpha: 1), roughness: 0.32)
+        let waterShadowMaterial = matte(NSColor(red: 0.09, green: 0.28, blue: 0.38, alpha: 1), roughness: 0.36)
         let waterY: Float = -0.072
         let waterHeight: Float = 0.018
         let outerWidth = boardWidth + tileSize * 5.2
@@ -253,7 +249,7 @@ final class World3DRenderer {
     }
 
     private func addWaterSheen(width: Float, depth: Float, y: Float) {
-        let sheenMaterial = matte(UIColor(red: 0.55, green: 0.72, blue: 0.73, alpha: 0.44), roughness: 0.26)
+        let sheenMaterial = matte(NSColor(red: 0.55, green: 0.72, blue: 0.73, alpha: 0.44), roughness: 0.26)
         let positions: [SIMD3<Float>] = [
             SIMD3<Float>(-width * 0.26, y, -depth * 0.40),
             SIMD3<Float>(width * 0.24, y, -depth * 0.33),
@@ -274,8 +270,8 @@ final class World3DRenderer {
     }
 
     private func addCloudCluster(center: SIMD3<Float>, scale: Float) {
-        let cloudMaterial = matte(UIColor(red: 0.74, green: 0.75, blue: 0.70, alpha: 1), roughness: 1.0)
-        let shadowMaterial = matte(UIColor(red: 0.56, green: 0.62, blue: 0.66, alpha: 1), roughness: 1.0)
+        let cloudMaterial = matte(NSColor(red: 0.74, green: 0.75, blue: 0.70, alpha: 1), roughness: 1.0)
+        let shadowMaterial = matte(NSColor(red: 0.56, green: 0.62, blue: 0.66, alpha: 1), roughness: 1.0)
         let puffs: [(SIMD3<Float>, Float, SIMD3<Float>, SimpleMaterial)] = [
             (SIMD3<Float>(-0.20, -0.02, 0), 0.18, SIMD3<Float>(1.7, 0.46, 0.24), shadowMaterial),
             (SIMD3<Float>(-0.05, 0.03, 0), 0.22, SIMD3<Float>(1.9, 0.52, 0.24), cloudMaterial),
@@ -331,18 +327,18 @@ final class World3DRenderer {
     private func addTerrainTexture(for biome: BiomeKind, to root: Entity, coordinate: GridCoordinate) {
         let count = min(biome == .river ? 2 : 3, visualQuality.terrainTextureCount)
         for index in 0..<count {
-            let tint: UIColor
+            let tint: NSColor
             switch biome {
             case .forest:
                 tint = stablePercent(coordinate, salt: 300 + index) < 50
-                    ? atmosphericColor(UIColor(red: 0.10, green: 0.22, blue: 0.18, alpha: 1), coordinate: coordinate, strength: 0.18)
-                    : atmosphericColor(UIColor(red: 0.24, green: 0.34, blue: 0.18, alpha: 1), coordinate: coordinate, strength: 0.12)
+                    ? atmosphericColor(NSColor(red: 0.10, green: 0.22, blue: 0.18, alpha: 1), coordinate: coordinate, strength: 0.18)
+                    : atmosphericColor(NSColor(red: 0.24, green: 0.34, blue: 0.18, alpha: 1), coordinate: coordinate, strength: 0.12)
             case .mountain:
-                tint = atmosphericColor(UIColor(red: 0.48, green: 0.46, blue: 0.40, alpha: 1), coordinate: coordinate, strength: 0.22)
+                tint = atmosphericColor(NSColor(red: 0.48, green: 0.46, blue: 0.40, alpha: 1), coordinate: coordinate, strength: 0.22)
             case .plains:
-                tint = atmosphericColor(UIColor(red: 0.43, green: 0.49, blue: 0.28, alpha: 1), coordinate: coordinate, strength: 0.08)
+                tint = atmosphericColor(NSColor(red: 0.43, green: 0.49, blue: 0.28, alpha: 1), coordinate: coordinate, strength: 0.08)
             case .river:
-                tint = atmosphericColor(UIColor(red: 0.34, green: 0.56, blue: 0.61, alpha: 0.56), coordinate: coordinate, strength: 0.10)
+                tint = atmosphericColor(NSColor(red: 0.34, green: 0.56, blue: 0.61, alpha: 0.56), coordinate: coordinate, strength: 0.10)
             }
 
             let fleck = World3DRenderResources.makeBox(
@@ -566,7 +562,7 @@ final class World3DRenderer {
     private func showSelection(at coordinate: GridCoordinate) {
         let glow = World3DRenderResources.makeBox(
             size: SIMD3<Float>(tileSize * 0.96, 0.022, tileSize * 0.96),
-            material: matte(UIColor(red: 1.0, green: 0.76, blue: 0.28, alpha: 0.52), roughness: 0.34),
+            material: matte(NSColor(red: 1.0, green: 0.76, blue: 0.28, alpha: 0.52), roughness: 0.34),
             cornerRadius: tileSize * 0.055
         )
         glow.name = "world3d_selection"
@@ -575,7 +571,7 @@ final class World3DRenderer {
 
         let inner = World3DRenderResources.makeBox(
             size: SIMD3<Float>(tileSize * 0.58, 0.012, tileSize * 0.58),
-            material: matte(UIColor(red: 1.0, green: 0.88, blue: 0.46, alpha: 0.36), roughness: 0.30),
+            material: matte(NSColor(red: 1.0, green: 0.88, blue: 0.46, alpha: 0.36), roughness: 0.30),
             cornerRadius: tileSize * 0.04
         )
         inner.name = "world3d_selection"
@@ -600,11 +596,11 @@ final class World3DRenderer {
         switch content {
         case .water:
             let ripple = CGFloat(stablePercent(coordinate, salt: 88)) / 900
-            return matte(UIColor(red: 0.10 + ripple, green: 0.31 + ripple, blue: 0.40 + ripple, alpha: 1), roughness: 0.30)
+            return matte(NSColor(red: 0.10 + ripple, green: 0.31 + ripple, blue: 0.40 + ripple, alpha: 1), roughness: 0.30)
         default:
             let variant = CGFloat(stablePercent(coordinate, salt: 211)) / 900
             let warm = CGFloat(stablePercent(coordinate, salt: 67)) / 1400
-            return matte(UIColor(red: 0.29 + warm, green: 0.40 + variant, blue: 0.24 + warm, alpha: 1), roughness: 0.91)
+            return matte(NSColor(red: 0.29 + warm, green: 0.40 + variant, blue: 0.24 + warm, alpha: 1), roughness: 0.91)
         }
     }
 
@@ -613,27 +609,27 @@ final class World3DRenderer {
         let coolVariant = CGFloat(stablePercent(coordinate, salt: 619)) / 1500
         switch biome {
         case .forest:
-            let base = UIColor(red: 0.10 + coolVariant, green: 0.24 + variant, blue: 0.17 + coolVariant, alpha: 1)
+            let base = NSColor(red: 0.10 + coolVariant, green: 0.24 + variant, blue: 0.17 + coolVariant, alpha: 1)
             return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.20), roughness: 0.93)
         case .mountain:
-            let base = UIColor(red: 0.38 + variant, green: 0.39 + variant, blue: 0.38 + coolVariant, alpha: 1)
+            let base = NSColor(red: 0.38 + variant, green: 0.39 + variant, blue: 0.38 + coolVariant, alpha: 1)
             return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.28), roughness: 0.97)
         case .plains:
-            let base = UIColor(red: 0.35 + variant, green: 0.44 + variant, blue: 0.25, alpha: 1)
+            let base = NSColor(red: 0.35 + variant, green: 0.44 + variant, blue: 0.25, alpha: 1)
             return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.10), roughness: 0.92)
         case .river:
-            let base = UIColor(red: 0.09, green: 0.31 + variant, blue: 0.40 + variant, alpha: 1)
+            let base = NSColor(red: 0.09, green: 0.31 + variant, blue: 0.40 + variant, alpha: 1)
             return matte(atmosphericColor(base, coordinate: coordinate, strength: 0.12), roughness: 0.30)
         }
     }
 
-    private func atmosphericColor(_ color: UIColor, coordinate: GridCoordinate, strength: CGFloat) -> UIColor {
+    private func atmosphericColor(_ color: NSColor, coordinate: GridCoordinate, strength: CGFloat) -> NSColor {
         let distance = max(abs(coordinate.x - (gridSize.columns - 1) / 2), abs(coordinate.y - (gridSize.rows - 1) / 2))
         let depth = min(1, CGFloat(max(0, distance - max(gridSize.columns, gridSize.rows) / 2)) / 2)
         return blend(color, with: duskDepthTint, amount: depth * strength)
     }
 
-    private func blend(_ color: UIColor, with tint: UIColor, amount: CGFloat) -> UIColor {
+    private func blend(_ color: NSColor, with tint: NSColor, amount: CGFloat) -> NSColor {
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0
@@ -645,7 +641,7 @@ final class World3DRenderer {
         color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         tint.getRed(&tintRed, green: &tintGreen, blue: &tintBlue, alpha: &tintAlpha)
         let clampedAmount = min(1, max(0, amount))
-        return UIColor(
+        return NSColor(
             red: red + (tintRed - red) * clampedAmount,
             green: green + (tintGreen - green) * clampedAmount,
             blue: blue + (tintBlue - blue) * clampedAmount,
@@ -653,7 +649,7 @@ final class World3DRenderer {
         )
     }
 
-    private func matte(_ color: UIColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
+    private func matte(_ color: NSColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
         World3DRenderResources.material(color, roughness: roughness, metallic: metallic)
     }
 

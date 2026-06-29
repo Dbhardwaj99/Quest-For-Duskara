@@ -1,5 +1,5 @@
 import RealityKit
-import UIKit
+import AppKit
 
 struct World3DCameraBounds {
     let halfWidth: Float
@@ -16,9 +16,9 @@ struct World3DCameraBounds {
 }
 
 @MainActor
-final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
+final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private let camera = PerspectiveCamera()
-    private weak var view: UIView?
+    private weak var view: NSView?
 
     private let target = SIMD3<Float>(0, 0, 0)
     private var yaw: Float = .pi / 4
@@ -28,7 +28,7 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
     private var rotateStartPitch: Float = 0.74
     private var pinchStartDistance: Float = 6.6
     private var activeGestureIDs: Set<ObjectIdentifier> = []
-    private var inertiaDisplayLink: CADisplayLink?
+    private var inertiaTimer: Timer?
     private var yawVelocity: Float = 0
     private var pitchVelocity: Float = 0
     private var distanceVelocity: Float = 0
@@ -40,7 +40,7 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
     private let maxPitch: Float = 1.02
 
     deinit {
-        inertiaDisplayLink?.invalidate()
+        inertiaTimer?.invalidate()
     }
 
     func install(in arView: ARView, bounds _: World3DCameraBounds, parent: Entity) {
@@ -49,17 +49,16 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         parent.addChild(camera)
         sanitizeState()
         updateCamera()
-        let rotate = UIPanGestureRecognizer(target: self, action: #selector(handleRotate(_:)))
-        rotate.maximumNumberOfTouches = 1
+        let rotate = NSPanGestureRecognizer(target: self, action: #selector(handleRotate(_:)))
         rotate.delegate = self
         arView.addGestureRecognizer(rotate)
 
-        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        let pinch = NSMagnificationGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         pinch.delegate = self
         arView.addGestureRecognizer(pinch)
     }
 
-    @objc private func handleRotate(_ recognizer: UIPanGestureRecognizer) {
+    @objc private func handleRotate(_ recognizer: NSPanGestureRecognizer) {
         guard let view else { return }
         switch recognizer.state {
         case .began:
@@ -80,15 +79,15 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         }
     }
 
-    @objc private func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
+    @objc private func handlePinch(_ recognizer: NSMagnificationGestureRecognizer) {
         switch recognizer.state {
         case .began:
             beginInteraction(recognizer)
             pinchStartDistance = distance
         case .changed:
-            let scale = max(0.35, min(2.8, safeFloat(Float(recognizer.scale), fallback: 1)))
+            let scale = max(0.35, min(2.8, safeFloat(Float(1 + recognizer.magnification), fallback: 1)))
             distance = pinchStartDistance / scale
-            distanceVelocity = -pinchStartDistance * safeFloat(Float(recognizer.velocity), fallback: 0) / (scale * scale)
+            distanceVelocity = 0
             sanitizeState()
             updateCamera()
         default:
@@ -96,7 +95,7 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         }
     }
 
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    func gestureRecognizer(_ gestureRecognizer: NSGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer) -> Bool {
         true
     }
 
@@ -112,13 +111,13 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
         camera.look(at: lookTarget, from: position, relativeTo: nil)
     }
 
-    private func beginInteraction(_ recognizer: UIGestureRecognizer) {
+    private func beginInteraction(_ recognizer: NSGestureRecognizer) {
         stopInertia()
         activeGestureIDs.insert(ObjectIdentifier(recognizer))
         isInteracting = true
     }
 
-    private func endInteraction(_ recognizer: UIGestureRecognizer) {
+    private func endInteraction(_ recognizer: NSGestureRecognizer) {
         activeGestureIDs.remove(ObjectIdentifier(recognizer))
         guard activeGestureIDs.isEmpty else { return }
 
@@ -132,22 +131,20 @@ final class World3DCameraController: NSObject, UIGestureRecognizerDelegate {
 
     private func startInertia() {
         isInteracting = true
-        inertiaDisplayLink?.invalidate()
-        let displayLink = CADisplayLink(target: self, selector: #selector(stepInertia(_:)))
-        displayLink.add(to: .main, forMode: .common)
-        inertiaDisplayLink = displayLink
+        inertiaTimer?.invalidate()
+        inertiaTimer = Timer.scheduledTimer(timeInterval: 1 / 60, target: self, selector: #selector(stepInertia(_:)), userInfo: nil, repeats: true)
     }
 
     private func stopInertia() {
-        inertiaDisplayLink?.invalidate()
-        inertiaDisplayLink = nil
+        inertiaTimer?.invalidate()
+        inertiaTimer = nil
         yawVelocity = 0
         pitchVelocity = 0
         distanceVelocity = 0
     }
 
-    @objc private func stepInertia(_ displayLink: CADisplayLink) {
-        let dt = min(1 / 30, max(1 / 120, Float(displayLink.targetTimestamp - displayLink.timestamp)))
+    @objc private func stepInertia(_ timer: Timer) {
+        let dt: Float = 1 / 60
         yaw += yawVelocity * dt
         pitch += pitchVelocity * dt
         distance += distanceVelocity * dt

@@ -1,14 +1,14 @@
 import SwiftUI
-import UIKit
+import AppKit
 
-struct World3DTownView: UIViewControllerRepresentable {
+struct World3DTownView: NSViewControllerRepresentable {
     let sourceViewModel: GameViewModel
 
-    func makeUIViewController(context: Context) -> World3DTownViewController {
+    func makeNSViewController(context: Context) -> World3DTownViewController {
         World3DTownViewController(sourceViewModel: sourceViewModel)
     }
 
-    func updateUIViewController(_ uiViewController: World3DTownViewController, context: Context) {
-        uiViewController.syncFromGameState()
+    func updateNSViewController(_ nsViewController: World3DTownViewController, context: Context) {
+        nsViewController.syncFromGameState()
     }
 }

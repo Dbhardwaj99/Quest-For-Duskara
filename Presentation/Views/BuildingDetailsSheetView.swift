@@ -60,7 +60,7 @@ struct BuildingDetailsSheetView: View {
             .background(DuskaraTheme.panel.opacity(0.30))
             .navigationTitle("Building")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+				ToolbarItem(placement: .keyboard) {
                     Button("Done") { viewModel.buildingPresentation = nil }
                 }
             }
