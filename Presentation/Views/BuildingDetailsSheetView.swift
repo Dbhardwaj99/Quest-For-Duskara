@@ -59,11 +59,20 @@ struct BuildingDetailsSheetView: View {
             }
             .background(DuskaraTheme.panel.opacity(0.30))
             .navigationTitle("Building")
-            .toolbar {
-				ToolbarItem(placement: .keyboard) {
-                    Button("Done") { viewModel.buildingPresentation = nil }
-                }
+        }
+        .overlay(alignment: .topTrailing) {
+            Button {
+                viewModel.buildingPresentation = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white.opacity(0.92))
+                    .frame(width: 44, height: 44)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close building details")
+            .padding(.top, 4)
+            .padding(.trailing, 10)
         }
     }
 }
