@@ -12,6 +12,7 @@ Quest for Duskara is a native macOS strategy game about founding towns, managing
 - RealityKit in non-AR mode for the interactive town renderer.
 - AppKit view-controller hosting where RealityKit needs gesture and lifecycle control.
 - Codable JSON persistence through `GameSaveStore`.
+- Deterministic system types for simulation, combat, territory ownership, enemy AI, and persistence-safe state changes.
 
 ## Architecture Overview
 
@@ -19,7 +20,7 @@ The project is organized around the runtime boundaries used by the game:
 
 - `App/`: app entry point and root navigation.
 - `Core/Models/`: value models and balance configuration shared across systems.
-- `Core/Systems/`: deterministic gameplay rules for simulation, building, placement, resources, time, transfer, and conquest.
+- `Core/Systems/`: deterministic gameplay rules for simulation, building, placement, resources, time, transfer, combat, territory, enemy AI, and conquest.
 - `Core/Persistence/`: save and load support for renderer-agnostic `GameState`.
 - `Gameplay/`: domain models and display metadata for buildings, resources, combat, and world data.
 - `Presentation/`: SwiftUI screens, components, theme, and `GameViewModel`.
@@ -32,6 +33,16 @@ The project is organized around the runtime boundaries used by the game:
 `GameView` is the only gameplay presentation. It embeds `World3DTownView`, which hosts `World3DTownViewController`. The controller owns an ARView configured in non-AR mode, installs `World3DCameraController`, and asks `World3DRenderer` to render snapshots produced by `World3DStateAdapter`.
 
 The renderer builds the terrain scaffold, biome ring, town tiles, buildings, selection state, placement overlays, and adaptive render resources. SwiftUI remains responsible for HUD, build sheets, building details, feedback toasts, and the world map.
+
+## Gameplay Snapshot
+
+- Start setup offers difficulty presets that seed the first town's gold and skill stockpile.
+- Town boards are currently 3x3.
+- Resources are gold, food, people, skill, and soldiers.
+- Active buildings are House, Farm, Factory, and Barracks.
+- Barracks train archers and knights; soldiers consume daily food upkeep.
+- The world map shows generated terrain, town regions, faction ownership, conquest targets, and resource transfers between controlled towns.
+- Capturing a town changes its faction, applies resource loss, and reconciles territory ownership.
 
 ## Save and Load
 

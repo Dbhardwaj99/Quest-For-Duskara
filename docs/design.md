@@ -6,17 +6,18 @@ This document describes the current RealityKit-first game architecture and the g
 
 Quest for Duskara is a portrait-mode medieval strategy simulation. The player founds a settlement, builds a resource economy, trains soldiers, conquers connected towns, and transfers resources across the controlled realm.
 
-The current game is built around one gameplay presentation: SwiftUI interface layers over a RealityKit town board.
+The current game is built around one gameplay presentation: SwiftUI interface layers over a RealityKit town board. Town boards are 3x3, the active economy uses gold, food, people, skill, and soldiers, and the active buildings are House, Farm, Factory, and Barracks.
 
 ## Core Loop
 
-1. The player starts a game and allocates the starting bonus stockpile.
-2. `GameViewModel.startGame()` commits the initial resources and enters town play.
+1. The player starts a game by choosing a difficulty preset.
+2. `GameViewModel.adjustBonusPresets(for:)` applies the preset stockpile, then `startGame()` enters town play.
 3. The RealityKit town board renders the active town from `GameState`.
 4. Buildings are placed on valid plots through shared placement validation.
-5. Each game day, simulation systems apply income, time progress, and persistence.
-6. The player opens the world map to conquer towns or transfer resources.
-7. Loading a save restores `GameState` and presents the same RealityKit town view.
+5. Each game day, simulation systems apply income, army upkeep, enemy AI, time progress, and persistence.
+6. The player opens the world map to inspect territory, conquer towns, or transfer resources.
+7. Captured towns change faction, lose part of stored resources, and update territory ownership.
+8. Loading a save restores `GameState` and presents the same RealityKit town view.
 
 ## Current Architecture
 
@@ -32,9 +33,9 @@ The current game is built around one gameplay presentation: SwiftUI interface la
 
 ## World Simulation
 
-`GameState` is the persistent source of truth. It stores the current day, elapsed day time, town list, world nodes, world connections, and active town ID.
+`GameState` is the persistent source of truth. It stores the current day, elapsed day time, town list, world nodes, world connections, world terrain, territory regions, news events, and active town ID.
 
-`WorldMapSystem` creates the initial world, determines adjacency, and resolves conquest. `SimulationSystem` advances days and applies building income to each controlled town. `TimeSystem` converts elapsed seconds into day progress and determines when the next day begins.
+`WorldMapSystem` creates the initial world, determines adjacency, and resolves conquest. `WorldGenerator` creates terrain and town graph data. `TerritorySystem` keeps generated regions and faction ownership aligned with town state. `SimulationSystem` advances days, applies building income, pays army upkeep, and lets enemy AI act. `TimeSystem` converts elapsed seconds into day progress and determines when the next day begins.
 
 ## Resource Systems
 
@@ -44,7 +45,7 @@ Resource changes should be committed through systems and then saved through `Gam
 
 ## Building Systems
 
-`BuildingSystem` handles construction and upgrades. `PlacementValidationSystem` owns tile validation, including biome-adjacency rules through `BiomeSystem`.
+`BuildingSystem` handles construction and upgrades. `PlacementValidationSystem` owns tile validation, including biome-adjacency rules through `BiomeSystem`. Current balance uses House for people/capacity, Farm for gold and food, Factory for skill production, and Barracks for soldier training.
 
 The placement flow is:
 
@@ -59,6 +60,12 @@ The placement flow is:
 `World3DCameraController` installs RealityKit camera controls on the ARView. One-finger pan rotates the town board, pinch zooms, and inertia is handled with a display link. The controller exposes `isInteracting` so render sync can avoid fighting active gestures.
 
 Camera bounds are derived from the current grid size by `World3DRenderer.cameraBounds(for:)`.
+
+## Combat, Territory, and AI
+
+Combat is deterministic system code, not presentation code. `CombatSystem` computes effective defense and surviving force. `OccupationSystem` applies capture resource losses. `WorldMapSystem` changes town faction and asks `TerritorySystem` to reconcile ownership after conquest.
+
+`EnemyAISystem` can act during daily simulation. Keep AI decisions dependent on system state and balance values, not SwiftUI view state. `ArmyUpkeepSystem` spends daily food for soldiers and reduces army strength when food is short.
 
 ## Rendering Pipeline
 
@@ -83,7 +90,7 @@ SwiftUI owns presentation surfaces around the renderer:
 - `GameView` composes the RealityKit town, HUD, bottom bar, feedback toast, build sheet, details sheet, and world map cover.
 - `BuildMenuView` selects building placement.
 - `BuildingDetailsSheetView` handles upgrades and barracks training.
-- `WorldMapView` handles conquest and transfer interactions.
+- `WorldMapView` handles territory inspection, conquest, and transfer interactions.
 - `World3DAssetGalleryView` is a developer/debugging tool for inspecting render assets.
 
 Normal gameplay feedback should use in-game toast state, not system alerts. Alerts are reserved for menu-level confirmation.
@@ -98,7 +105,7 @@ Avoid adding per-frame SwiftUI state churn, rebuilding the whole ARView for ordi
 
 - More building roles, upgrade effects, and biome dependencies.
 - Persistent decorative terrain and town beautification where it affects gameplay.
-- Research, logistics, weather, and random events.
-- Enemy town progression and richer conquest results.
+- Research, logistics, weather, and richer random events.
+- Richer enemy town progression and conquest results.
 - Combat visualization inside the 3D renderer.
 - Larger maps with continued RealityKit performance tuning.

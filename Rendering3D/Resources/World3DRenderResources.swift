@@ -193,6 +193,8 @@ enum World3DRenderResources {
 
     private static var boxMeshes: [BoxDetail: MeshResource] = [:]
     private static var sphereMeshes: [Int: MeshResource] = [:]
+    private static var unitConeMesh: MeshResource?
+    private static var unitCylinderMesh: MeshResource?
     private static var materialCache: [MaterialKey: SimpleMaterial] = [:]
     private static var collisionBoxes: [SIMD3<Float>: ShapeResource] = [:]
     private(set) static var visualQuality: World3DVisualQuality = .high
@@ -223,6 +225,40 @@ enum World3DRenderResources {
     ) -> ModelEntity {
         let entity = ModelEntity(mesh: sphereMesh(segmentBudget: 12), materials: [material])
         entity.scale = SIMD3<Float>(repeating: radius * 2) * scale
+        return entity
+    }
+
+    static func makeCone(
+        radius: Float,
+        height: Float,
+        material: SimpleMaterial
+    ) -> ModelEntity {
+        let mesh: MeshResource
+        if let cached = unitConeMesh {
+            mesh = cached
+        } else {
+            mesh = MeshResource.generateCone(height: 1, radius: 0.5)
+            unitConeMesh = mesh
+        }
+        let entity = ModelEntity(mesh: mesh, materials: [material])
+        entity.scale = SIMD3<Float>(radius * 2, height, radius * 2)
+        return entity
+    }
+
+    static func makeCylinder(
+        radius: Float,
+        height: Float,
+        material: SimpleMaterial
+    ) -> ModelEntity {
+        let mesh: MeshResource
+        if let cached = unitCylinderMesh {
+            mesh = cached
+        } else {
+            mesh = MeshResource.generateCylinder(height: 1, radius: 0.5)
+            unitCylinderMesh = mesh
+        }
+        let entity = ModelEntity(mesh: mesh, materials: [material])
+        entity.scale = SIMD3<Float>(radius * 2, height, radius * 2)
         return entity
     }
 

@@ -11,6 +11,7 @@
 		0018CE072FC9652B00307E36 /* World3DCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD32FC9652B00307E36 /* World3DCameraController.swift */; };
 		0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD42FC9652B00307E36 /* World3DRenderer.swift */; };
 		0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */; };
+		0018CEA02FC9700000307E36 /* World3DTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CEA12FC9700000307E36 /* World3DTheme.swift */; };
 		0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */; };
 		0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */; };
 		0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDDB2FC9652B00307E36 /* ContentView.swift */; };
@@ -28,6 +29,7 @@
 		0018CDD32FC9652B00307E36 /* World3DCameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DCameraController.swift; sourceTree = "<group>"; };
 		0018CDD42FC9652B00307E36 /* World3DRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DRenderer.swift; sourceTree = "<group>"; };
 		0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DRenderResources.swift; sourceTree = "<group>"; };
+		0018CEA12FC9700000307E36 /* World3DTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTheme.swift; sourceTree = "<group>"; };
 		0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTileEntity.swift; sourceTree = "<group>"; };
 		0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTownViewController.swift; sourceTree = "<group>"; };
 		0018CDDA2FC9652B00307E36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -209,6 +211,7 @@
 			isa = PBXGroup;
 			children = (
 				0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */,
+				0018CEA12FC9700000307E36 /* World3DTheme.swift */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -356,6 +359,7 @@
 				0018CE072FC9652B00307E36 /* World3DCameraController.swift in Sources */,
 				0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */,
 				0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */,
+				0018CEA02FC9700000307E36 /* World3DTheme.swift in Sources */,
 				0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */,
 				0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */,
 				0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */,

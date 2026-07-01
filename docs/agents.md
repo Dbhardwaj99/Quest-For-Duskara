@@ -6,7 +6,7 @@ This file gives future coding agents the minimum context needed to work safely o
 
 Quest for Duskara is a SwiftUI and RealityKit macOS strategy game. The production gameplay path is RealityKit-first: menu actions open `GameView`, which embeds the 3D town renderer through `World3DTownView` and `World3DTownViewController`.
 
-There is no alternate gameplay mode. Treat the RealityKit path as the application architecture.
+There is no alternate gameplay mode. Treat the RealityKit path as the application architecture. The current economy is intentionally compact: 3x3 town boards, resources of gold, food, people, skill, and soldiers, and active building types of House, Farm, Factory, and Barracks.
 
 ## Folder Ownership
 
@@ -36,8 +36,10 @@ Keep new files inside the smallest matching ownership boundary.
 - `PlacementValidationSystem` owns build placement checks.
 - `BiomeSystem` owns biome adjacency checks.
 - `WorldMapSystem` creates towns, connections, and conquest behavior.
+- `WorldGenerator`, `TerritoryGenerator`, `TerritorySystem`, and `TerritoryOwnership` create and reconcile world terrain, regions, and faction ownership.
 - `TransferSystem` moves resources between owned towns.
 - `SoldierTrainingSystem` trains soldier counts and army power.
+- `ArmyUpkeepSystem`, `CombatSystem`, `EnemyAISystem`, and `OccupationSystem` handle food upkeep, battle outcomes, enemy turns, and capture penalties.
 - `FeedbackOverlaySystem` maps failures to player-facing feedback text.
 - `GameSaveStore` serializes `GameState` and day labels only.
 
@@ -94,7 +96,7 @@ Add a resource:
 
 1. Add a case to `ResourceKind`.
 2. Add display metadata in `ResourceDisplay.swift`.
-3. Add starting or production balance values in `GameConfig.swift`.
+3. Add starting, difficulty preset, production, training, or capture-loss balance values in `Difficulty.swift` and `GameConfig.swift` as needed.
 4. Update UI only if the new resource needs special handling.
 
 Add a building:
@@ -112,6 +114,13 @@ Add a biome:
 3. Add gameplay rules in `BiomeSystem` or `PlacementValidationSystem`.
 4. Update world layouts in `WorldMapSystem`.
 
+Add combat or conquest behavior:
+
+1. Keep deterministic battle math in `CombatSystem`.
+2. Keep capture side effects in `OccupationSystem`.
+3. Reconcile town faction changes through `TerritorySystem.reconcileOwnership(in:)`.
+4. Keep UI affordances in `WorldMapView` and command routing in `GameViewModel`.
+
 ## Validation
 
-Use Xcode live diagnostics for touched files when possible, then run a full Xcode build. Verify menu navigation after route changes: Start Game, Load Game, and Asset Gallery should each open their intended destination without exposing alternate gameplay modes.
+Use Xcode live diagnostics for touched files when possible, then run a full Xcode build. Verify menu navigation after route changes: Start Game, Load Game, and Asset Gallery should each open their intended destination without exposing alternate gameplay modes. For gameplay changes, also check a short loop: choose a difficulty, build/upgrade, train soldiers, open the world map, conquer an adjacent town, and transfer resources.

@@ -10,6 +10,7 @@ struct World3DTileEntity {
     private struct TemplateKey: Hashable {
         let kind: TemplateKind
         let tileSizeBucket: Int
+        let theme: WorldTheme
     }
 
     private static let placementOverlayName = "world3d_placement_overlay"
@@ -118,20 +119,33 @@ struct World3DTileEntity {
             canopyCount = 7
         }
 
+        let conifer = WorldTheme.current == .forest || WorldTheme.current == .mountains
         for index in 0..<canopyCount {
             let layer = Float(index) / Float(max(canopyCount - 1, 1))
             let x = -0.32 + layer * 0.64 + jitter(coordinate, salt: 90 + index) * 0.09
             let z = jitter(coordinate, salt: 96 + index) * (0.10 + edgeWeight * 0.05)
             let y = (0.36 + (index.isMultiple(of: 2) ? 0.10 : 0.0) + randomFloat(coordinate, salt: 102 + index) * 0.22 + edgeWeight * 0.15) * heightScale
             let radius = 0.20 + randomFloat(coordinate, salt: 108 + index) * 0.085 + edgeWeight * 0.050
-            addCanopyBlob(
-                to: root,
-                tileSize: tileSize,
-                radius: radius,
-                position: SIMD3<Float>(x, y, z),
-                scale: SIMD3<Float>(1.48 + edgeWeight * 0.30, (0.64 + randomFloat(coordinate, salt: 112 + index) * 0.18) * heightScale, 1.12),
-                color: forestMassColor(index: index, coordinate: coordinate)
-            )
+            if conifer {
+                let height = (0.34 + randomFloat(coordinate, salt: 112 + index) * 0.16 + edgeWeight * 0.14) * heightScale
+                addCone(
+                    to: root,
+                    radius: radius * 1.05 * tileSize,
+                    height: height * tileSize,
+                    position: SIMD3<Float>(x, y * 0.72 + height * 0.30, z) * tileSize,
+                    color: forestMassColor(index: index, coordinate: coordinate),
+                    roughness: 0.90
+                )
+            } else {
+                addCanopyBlob(
+                    to: root,
+                    tileSize: tileSize,
+                    radius: radius,
+                    position: SIMD3<Float>(x, y, z),
+                    scale: SIMD3<Float>(1.48 + edgeWeight * 0.30, (0.64 + randomFloat(coordinate, salt: 112 + index) * 0.18) * heightScale, 1.12),
+                    color: forestMassColor(index: index, coordinate: coordinate)
+                )
+            }
         }
 
         addBox(
@@ -145,9 +159,6 @@ struct World3DTileEntity {
     }
 
     static func addTree(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
-        let lean = jitter(coordinate, salt: 91) * 0.12
-        let heightScale = 0.92 + randomFloat(coordinate, salt: 92) * 0.18
-        let canopyCount = detailCount(5 + stablePercent(coordinate, salt: 93) % 4, minimum: 3)
         let trunkOffset = SIMD3<Float>(jitter(coordinate, salt: 94) * 0.035, 0, jitter(coordinate, salt: 95) * 0.035)
 
         addGroundPatch(
@@ -159,13 +170,35 @@ struct World3DTileEntity {
             rotation: jitter(coordinate, salt: 96) * 0.45
         )
 
-        let trunk = addBox(
+        switch WorldTheme.current {
+        case .village:
+            addBroadleafTree(to: root, tileSize: tileSize, coordinate: coordinate, trunkOffset: trunkOffset)
+        case .desert:
+            addPalmTree(to: root, tileSize: tileSize, coordinate: coordinate, trunkOffset: trunkOffset)
+        case .forest:
+            addConiferTree(to: root, tileSize: tileSize, coordinate: coordinate, trunkOffset: trunkOffset, snowCapped: false)
+        case .mountains:
+            addConiferTree(to: root, tileSize: tileSize, coordinate: coordinate, trunkOffset: trunkOffset, snowCapped: true)
+        }
+
+        addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.18, 0.22), radius: 0.13, count: 3, scale: 0.72)
+        addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(trunkOffset.x, trunkOffset.z), radius: 0.38)
+        addThemeGroundDecor(to: root, tileSize: tileSize, coordinate: coordinate, around: SIMD2<Float>(trunkOffset.x - 0.11, trunkOffset.z + 0.14))
+        addLeafScatter(to: root, tileSize: tileSize, coordinate: coordinate, around: SIMD2<Float>(trunkOffset.x, trunkOffset.z))
+    }
+
+    private static func addBroadleafTree(to root: Entity, tileSize: Float, coordinate: GridCoordinate, trunkOffset: SIMD3<Float>) {
+        let lean = jitter(coordinate, salt: 91) * 0.12
+        let heightScale = 0.92 + randomFloat(coordinate, salt: 92) * 0.18
+        let canopyCount = detailCount(5 + stablePercent(coordinate, salt: 93) % 4, minimum: 3)
+
+        let trunk = addCylinder(
             to: root,
-            size: SIMD3<Float>(0.13, 0.46 * heightScale, 0.12) * tileSize,
+            radius: 0.062 * tileSize,
+            height: 0.46 * heightScale * tileSize,
             position: SIMD3<Float>(trunkOffset.x, 0.23 * heightScale, trunkOffset.z) * tileSize,
             color: Palette.bark,
-            roughness: 0.88,
-            cornerRadius: tileSize * 0.018
+            roughness: 0.88
         )
         trunk.orientation = simd_quatf(angle: lean, axis: SIMD3<Float>(0, 0, 1)) * simd_quatf(angle: -lean * 0.55, axis: SIMD3<Float>(1, 0, 0))
 
@@ -218,11 +251,144 @@ struct World3DTileEntity {
             )
             branch.orientation = simd_quatf(angle: 0.45 + jitter(coordinate, salt: 142 + index) * 0.45, axis: SIMD3<Float>(0, 1, 0))
         }
+    }
 
-        addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.18, 0.22), radius: 0.13, count: 3, scale: 0.72)
-        addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(trunkOffset.x, trunkOffset.z), radius: 0.38)
-        addMushrooms(to: root, tileSize: tileSize, coordinate: coordinate, around: SIMD2<Float>(trunkOffset.x - 0.11, trunkOffset.z + 0.14))
-        addLeafScatter(to: root, tileSize: tileSize, coordinate: coordinate, around: SIMD2<Float>(trunkOffset.x, trunkOffset.z))
+    private static func addConiferTree(to root: Entity, tileSize: Float, coordinate: GridCoordinate, trunkOffset: SIMD3<Float>, snowCapped: Bool) {
+        let heightScale = 0.90 + randomFloat(coordinate, salt: 92) * 0.24
+        let lean = jitter(coordinate, salt: 91) * 0.06
+
+        let trunk = addCylinder(
+            to: root,
+            radius: 0.048 * tileSize,
+            height: 0.26 * heightScale * tileSize,
+            position: SIMD3<Float>(trunkOffset.x, 0.13 * heightScale, trunkOffset.z) * tileSize,
+            color: Palette.bark,
+            roughness: 0.90
+        )
+        trunk.orientation = simd_quatf(angle: lean, axis: SIMD3<Float>(0, 0, 1))
+
+        addRootCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(trunkOffset.x, trunkOffset.z))
+
+        let tiers: [(radius: Float, height: Float, centerY: Float)] = [
+            (0.235, 0.30, 0.30),
+            (0.180, 0.26, 0.47),
+            (0.125, 0.24, 0.63)
+        ]
+        for (index, tier) in tiers.enumerated() {
+            let wobble = SIMD3<Float>(
+                jitter(coordinate, salt: 101 + index * 7) * 0.022,
+                0,
+                jitter(coordinate, salt: 105 + index * 9) * 0.022
+            )
+            addCone(
+                to: root,
+                radius: tier.radius * (0.94 + randomFloat(coordinate, salt: 111 + index) * 0.14) * tileSize,
+                height: tier.height * heightScale * tileSize,
+                position: (SIMD3<Float>(trunkOffset.x, tier.centerY * heightScale, trunkOffset.z) + wobble) * tileSize,
+                color: index.isMultiple(of: 2) ? Palette.forestMoss : Palette.forestDeep,
+                roughness: 0.90
+            )
+        }
+
+        if snowCapped {
+            addCone(
+                to: root,
+                radius: 0.085 * tileSize,
+                height: 0.17 * heightScale * tileSize,
+                position: SIMD3<Float>(trunkOffset.x, 0.755 * heightScale, trunkOffset.z) * tileSize,
+                color: Palette.peakCap,
+                roughness: 0.82
+            )
+        } else {
+            addCone(
+                to: root,
+                radius: 0.080 * tileSize,
+                height: 0.18 * heightScale * tileSize,
+                position: SIMD3<Float>(trunkOffset.x, 0.755 * heightScale, trunkOffset.z) * tileSize,
+                color: Palette.leafHighlight,
+                roughness: 0.90
+            )
+        }
+    }
+
+    private static func addPalmTree(to root: Entity, tileSize: Float, coordinate: GridCoordinate, trunkOffset: SIMD3<Float>) {
+        let heightScale = 0.92 + randomFloat(coordinate, salt: 92) * 0.20
+        let leanX = jitter(coordinate, salt: 91) * 0.06 + 0.045
+
+        let lower = addCylinder(
+            to: root,
+            radius: 0.042 * tileSize,
+            height: 0.30 * heightScale * tileSize,
+            position: SIMD3<Float>(trunkOffset.x, 0.15 * heightScale, trunkOffset.z) * tileSize,
+            color: Palette.bark,
+            roughness: 0.92
+        )
+        lower.orientation = simd_quatf(angle: -leanX * 1.6, axis: SIMD3<Float>(0, 0, 1))
+        let upper = addCylinder(
+            to: root,
+            radius: 0.035 * tileSize,
+            height: 0.26 * heightScale * tileSize,
+            position: SIMD3<Float>(trunkOffset.x + leanX, 0.41 * heightScale, trunkOffset.z) * tileSize,
+            color: Palette.bark,
+            roughness: 0.92
+        )
+        upper.orientation = simd_quatf(angle: -leanX * 2.6, axis: SIMD3<Float>(0, 0, 1))
+
+        let crown = SIMD3<Float>(trunkOffset.x + leanX * 1.7, 0.55 * heightScale, trunkOffset.z)
+        let frondCount = detailCount(6, minimum: 4)
+        for index in 0..<frondCount {
+            let yaw = Float(index) / Float(frondCount) * .pi * 2 + jitter(coordinate, salt: 121 + index) * 0.25
+            let reach: Float = 0.095
+            let frond = addBox(
+                to: root,
+                size: SIMD3<Float>(0.24, 0.018, 0.075) * tileSize,
+                position: (crown + SIMD3<Float>(cos(yaw) * reach, 0.015, sin(yaw) * reach)) * tileSize,
+                color: index.isMultiple(of: 2) ? Palette.frond : Palette.forestMoss,
+                roughness: 0.90,
+                cornerRadius: tileSize * 0.010
+            )
+            frond.orientation = simd_quatf(angle: -yaw, axis: SIMD3<Float>(0, 1, 0)) * simd_quatf(angle: -0.42, axis: SIMD3<Float>(0, 0, 1))
+        }
+
+        for index in 0..<2 {
+            let coconut = World3DRenderResources.makeSphere(
+                radius: 0.026 * tileSize,
+                material: material(Palette.doorWood, roughness: 0.88)
+            )
+            coconut.position = (crown + SIMD3<Float>(jitter(coordinate, salt: 131 + index) * 0.04, -0.028, jitter(coordinate, salt: 134 + index) * 0.04)) * tileSize
+            root.addChild(coconut)
+        }
+
+        addCactus(to: root, tileSize: tileSize, coordinate: coordinate, position: SIMD2<Float>(-0.26, 0.20), salt: 141)
+    }
+
+    private static func addCactus(to root: Entity, tileSize: Float, coordinate: GridCoordinate, position: SIMD2<Float>, salt: Int) {
+        let height = (0.12 + randomFloat(coordinate, salt: salt) * 0.06)
+        addCylinder(
+            to: root,
+            radius: 0.030 * tileSize,
+            height: height * tileSize,
+            position: SIMD3<Float>(position.x, height * 0.5 + 0.01, position.y) * tileSize,
+            color: Palette.cactus,
+            roughness: 0.86
+        )
+        let armSide: Float = jitter(coordinate, salt: salt + 1) > 0 ? 1 : -1
+        addBox(
+            to: root,
+            size: SIMD3<Float>(0.045, 0.020, 0.020) * tileSize,
+            position: SIMD3<Float>(position.x + armSide * 0.035, height * 0.55, position.y) * tileSize,
+            color: Palette.cactus,
+            roughness: 0.86,
+            cornerRadius: tileSize * 0.006
+        )
+        addCylinder(
+            to: root,
+            radius: 0.017 * tileSize,
+            height: 0.065 * tileSize,
+            position: SIMD3<Float>(position.x + armSide * 0.055, height * 0.55 + 0.030, position.y) * tileSize,
+            color: Palette.cactus,
+            roughness: 0.86
+        )
     }
 
     static func addMountain(to root: Entity, tileSize: Float) {
@@ -244,41 +410,40 @@ struct World3DTileEntity {
             rotation: jitter(coordinate, salt: 143) * 0.28
         )
 
-        let specs: [(SIMD3<Float>, SIMD3<Float>, NSColor, Int)] = [
-            (SIMD3<Float>(-0.12, (0.44 + edgeWeight * 0.11) * heightScale, -0.05), SIMD3<Float>(0.48, (0.88 + edgeWeight * 0.20) * heightScale, 0.38), Palette.warmStone, 151),
-            (SIMD3<Float>(0.22, (0.34 + edgeWeight * 0.08) * heightScale, 0.08), SIMD3<Float>(0.38, (0.66 + edgeWeight * 0.15) * heightScale, 0.32), Palette.deepStone, 157),
-            (SIMD3<Float>(-0.34, 0.25 * heightScale, 0.10), SIMD3<Float>(0.32, 0.50 * heightScale, 0.28), Palette.paleStone, 163),
-            (SIMD3<Float>(0.03, 0.21 * heightScale, -0.30), SIMD3<Float>(0.58, 0.30 * heightScale, 0.22), Palette.smokeStone, 169)
+        // Distant peaks are cones: (x, z, base radius, height, color, salt, capped)
+        let specs: [(Float, Float, Float, Float, NSColor, Int, Bool)] = [
+            (-0.12, -0.05, 0.30, (0.88 + edgeWeight * 0.20) * heightScale, Palette.warmStone, 151, true),
+            (0.22, 0.08, 0.24, (0.66 + edgeWeight * 0.15) * heightScale, Palette.deepStone, 157, true),
+            (-0.34, 0.10, 0.19, 0.50 * heightScale, Palette.paleStone, 163, false),
+            (0.03, -0.30, 0.32, 0.32 * heightScale, Palette.smokeStone, 169, false)
         ]
         let count = World3DRenderResources.visualQuality == .low ? 3 : specs.count
         for spec in specs.prefix(count) {
-            let rock = addBox(
+            let x = spec.0 + jitter(coordinate, salt: spec.5 + 3) * 0.035
+            let z = spec.1 + jitter(coordinate, salt: spec.5 + 4) * 0.035
+            let radius = spec.2 * (0.94 + randomFloat(coordinate, salt: spec.5) * 0.14)
+            let height = spec.3 * (0.94 + randomFloat(coordinate, salt: spec.5 + 1) * 0.16)
+            addCone(
                 to: root,
-                size: SIMD3<Float>(
-                    spec.1.x * (0.94 + randomFloat(coordinate, salt: spec.3) * 0.14),
-                    spec.1.y * (0.94 + randomFloat(coordinate, salt: spec.3 + 1) * 0.16),
-                    spec.1.z * (0.94 + randomFloat(coordinate, salt: spec.3 + 2) * 0.12)
-                ) * tileSize,
-                position: SIMD3<Float>(
-                    spec.0.x + jitter(coordinate, salt: spec.3 + 3) * 0.035,
-                    spec.0.y,
-                    spec.0.z + jitter(coordinate, salt: spec.3 + 4) * 0.035
-                ) * tileSize,
-                color: spec.2,
-                roughness: 0.96,
-                cornerRadius: tileSize * 0.010
+                radius: radius * tileSize,
+                height: height * tileSize,
+                position: SIMD3<Float>(x, height * 0.5, z) * tileSize,
+                color: spec.4,
+                roughness: 0.96
             )
-            rock.orientation = simd_quatf(angle: jitter(coordinate, salt: spec.3 + 5) * 0.22, axis: SIMD3<Float>(0, 1, 0))
-        }
 
-        addBox(
-            to: root,
-            size: SIMD3<Float>(0.82 + edgeWeight * 0.24, 0.052, 0.080) * tileSize,
-            position: SIMD3<Float>(0.02, (0.30 + edgeWeight * 0.09) * heightScale, -0.20) * tileSize,
-            color: Palette.paleStone,
-            roughness: 0.90,
-            cornerRadius: tileSize * 0.003
-        )
+            if spec.6 {
+                let capHeight = height * 0.26
+                addCone(
+                    to: root,
+                    radius: radius * 0.26 * 1.12 * tileSize,
+                    height: capHeight * tileSize,
+                    position: SIMD3<Float>(x, height - capHeight * 0.5 + 0.004, z) * tileSize,
+                    color: Palette.peakCap,
+                    roughness: 0.82
+                )
+            }
+        }
     }
 
     static func addMountain(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
@@ -291,46 +456,50 @@ struct World3DTileEntity {
             rotation: jitter(coordinate, salt: 151) * 0.45
         )
 
-        let peakSpecs: [(SIMD3<Float>, SIMD3<Float>, NSColor, Int)] = [
-            (SIMD3<Float>(-0.04, 0.32, -0.04), SIMD3<Float>(0.34, 0.64, 0.32), Palette.warmStone, 153),
-            (SIMD3<Float>(0.18, 0.24, 0.08), SIMD3<Float>(0.27, 0.46, 0.25), Palette.deepStone, 157),
-            (SIMD3<Float>(-0.23, 0.19, 0.10), SIMD3<Float>(0.23, 0.38, 0.24), Palette.paleStone, 161),
-            (SIMD3<Float>(0.04, 0.16, -0.24), SIMD3<Float>(0.20, 0.31, 0.20), Palette.smokeStone, 167)
+        // Peaks are cones: (x, z, base radius, height, color, salt, capped)
+        let peakSpecs: [(Float, Float, Float, Float, NSColor, Int, Bool)] = [
+            (-0.04, -0.04, 0.295, 0.74, Palette.warmStone, 153, true),
+            (0.18, 0.08, 0.220, 0.52, Palette.deepStone, 157, true),
+            (-0.23, 0.10, 0.170, 0.38, Palette.paleStone, 161, false),
+            (0.04, -0.24, 0.190, 0.30, Palette.smokeStone, 167, false)
         ]
 
         for spec in peakSpecs {
-            let offset = SIMD3<Float>(
-                spec.0.x + jitter(coordinate, salt: spec.3) * 0.035,
-                spec.0.y,
-                spec.0.z + jitter(coordinate, salt: spec.3 + 1) * 0.035
-            )
-            let size = SIMD3<Float>(
-                spec.1.x * (0.92 + randomFloat(coordinate, salt: spec.3 + 2) * 0.18),
-                spec.1.y * (0.92 + randomFloat(coordinate, salt: spec.3 + 3) * 0.20),
-                spec.1.z * (0.92 + randomFloat(coordinate, salt: spec.3 + 4) * 0.18)
-            )
-            let rock = addBox(
+            let x = spec.0 + jitter(coordinate, salt: spec.5) * 0.030
+            let z = spec.1 + jitter(coordinate, salt: spec.5 + 1) * 0.030
+            let radius = spec.2 * (0.92 + randomFloat(coordinate, salt: spec.5 + 2) * 0.16)
+            let height = spec.3 * (0.92 + randomFloat(coordinate, salt: spec.5 + 3) * 0.18)
+            addCone(
                 to: root,
-                size: size * tileSize,
-                position: offset * tileSize,
-                color: spec.2,
-                roughness: 0.95,
-                cornerRadius: tileSize * 0.02
+                radius: radius * tileSize,
+                height: height * tileSize,
+                position: SIMD3<Float>(x, height * 0.5, z) * tileSize,
+                color: spec.4,
+                roughness: 0.95
             )
-            rock.orientation = simd_quatf(angle: randomAngle(coordinate, salt: spec.3 + 5), axis: SIMD3<Float>(0, 1, 0))
+
+            if spec.6 {
+                // Cap covers the top ~28% of the peak; radius matches the cone at that height.
+                let capHeight = height * 0.28
+                let capRadius = radius * 0.28 * 1.12
+                addCone(
+                    to: root,
+                    radius: capRadius * tileSize,
+                    height: capHeight * tileSize,
+                    position: SIMD3<Float>(x, height - capHeight * 0.5 + 0.004, z) * tileSize,
+                    color: Palette.peakCap,
+                    roughness: 0.82
+                )
+            }
         }
 
-        addJaggedPeak(to: root, tileSize: tileSize, coordinate: coordinate, base: SIMD3<Float>(-0.06, 0.66, -0.04), salt: 171, color: Palette.paleStone)
-        addJaggedPeak(to: root, tileSize: tileSize, coordinate: coordinate, base: SIMD3<Float>(0.18, 0.47, 0.08), salt: 177, color: Palette.smokeStone)
-        addRockStrata(to: root, tileSize: tileSize, coordinate: coordinate)
-        addMountainCracks(to: root, tileSize: tileSize, coordinate: coordinate)
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(0.18, -0.26), radius: 0.25, count: 6, scale: 0.95)
         addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD2<Float>(-0.24, 0.24), radius: 0.18, count: 4, scale: 0.78)
         addDebris(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: SIMD2<Float>(0.03, 0.18), radius: 0.32, color: Palette.deepStone)
     }
 
     private static func template(kind: TemplateKind, tileSize: Float) -> Entity {
-        let key = TemplateKey(kind: kind, tileSizeBucket: Int((tileSize * 10_000).rounded()))
+        let key = TemplateKey(kind: kind, tileSizeBucket: Int((tileSize * 10_000).rounded()), theme: WorldTheme.current)
         if let cached = templateCache[key] {
             return cached.clone(recursive: true)
         }
@@ -696,20 +865,6 @@ struct World3DTileEntity {
         }
     }
 
-    private static func addRockStrata(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
-        for index in 0..<detailCount(3, minimum: 1) {
-            let stratum = addBox(
-                to: root,
-                size: SIMD3<Float>(0.28 - Float(index) * 0.04, 0.020, 0.045) * tileSize,
-                position: SIMD3<Float>(-0.05 + Float(index) * 0.08, 0.25 + Float(index) * 0.10, -0.20 + Float(index) * 0.05) * tileSize,
-                color: index.isMultiple(of: 2) ? Palette.paleStone : Palette.deepStone,
-                roughness: 0.92,
-                cornerRadius: tileSize * 0.003
-            )
-            stratum.orientation = simd_quatf(angle: 0.22 + jitter(coordinate, salt: 531 + index) * 0.20, axis: SIMD3<Float>(0, 1, 0))
-        }
-    }
-
     private static func addRootCluster(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD2<Float>) {
         for index in 0..<detailCount(4, minimum: 1) {
             let rootPiece = addBox(
@@ -821,13 +976,36 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.07, 0.07, 0.040) * tileSize, position: SIMD3<Float>(-0.32, 0.25, 0.255) * tileSize, color: Palette.warmGold, roughness: 0.56, cornerRadius: tileSize * 0.014)
     }
 
-    private static func addMushrooms(to root: Entity, tileSize: Float, coordinate: GridCoordinate, around: SIMD2<Float>) {
-        for index in 0..<3 {
-            let x = around.x + jitter(coordinate, salt: 961 + index) * 0.08
-            let z = around.y + jitter(coordinate, salt: 967 + index) * 0.08
-            guard abs(x) < 0.46, abs(z) < 0.46 else { continue }
-            addBox(to: root, size: SIMD3<Float>(0.018, 0.045, 0.018) * tileSize, position: SIMD3<Float>(x, 0.034, z) * tileSize, color: Palette.plaster, roughness: 0.88, cornerRadius: tileSize * 0.004)
-            addBox(to: root, size: SIMD3<Float>(0.045, 0.022, 0.045) * tileSize, position: SIMD3<Float>(x, 0.066, z) * tileSize, color: Palette.mushroomCap, roughness: 0.82, cornerRadius: tileSize * 0.010)
+    private static func addThemeGroundDecor(to root: Entity, tileSize: Float, coordinate: GridCoordinate, around: SIMD2<Float>) {
+        switch WorldTheme.current {
+        case .desert:
+            let x = around.x + jitter(coordinate, salt: 961) * 0.08
+            let z = around.y + jitter(coordinate, salt: 967) * 0.08
+            guard abs(x) < 0.44, abs(z) < 0.44 else { return }
+            addCactus(to: root, tileSize: tileSize, coordinate: coordinate, position: SIMD2<Float>(x, z), salt: 968)
+        case .mountains:
+            // Snow patches instead of mushrooms.
+            for index in 0..<2 {
+                let x = around.x + jitter(coordinate, salt: 961 + index) * 0.10
+                let z = around.y + jitter(coordinate, salt: 967 + index) * 0.10
+                guard abs(x) < 0.44, abs(z) < 0.44 else { continue }
+                addGroundPatch(
+                    to: root,
+                    tileSize: tileSize,
+                    center: SIMD2<Float>(x, z),
+                    size: SIMD2<Float>(0.14, 0.10),
+                    color: Palette.peakCap,
+                    rotation: randomAngle(coordinate, salt: 971 + index)
+                )
+            }
+        case .village, .forest:
+            for index in 0..<3 {
+                let x = around.x + jitter(coordinate, salt: 961 + index) * 0.08
+                let z = around.y + jitter(coordinate, salt: 967 + index) * 0.08
+                guard abs(x) < 0.46, abs(z) < 0.46 else { continue }
+                addCylinder(to: root, radius: 0.011 * tileSize, height: 0.045 * tileSize, position: SIMD3<Float>(x, 0.034, z) * tileSize, color: Palette.plaster, roughness: 0.88)
+                addCone(to: root, radius: 0.026 * tileSize, height: 0.032 * tileSize, position: SIMD3<Float>(x, 0.068, z) * tileSize, color: Palette.mushroomCap, roughness: 0.82)
+            }
         }
     }
 
@@ -838,36 +1016,6 @@ struct World3DTileEntity {
             guard abs(x) < 0.46, abs(z) < 0.46 else { continue }
             let leaf = addBox(to: root, size: SIMD3<Float>(0.040, 0.007, 0.022) * tileSize, position: SIMD3<Float>(x, 0.017, z) * tileSize, color: index.isMultiple(of: 2) ? Palette.leafHighlight : Palette.forestDeep, roughness: 0.95, cornerRadius: tileSize * 0.004)
             leaf.orientation = simd_quatf(angle: randomAngle(coordinate, salt: 981 + index), axis: SIMD3<Float>(0, 1, 0))
-        }
-    }
-
-    private static func addJaggedPeak(to root: Entity, tileSize: Float, coordinate: GridCoordinate, base: SIMD3<Float>, salt: Int, color: NSColor) {
-        for index in 0..<detailCount(3, minimum: 1) {
-            let width = 0.17 - Float(index) * 0.035
-            let height = 0.18 - Float(index) * 0.035
-            let peak = addBox(
-                to: root,
-                size: SIMD3<Float>(width, height, width * 0.82) * tileSize,
-                position: SIMD3<Float>(base.x + jitter(coordinate, salt: salt + index) * 0.025, base.y + Float(index) * 0.075, base.z + jitter(coordinate, salt: salt + 4 + index) * 0.025) * tileSize,
-                color: index.isMultiple(of: 2) ? color : Palette.deepStone,
-                roughness: 0.96,
-                cornerRadius: tileSize * 0.010
-            )
-            peak.orientation = simd_quatf(angle: 0.26 + jitter(coordinate, salt: salt + 8 + index) * 0.16, axis: SIMD3<Float>(0, 0, 1)) * simd_quatf(angle: randomAngle(coordinate, salt: salt + 12 + index), axis: SIMD3<Float>(0, 1, 0))
-        }
-    }
-
-    private static func addMountainCracks(to root: Entity, tileSize: Float, coordinate: GridCoordinate) {
-        for index in 0..<detailCount(4, minimum: 1) {
-            let crack = addBox(
-                to: root,
-                size: SIMD3<Float>(0.018, 0.16 - Float(index) * 0.018, 0.020) * tileSize,
-                position: SIMD3<Float>(-0.18 + Float(index) * 0.12, 0.27 + Float(index % 2) * 0.12, 0.155 - Float(index) * 0.08) * tileSize,
-                color: Palette.crackShadow,
-                roughness: 0.98,
-                cornerRadius: tileSize * 0.002
-            )
-            crack.orientation = simd_quatf(angle: -0.24 + jitter(coordinate, salt: 991 + index) * 0.28, axis: SIMD3<Float>(0, 0, 1)) * simd_quatf(angle: jitter(coordinate, salt: 995 + index) * 0.35, axis: SIMD3<Float>(0, 1, 0))
         }
     }
 
@@ -990,6 +1138,44 @@ struct World3DTileEntity {
     }
 
     @discardableResult
+    private static func addCone(
+        to root: Entity,
+        radius: Float,
+        height: Float,
+        position: SIMD3<Float>,
+        color: NSColor,
+        roughness: Float = 0.92
+    ) -> ModelEntity {
+        let cone = World3DRenderResources.makeCone(
+            radius: radius,
+            height: height,
+            material: material(color, roughness: roughness)
+        )
+        cone.position = position
+        root.addChild(cone)
+        return cone
+    }
+
+    @discardableResult
+    private static func addCylinder(
+        to root: Entity,
+        radius: Float,
+        height: Float,
+        position: SIMD3<Float>,
+        color: NSColor,
+        roughness: Float = 0.9
+    ) -> ModelEntity {
+        let cylinder = World3DRenderResources.makeCylinder(
+            radius: radius,
+            height: height,
+            material: material(color, roughness: roughness)
+        )
+        cylinder.position = position
+        root.addChild(cylinder)
+        return cylinder
+    }
+
+    @discardableResult
     private static func addBox(
         to root: Entity,
         size: SIMD3<Float>,
@@ -1061,59 +1247,9 @@ struct World3DTileEntity {
     }
 }
 
-private enum Palette {
-    static let grassLight = NSColor(red: 0.42, green: 0.52, blue: 0.29, alpha: 1)
-    static let grassShadow = NSColor(red: 0.22, green: 0.35, blue: 0.25, alpha: 1)
-    static let forestMoss = NSColor(red: 0.14, green: 0.31, blue: 0.23, alpha: 1)
-    static let forestDeep = NSColor(red: 0.08, green: 0.21, blue: 0.18, alpha: 1)
-    static let leafHighlight = NSColor(red: 0.29, green: 0.42, blue: 0.20, alpha: 1)
-    static let bark = NSColor(red: 0.30, green: 0.21, blue: 0.15, alpha: 1)
-    static let rootSoil = NSColor(red: 0.27, green: 0.26, blue: 0.20, alpha: 1)
-    static let warmStone = NSColor(red: 0.52, green: 0.49, blue: 0.41, alpha: 1)
-    static let deepStone = NSColor(red: 0.30, green: 0.34, blue: 0.36, alpha: 1)
-    static let paleStone = NSColor(red: 0.61, green: 0.57, blue: 0.48, alpha: 1)
-    static let smokeStone = NSColor(red: 0.34, green: 0.36, blue: 0.36, alpha: 1)
-    static let stoneDust = NSColor(red: 0.39, green: 0.40, blue: 0.37, alpha: 1)
-    static let coalDust = NSColor(red: 0.16, green: 0.17, blue: 0.18, alpha: 1)
-    static let coalChunk = NSColor(red: 0.08, green: 0.09, blue: 0.10, alpha: 1)
-    static let walkedDirt = NSColor(red: 0.39, green: 0.32, blue: 0.24, alpha: 1)
-    static let fieldDirt = NSColor(red: 0.33, green: 0.28, blue: 0.20, alpha: 1)
-    static let plinthStone = NSColor(red: 0.40, green: 0.37, blue: 0.31, alpha: 1)
-    static let plaster = NSColor(red: 0.69, green: 0.55, blue: 0.41, alpha: 1)
-    static let terracotta = NSColor(red: 0.48, green: 0.22, blue: 0.16, alpha: 1)
-    static let terracottaDark = NSColor(red: 0.34, green: 0.14, blue: 0.11, alpha: 1)
-    static let roofHighlight = NSColor(red: 0.59, green: 0.31, blue: 0.21, alpha: 1)
-    static let sideShed = NSColor(red: 0.55, green: 0.42, blue: 0.30, alpha: 1)
-    static let warmWindow = NSColor(red: 0.98, green: 0.64, blue: 0.25, alpha: 1)
-    static let doorWood = NSColor(red: 0.27, green: 0.18, blue: 0.12, alpha: 1)
-    static let cropGold = NSColor(red: 0.70, green: 0.61, blue: 0.31, alpha: 1)
-    static let cropGreen = NSColor(red: 0.35, green: 0.48, blue: 0.26, alpha: 1)
-    static let barnWood = NSColor(red: 0.49, green: 0.31, blue: 0.21, alpha: 1)
-    static let strawRoof = NSColor(red: 0.68, green: 0.56, blue: 0.34, alpha: 1)
-    static let strawShadow = NSColor(red: 0.50, green: 0.42, blue: 0.25, alpha: 1)
-    static let timber = NSColor(red: 0.40, green: 0.29, blue: 0.19, alpha: 1)
-    static let darkTimber = NSColor(red: 0.23, green: 0.17, blue: 0.12, alpha: 1)
-    static let cutWood = NSColor(red: 0.55, green: 0.39, blue: 0.25, alpha: 1)
-    static let sawPlatform = NSColor(red: 0.32, green: 0.24, blue: 0.17, alpha: 1)
-    static let mineMouth = NSColor(red: 0.07, green: 0.08, blue: 0.09, alpha: 1)
-    static let tunnelShadow = NSColor(red: 0.025, green: 0.030, blue: 0.035, alpha: 1)
-    static let railWood = NSColor(red: 0.23, green: 0.20, blue: 0.17, alpha: 1)
-    static let labStone = NSColor(red: 0.48, green: 0.58, blue: 0.55, alpha: 1)
-    static let labStoneDark = NSColor(red: 0.32, green: 0.43, blue: 0.43, alpha: 1)
-    static let glassGlow = NSColor(red: 0.45, green: 0.72, blue: 0.70, alpha: 1)
-    static let arcaneBlue = NSColor(red: 0.20, green: 0.45, blue: 0.50, alpha: 1)
-    static let warmGold = NSColor(red: 0.74, green: 0.59, blue: 0.31, alpha: 1)
-    static let fortifiedClay = NSColor(red: 0.53, green: 0.34, blue: 0.30, alpha: 1)
-    static let slateRoof = NSColor(red: 0.27, green: 0.31, blue: 0.32, alpha: 1)
-    static let bannerRed = NSColor(red: 0.62, green: 0.22, blue: 0.18, alpha: 1)
-    static let waterSheen = NSColor(red: 0.48, green: 0.68, blue: 0.69, alpha: 0.40)
-    static let mushroomCap = NSColor(red: 0.68, green: 0.27, blue: 0.22, alpha: 1)
-    static let crackShadow = NSColor(red: 0.16, green: 0.18, blue: 0.18, alpha: 1)
-    static let lanternGlow = NSColor(red: 1.0, green: 0.58, blue: 0.20, alpha: 1)
-    static let sackCloth = NSColor(red: 0.60, green: 0.49, blue: 0.34, alpha: 1)
-    static let cauldron = NSColor(red: 0.18, green: 0.24, blue: 0.23, alpha: 1)
-    static let potionPurple = NSColor(red: 0.43, green: 0.35, blue: 0.60, alpha: 1)
-}
+/// Theme-driven colors; all asset builders read through this so a theme
+/// switch recolors every environmental asset on the next rebuild.
+private var Palette: WorldPalette { WorldTheme.current.palette }
 
 private extension SIMD3 where Scalar == Float {
     static func * (lhs: SIMD3<Float>, rhs: Float) -> SIMD3<Float> {

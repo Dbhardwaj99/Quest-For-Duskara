@@ -101,8 +101,30 @@ struct GameView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("World news")
+
+            themeCycleButton
         }
         .padding(.horizontal, 8)
+    }
+
+    // ponytail: temporary theme-cycling test button; remove once theme selection has a real home
+    private var themeCycleButton: some View {
+        Button {
+            ThemeManager.shared.cycle()
+        } label: {
+            VStack(spacing: 1) {
+                Image(systemName: "paintpalette.fill")
+                    .font(.system(size: 13, weight: .bold))
+                Text(ThemeManager.shared.theme.displayName)
+                    .font(.system(size: 7, weight: .heavy))
+            }
+            .foregroundStyle(.white.opacity(0.94))
+            .frame(width: 44, height: 38)
+            .background(.ultraThinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Cycle world theme")
     }
 
     private var townView3D: some View {
