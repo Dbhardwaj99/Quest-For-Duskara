@@ -1,9 +1,6 @@
 # Quest for Duskara
 
 Quest for Duskara is a native macOS strategy game about founding island towns, managing resources, training soldiers, and sailing against rival cities before dusk overtakes the realm. The world is an archipelago: every city sits on its own procedurally generated island, and the campaign is won by conquering Duskara. The primary game experience is a RealityKit-rendered town board wrapped by SwiftUI HUD, menus, sheets, and world-map controls.
-<p align="center">
-  <img src="docs/screen.png" width="320" alt="Quest for Duskara Gameplay Screenshot" />
-</p>
 
 ## Technology Stack
 
