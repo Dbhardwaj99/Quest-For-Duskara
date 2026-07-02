@@ -29,4 +29,18 @@ enum DuskaraTheme {
     static let warmGold = Color(red: 0.84, green: 0.63, blue: 0.32)
     static let moss = Color(red: 0.32, green: 0.43, blue: 0.26)
     static let glassStroke = Color.white.opacity(0.20)
+
+    // Layout scale — shared by every screen so spacing stays consistent.
+    static let spacingS: CGFloat = 8
+    static let spacingM: CGFloat = 12
+    static let spacingL: CGFloat = 16
+    static let spacingXL: CGFloat = 24
+    static let cornerS: CGFloat = 8
+    static let cornerM: CGFloat = 12
+    static let cornerL: CGFloat = 18
+
+    /// Menus and setup screens are landscape-first on macOS.
+    static let maxContentWidth: CGFloat = 920
+    /// The in-game HUD should use the window without covering the whole board.
+    static let maxHUDWidth: CGFloat = 860
 }

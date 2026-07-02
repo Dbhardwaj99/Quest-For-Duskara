@@ -48,6 +48,13 @@ struct BuildingArtView: View {
                 if building.level > 2 { window }
             }
             .offset(y: 6)
+        case .pier:
+            VStack(spacing: 2) {
+                Image(systemName: "sailboat.fill").font(.caption2)
+                Rectangle().fill(Color(red: 0.62, green: 0.47, blue: 0.30)).frame(width: 28, height: 3)
+            }
+            .foregroundStyle(.white.opacity(0.9))
+            .offset(y: 4)
         case .farm:
             VStack(spacing: 2) {
                 Image(systemName: "leaf.fill").font(.caption2)

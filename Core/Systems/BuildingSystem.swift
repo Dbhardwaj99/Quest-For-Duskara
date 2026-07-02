@@ -6,7 +6,7 @@ struct BuildingSystem {
         case outOfBounds = "That plot is outside the town grid."
         case insufficientResources = "Not enough resources."
         case insufficientPeople = "Not enough free people."
-        case placementRule = "This building must touch the right biome border."
+        case placementRule = "This building must be placed on the town's edge, by the water."
         case maxLevel = "This building is already fully upgraded."
         case missingDefinition = "Missing building definition."
 
@@ -29,11 +29,7 @@ struct BuildingSystem {
         balance: GameBalance
     ) -> [ResourceKind: Int] {
         guard let definition = balance.buildingDefinitions[building.kind] else { return [:] }
-        var production: [ResourceKind: Int] = [:]
-        for (kind, amount) in definition.production(for: building.level) {
-            production[kind] = modifiedProduction(amount, for: kind, from: building.kind, in: town)
-        }
-        return production
+        return definition.production(for: building.level)
     }
 
     func canBuild(_ kind: BuildingKind, at coordinate: GridCoordinate, in town: Town, balance: GameBalance) -> BuildFailure? {
@@ -66,31 +62,6 @@ struct BuildingSystem {
             town.resources.add(.people, amount: definition.peopleOnBuild(for: town.buildings[index].level))
         }
         return nil
-    }
-
-    private func modifiedProduction(_ amount: Int, for resource: ResourceKind, from building: BuildingKind, in town: Town) -> Int {
-		return amount
-//		This can be used later
-//        switch (building, resource) {
-//        case (.woodMill, .wood):
-//            return scaled(amount, byBiomeSideCount: town.forestSideCount)
-//        case (.coalMine, .coal):
-//            return scaled(amount, byBiomeSideCount: town.mountainSideCount)
-//        default:
-//            return amount
-//        }
-    }
-
-    private func scaled(_ amount: Int, byBiomeSideCount count: Int) -> Int {
-        let multiplier: Double
-        switch count {
-        case 0: multiplier = 0.5
-        case 1: multiplier = 0.5
-        case 2: multiplier = 1.0
-        case 3: multiplier = 1.5
-        default: multiplier = 2.0
-        }
-        return max(1, Int((Double(amount) * multiplier).rounded()))
     }
 
 }

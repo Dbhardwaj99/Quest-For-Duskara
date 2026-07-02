@@ -4,7 +4,6 @@ struct GameBalance {
     var gridSize: GridSize
     var dayDuration: TimeInterval
     var baseStartingResources: [ResourceKind: Int]
-    var bonusPool: Int
     var aiReserveThreshold: Int
     var aiMinimumFoodReserve: Int
     var aiMinimumGoldReserve: Int
@@ -27,7 +26,6 @@ struct GameBalance {
             .people: 0,
             .soldiers: 0
         ],
-        bonusPool: 100,
         aiReserveThreshold: 12,
         aiMinimumFoodReserve: 40,
         aiMinimumGoldReserve: 80,
@@ -51,6 +49,17 @@ struct GameBalance {
                 populationCapacity: 8,
                 maxLevel: 3,
                 placementRules: [.none]
+            ),
+            .pier: BuildingDefinition(
+                kind: .pier,
+                summary: "Brings in daily gold from sea trade.",
+                baseCost: [.gold: 35, .skill: 20],
+                baseProduction: [.gold: 8],
+                peopleRequired: 2,
+                peopleOnBuild: 0,
+                populationCapacity: 0,
+                maxLevel: 3,
+                placementRules: [.onTownEdge]
             ),
             .farm: BuildingDefinition(
                 kind: .farm,

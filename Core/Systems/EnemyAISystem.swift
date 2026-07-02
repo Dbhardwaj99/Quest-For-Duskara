@@ -9,7 +9,7 @@ struct EnemyAISystem {
     private let armyUpkeepSystem = ArmyUpkeepSystem()
     private let worldMapSystem = WorldMapSystem()
 
-    private let infrastructurePriority: [BuildingKind] = [.house, .farm, .barracks, .factory]
+    private let infrastructurePriority: [BuildingKind] = [.house, .pier, .farm, .barracks, .factory]
 
     func shouldAct(on day: Int) -> Bool {
         day.isMultiple(of: turnsBetweenActions)

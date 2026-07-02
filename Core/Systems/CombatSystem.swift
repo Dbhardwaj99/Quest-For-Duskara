@@ -16,7 +16,7 @@ struct CombatSystem {
         }
 
         if let duskaraID = state.towns.first(where: \.isDuskara)?.id {
-            let distances = graphDistances(from: duskaraID, connections: state.connections)
+            let distances = CombatSystem.graphDistances(from: duskaraID, connections: state.connections)
             let distance = distances[town.id] ?? 0
             let maxDistance = max(distances.values.max() ?? 1, 1)
             let stepsFromEdge = max(0, maxDistance - distance)
@@ -37,11 +37,10 @@ struct CombatSystem {
         return max(1, rawSurvivors - casualties)
     }
 
-    private func isImportantCity(_ town: Town) -> Bool {
-        town.isDuskara || town.faction == .enemy
-    }
-
-    private func graphDistances(from sourceID: UUID, connections: [TownConnection]) -> [UUID: Int] {
+    /// Breadth-first distances over the town connection graph. The graph no
+    /// longer limits who can attack whom, but it still scales defenses by
+    /// how deep in the archipelago a town sits.
+    static func graphDistances(from sourceID: UUID, connections: [TownConnection]) -> [UUID: Int] {
         var distances: [UUID: Int] = [sourceID: 0]
         var queue = [sourceID]
         var cursor = 0
@@ -58,5 +57,9 @@ struct CombatSystem {
             }
         }
         return distances
+    }
+
+    private func isImportantCity(_ town: Town) -> Bool {
+        town.isDuskara || town.faction == .enemy
     }
 }

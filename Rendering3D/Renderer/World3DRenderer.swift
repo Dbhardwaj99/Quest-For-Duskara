@@ -84,7 +84,8 @@ final class World3DRenderer {
                 snapshot: snapshot,
                 tileSize: tileSize,
                 tileHeight: tileHeight,
-                material: material(for: snapshot.content, coordinate: snapshot.coordinate)
+                material: material(for: snapshot.content, coordinate: snapshot.coordinate),
+                gridSize: gridSize
             )
             entity.position = position(for: snapshot.coordinate)
             entity.position.y += tileElevation(for: snapshot.coordinate)

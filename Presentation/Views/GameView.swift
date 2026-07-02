@@ -36,6 +36,8 @@ struct GameView: View {
 
             if isNewsPresented {
                 NewsFeedPanel(events: viewModel.state.newsEvents, onClose: { isNewsPresented = false })
+                    .frame(maxWidth: DuskaraTheme.maxHUDWidth)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 74)
                     .padding(.horizontal, 14)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -54,15 +56,17 @@ struct GameView: View {
         .animation(.snappy, value: isNewsPresented)
         .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
+            // macOS sheets ignore presentation detents, so size them explicitly.
             BuildMenuView(viewModel: viewModel)
-                .presentationDetents([.medium, .large])
+                .frame(minWidth: 430, idealWidth: 460, maxWidth: 520, minHeight: 520, idealHeight: 640)
         }
         .sheet(item: $viewModel.buildingPresentation) { presentation in
             BuildingDetailsSheetView(viewModel: viewModel, buildingID: presentation.id)
-                .presentationDetents([.medium, .large])
+                .frame(minWidth: 430, idealWidth: 460, maxWidth: 520, minHeight: 480, idealHeight: 620)
         }
         .sheet(isPresented: $viewModel.isWorldMapPresented) {
             WorldMapView(viewModel: viewModel)
+                .frame(minWidth: 980, idealWidth: 1120, minHeight: 560, idealHeight: 680)
         }
     }
 
@@ -78,8 +82,10 @@ struct GameView: View {
         }
     }
 
+    // Landscape layout: the HUD docks top-leading instead of stretching
+    // across the whole window.
     private var topHUD: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: DuskaraTheme.spacingS) {
             TopHUDView(
                 town: viewModel.activeTown,
                 day: viewModel.state.day,
@@ -89,6 +95,7 @@ struct GameView: View {
                 freePeople: viewModel.freePeople,
                 capacity: viewModel.populationCapacity
             )
+            .frame(maxWidth: DuskaraTheme.maxHUDWidth)
             Button {
                 isNewsPresented.toggle()
             } label: {
@@ -101,30 +108,9 @@ struct GameView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("World news")
-
-            themeCycleButton
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
-    }
-
-    // ponytail: temporary theme-cycling test button; remove once theme selection has a real home
-    private var themeCycleButton: some View {
-        Button {
-            ThemeManager.shared.cycle()
-        } label: {
-            VStack(spacing: 1) {
-                Image(systemName: "paintpalette.fill")
-                    .font(.system(size: 13, weight: .bold))
-                Text(ThemeManager.shared.theme.displayName)
-                    .font(.system(size: 7, weight: .heavy))
-            }
-            .foregroundStyle(.white.opacity(0.94))
-            .frame(width: 44, height: 38)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Cycle world theme")
+        .padding(.horizontal, DuskaraTheme.spacingM)
     }
 
     private var townView3D: some View {
@@ -170,6 +156,7 @@ struct GameView: View {
             onWorld: { viewModel.isWorldMapPresented = true },
             onNextDay: viewModel.advanceDayManually
         )
+        .frame(maxWidth: DuskaraTheme.maxHUDWidth)
     }
 
     @ViewBuilder

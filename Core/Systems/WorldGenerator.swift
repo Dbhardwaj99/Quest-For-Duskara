@@ -13,35 +13,22 @@ struct WorldGenerator {
         let layout = MapLayout.standard
         let generation = WorldGenerationState(
             seed: seed,
-            algorithmVersion: 1,
-            templateID: "expanding-realm-v1"
+            algorithmVersion: 2,
+            templateID: "island-realm-v1"
         )
-        let terrainTiles = terrainGenerator.generateTerrain(layout: layout, seed: seed)
+        // Nodes come first: every island is grown around its town's node.
+        let gridColumns = cityGridColumns(for: towns.count)
+        let nodes = makeNodes(towns: towns, layout: layout, gridColumns: gridColumns, seed: seed)
+        let terrainTiles = terrainGenerator.generateTerrain(layout: layout, seed: seed, nodes: nodes)
         let world = WorldMapState(
             generation: generation,
             layout: layout,
             terrainTiles: terrainTiles,
             landmarks: makeLandmarks(from: terrainTiles, layout: layout)
         )
-        let gridColumns = cityGridColumns(for: towns.count)
-        let nodes = makeNodes(towns: towns, layout: layout, gridColumns: gridColumns, seed: seed)
         let connections = makeConnections(townIDs: towns.map(\.id), gridColumns: gridColumns)
 
         return WorldGenerationResult(world: world, nodes: nodes, connections: connections)
-    }
-
-    func generateWorldState(seed: Int = 73_021, layout: MapLayout = .standard) -> WorldMapState {
-        let terrainTiles = terrainGenerator.generateTerrain(layout: layout, seed: seed)
-        return WorldMapState(
-            generation: WorldGenerationState(
-                seed: seed,
-                algorithmVersion: 1,
-                templateID: "loaded-save-upgrade-v1"
-            ),
-            layout: layout,
-            terrainTiles: terrainTiles,
-            landmarks: makeLandmarks(from: terrainTiles, layout: layout)
-        )
     }
 
     private func makeNodes(
@@ -60,8 +47,8 @@ struct WorldGenerator {
             let row = index / gridColumns
             let baseX = layout.playableInset + normalizedOffset(column, count: gridColumns) * xSpan
             let baseY = layout.playableInset + normalizedOffset(row, count: rows) * ySpan
-            let jitterX = jitter(seed: seed, index: index, salt: 7) * 0.032
-            let jitterY = jitter(seed: seed, index: index, salt: 19) * 0.026
+            let jitterX = WorldNoise.signedValue(seed: seed, index: index, salt: 7) * 0.032
+            let jitterY = WorldNoise.signedValue(seed: seed, index: index, salt: 19) * 0.026
 
             return WorldTownNode(
                 townID: town.id,
@@ -131,16 +118,6 @@ struct WorldGenerator {
     private func normalizedOffset(_ index: Int, count: Int) -> Double {
         guard count > 1 else { return 0.5 }
         return Double(index) / Double(count - 1)
-    }
-
-    private func jitter(seed: Int, index: Int, salt: Int) -> Double {
-        var value = UInt64(bitPattern: Int64(seed))
-        value = value &+ UInt64(index + 1) &* 0x9E3779B185EBCA87
-        value = value ^ (UInt64(salt + 13) &* 0xC2B2AE3D27D4EB4F)
-        value ^= value >> 33
-        value &*= 0xFF51AFD7ED558CCD
-        value ^= value >> 33
-        return (Double(value % 10_000) / 10_000.0) - 0.5
     }
 
     private func clamp(_ value: Double, min minimum: Double, max maximum: Double) -> Double {

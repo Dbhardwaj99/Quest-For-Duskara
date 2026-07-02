@@ -6,6 +6,7 @@ enum TerrainKind: String, Codable, Equatable, Hashable, CaseIterable {
     case mountains
     case desert
     case coast
+    case water
 
     var title: String {
         switch self {
@@ -14,7 +15,12 @@ enum TerrainKind: String, Codable, Equatable, Hashable, CaseIterable {
         case .mountains: return "Mountains"
         case .desert: return "Desert"
         case .coast: return "Coast"
+        case .water: return "Open Sea"
         }
+    }
+
+    var isLand: Bool {
+        self != .water
     }
 }
 

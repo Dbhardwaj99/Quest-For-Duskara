@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ResourcePill: View {
     let kind: ResourceKind
-    let amount: Int
+    let amount: Int?
     var income: Int? = nil
 
     var body: some View {
@@ -19,13 +19,12 @@ struct ResourcePill: View {
             .frame(width: 20, height: 20)
             .shadow(color: kind.color.opacity(0.24), radius: 5, y: 2)
 
-//			hack
-			if amount != -100 {
-				Text("\(amount)")
-					.font(.caption.weight(.heavy))
-					.foregroundStyle(DuskaraTheme.ink)
-					.contentTransition(.numericText())
-			}
+            if let amount {
+                Text("\(amount)")
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(DuskaraTheme.ink)
+                    .contentTransition(.numericText())
+            }
 
             if let income, income != 0 {
                 Text(income > 0 ? "+\(income)" : "\(income)")

@@ -15,13 +15,13 @@ struct WorldMapView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 12) {
+            VStack(spacing: DuskaraTheme.spacingM) {
                 header
                 mapCanvas
                 selectedTownPanel
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 12)
+            .padding(.horizontal, DuskaraTheme.spacingL)
+            .padding(.vertical, DuskaraTheme.spacingM)
         }
         .onAppear {
             selectedTownID = viewModel.state.activeTownID
@@ -53,9 +53,7 @@ struct WorldMapView: View {
     }
 
     private var mapCanvas: some View {
-        let adjacentIDs = Set(viewModel.state.worldNodes.map(\.townID).filter { viewModel.isAdjacentToActiveTown($0) })
-
-        return TerritoryRenderer(
+        TerritoryRenderer(
             world: viewModel.state.world,
             territory: viewModel.state.territory,
             towns: viewModel.state.towns,
@@ -63,15 +61,15 @@ struct WorldMapView: View {
             connections: viewModel.state.connections,
             activeTownID: viewModel.state.activeTownID,
             selectedTownID: selectedTownID,
-            adjacentTownIDs: adjacentIDs,
             onSelectTown: { selectedTownID = $0 }
         )
-        .frame(height: 540)
+        .aspectRatio(viewModel.state.world.layout.aspectRatio, contentMode: .fit)
+        .frame(maxHeight: .infinity)
         .overlay(alignment: .bottomTrailing) {
-            Text("\(viewModel.state.towns.count) cities · \(viewModel.state.world.terrainTiles.count) terrain sectors")
+            Text("\(viewModel.state.towns.count) island cities")
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(.white.opacity(0.66))
-                .padding(8)
+                .padding(DuskaraTheme.spacingS)
                 .background(.black.opacity(0.26), in: Capsule())
                 .padding(10)
         }

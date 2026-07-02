@@ -8,7 +8,6 @@ struct TerritoryRenderer: View {
     let connections: [TownConnection]
     let activeTownID: UUID
     let selectedTownID: UUID?
-    let adjacentTownIDs: Set<UUID>
     let onSelectTown: (UUID) -> Void
 
     private var townByID: [UUID: Town] {
@@ -53,6 +52,8 @@ struct TerritoryRenderer: View {
         )
     }
 
+    // Faint sea lanes between neighboring islands. Purely decorative: any
+    // city can be attacked, but the lanes hint at the archipelago's shape.
     private func connectionLayer(projection: WorldMapProjection) -> some View {
         ZStack {
             ForEach(connections) { connection in
@@ -60,7 +61,7 @@ struct TerritoryRenderer: View {
                     path.move(to: projection.point(for: connection.from, nodes: nodes))
                     path.addLine(to: projection.point(for: connection.to, nodes: nodes))
                 }
-                .stroke(.white.opacity(0.14), style: StrokeStyle(lineWidth: 1.2, lineCap: .round, dash: [5, 7]))
+                .stroke(.white.opacity(0.10), style: StrokeStyle(lineWidth: 1.0, lineCap: .round, dash: [4, 8]))
             }
         }
     }
@@ -81,8 +82,7 @@ struct TerritoryRenderer: View {
                     WorldTownMarkerView(
                         town: town,
                         isActive: node.townID == activeTownID,
-                        isSelected: node.townID == selectedTownID,
-                        isAdjacent: adjacentTownIDs.contains(node.townID)
+                        isSelected: node.townID == selectedTownID
                     )
                     .position(projection.point(for: MapPoint(x: node.x, y: node.y)))
                     .onTapGesture { onSelectTown(node.townID) }
@@ -171,32 +171,26 @@ private struct TerritoryRegionLayer: View {
     private func drawBorders(in context: inout GraphicsContext, projection: WorldMapProjection) {
         let ownerByCell = makeOwnerByCell()
 
+        // Water cells belong to no region, so every land cell checks all four
+        // neighbors: shorelines stroke against unowned sea.
         for region in territory.regions {
             for cell in region.cells {
-                drawBorderIfNeeded(
-                    from: cell,
-                    to: MapCell(column: cell.column + 1, row: cell.row),
-                    edge: .right,
-                    region: region,
-                    ownerByCell: ownerByCell,
-                    context: &context,
-                    projection: projection
-                )
-                drawBorderIfNeeded(
-                    from: cell,
-                    to: MapCell(column: cell.column, row: cell.row + 1),
-                    edge: .bottom,
-                    region: region,
-                    ownerByCell: ownerByCell,
-                    context: &context,
-                    projection: projection
-                )
-
-                if cell.column == 0 {
-                    stroke(edge: .left, of: cell, region: region, neighbor: nil, context: &context, projection: projection)
-                }
-                if cell.row == 0 {
-                    stroke(edge: .top, of: cell, region: region, neighbor: nil, context: &context, projection: projection)
+                let neighbors: [(MapCell, TerritoryBorderEdge)] = [
+                    (MapCell(column: cell.column + 1, row: cell.row), .right),
+                    (MapCell(column: cell.column - 1, row: cell.row), .left),
+                    (MapCell(column: cell.column, row: cell.row + 1), .bottom),
+                    (MapCell(column: cell.column, row: cell.row - 1), .top)
+                ]
+                for (neighborCell, edge) in neighbors {
+                    drawBorderIfNeeded(
+                        from: cell,
+                        to: neighborCell,
+                        edge: edge,
+                        region: region,
+                        ownerByCell: ownerByCell,
+                        context: &context,
+                        projection: projection
+                    )
                 }
             }
         }
@@ -211,11 +205,12 @@ private struct TerritoryRegionLayer: View {
         context: inout GraphicsContext,
         projection: WorldMapProjection
     ) {
-        guard world.layout.contains(neighborCell) else {
+        guard world.layout.contains(neighborCell), let neighborTownID = ownerByCell[neighborCell] else {
+            // Shoreline: land meeting open sea takes the owner's color.
             stroke(edge: edge, of: cell, region: region, neighbor: nil, context: &context, projection: projection)
             return
         }
-        guard let neighborTownID = ownerByCell[neighborCell], neighborTownID != region.townID else { return }
+        guard neighborTownID != region.townID else { return }
         stroke(edge: edge, of: cell, region: region, neighbor: regionByTownID[neighborTownID], context: &context, projection: projection)
     }
 
@@ -256,7 +251,6 @@ private struct WorldTownMarkerView: View {
     let town: Town
     let isActive: Bool
     let isSelected: Bool
-    let isAdjacent: Bool
 
     var body: some View {
         VStack(spacing: 2) {
@@ -282,12 +276,6 @@ private struct WorldTownMarkerView: View {
         }
         .padding(4)
         .background(isSelected ? .black.opacity(0.30) : .clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .overlay(
-            Circle()
-                .stroke(isAdjacent ? Color.yellow.opacity(0.95) : .clear, lineWidth: 2)
-                .frame(width: nodeSize + 11, height: nodeSize + 11)
-                .offset(y: -8)
-        )
     }
 
     private var nodeIcon: String {
@@ -399,7 +387,8 @@ private extension TerrainKind {
         case .forest: return Color(red: 0.19, green: 0.37, blue: 0.22)
         case .mountains: return Color(red: 0.47, green: 0.48, blue: 0.45)
         case .desert: return Color(red: 0.70, green: 0.55, blue: 0.31)
-        case .coast: return Color(red: 0.18, green: 0.39, blue: 0.52)
+        case .coast: return Color(red: 0.72, green: 0.64, blue: 0.44)
+        case .water: return Color(red: 0.13, green: 0.27, blue: 0.40)
         }
     }
 }

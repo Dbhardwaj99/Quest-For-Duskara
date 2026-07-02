@@ -29,13 +29,14 @@ struct BuildMenuView: View {
             .background(DuskaraTheme.panel.opacity(0.35))
             .navigationTitle("Build")
             .toolbar {
-				ToolbarItem(placement: .status){
-					BuildResourcesHeader(
-						town: viewModel.activeTown,
-						income: viewModel.activeTownIncome
-					)
-				}
-                ToolbarItem(placement: .keyboard) {
+                ToolbarItem(placement: .status) {
+                    BuildResourcesHeader(
+                        town: viewModel.activeTown,
+                        income: viewModel.activeTownIncome
+                    )
+                }
+                // .keyboard never renders on macOS; use the sheet's action slot.
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { viewModel.isBuildMenuPresented = false }
                 }
             }
@@ -61,14 +62,8 @@ private struct BuildResourcesHeader: View {
                 .padding(.vertical, 2)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, DuskaraTheme.spacingL)
         .padding(.vertical, 10)
-//        .background(DuskaraTheme.panel)
-//        .overlay(alignment: .bottom) {
-//            Rectangle()
-//                .fill(.black.opacity(0.12))
-//                .frame(height: 1)
-//        }
     }
 }
 
@@ -130,8 +125,8 @@ private struct PlacementRuleView: View {
                 switch rule {
                 case .none:
                     EmptyView()
-                case .adjacentToBiome(let biome):
-                    Label("Must touch \(biome.title.lowercased()) border", systemImage: biome == .forest ? "tree.fill" : "mountain.2.fill")
+                case .onTownEdge:
+                    Label("Must be built on the town's edge, by the water", systemImage: "water.waves")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }

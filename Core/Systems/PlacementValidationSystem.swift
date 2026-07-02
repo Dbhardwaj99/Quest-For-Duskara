@@ -12,7 +12,7 @@ struct PlacementValidationSystem {
         guard townSystem.freePeople(in: town, balance: balance) >= definition.peopleRequired else { return .insufficientPeople }
 
         for rule in definition.placementRules where rule != .none {
-            guard satisfies(rule, at: coordinate, in: town, gridSize: balance.gridSize) else { return .placementRule }
+            guard satisfies(rule, at: coordinate, gridSize: balance.gridSize) else { return .placementRule }
         }
         return nil
     }
@@ -30,12 +30,12 @@ struct PlacementValidationSystem {
         return coordinates
     }
 
-    private func satisfies(_ rule: PlacementRule, at coordinate: GridCoordinate, in town: Town, gridSize: GridSize) -> Bool {
+    private func satisfies(_ rule: PlacementRule, at coordinate: GridCoordinate, gridSize: GridSize) -> Bool {
         switch rule {
         case .none:
             return true
-        case .adjacentToBiome(let biome):
-            return biomeSystem.isAdjacent(to: biome, from: coordinate, in: town, gridSize: gridSize)
+        case .onTownEdge:
+            return biomeSystem.touchingSides(for: coordinate, gridSize: gridSize).isEmpty == false
         }
     }
 }

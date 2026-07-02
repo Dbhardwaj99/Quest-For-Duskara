@@ -28,7 +28,6 @@ final class GameViewModel {
     private let townSystem = TownSystem()
     private let timeSystem = TimeSystem()
     private let placementValidationSystem = PlacementValidationSystem()
-    private let feedbackOverlaySystem = FeedbackOverlaySystem()
     private let newsStore = NewsStore()
     private let saveStore = GameSaveStore()
 
@@ -43,28 +42,11 @@ final class GameViewModel {
         self.state = WorldMapSystem().makeInitialState(balance: balance)
     }
 
-    init(savedState: GameState) {
-        let balance = GameBalance.duskDefault
-        self.balance = balance
-        self.state = savedState
-        worldMapSystem.ensureWorldAndTerritory(in: &state)
-        normalizeBuildingsToCurrentGrid()
-        sanitizeActiveTownSelection()
-        self.phase = savedState.towns.contains { $0.isDuskara && $0.faction == .player } ? .victory : .town
-        if phase == .town {
-            startClock()
-        }
-    }
-
     var startingResourceKinds: [ResourceKind] {
 		[.gold, .skill]
     }
 	
 	var difficulty: [Difficulty] = Difficulty.allCases
-
-    var remainingBonus: Int {
-        balance.bonusPool - bonusAllocation.values.reduce(0, +)
-    }
 
     var activeTown: Town {
         state.town(id: state.activeTownID) ?? state.towns[0]
@@ -127,27 +109,12 @@ final class GameViewModel {
         feedbackTask?.cancel()
     }
 
-    func startingTotal(for kind: ResourceKind) -> Int {
-        balance.baseStartingResources[kind, default: 0] + bonusAllocation[kind, default: 0]
-    }
-
-    func adjustBonus(for kind: ResourceKind, by delta: Int) {
-        let current = bonusAllocation[kind, default: 0]
-        let next = max(0, current + delta)
-        let spentWithoutKind = bonusAllocation.values.reduce(0, +) - current
-        bonusAllocation[kind] = min(next, balance.bonusPool - spentWithoutKind)
-    }
-	
 	func adjustBonusPresets(for mode: Difficulty) {
 		bonusAllocation = mode.modebalance
 	}
 
     func startGame() {
         guard phase == .setup else { return }
-//        guard remainingBonus == 0 else {
-//            show("Distribute the full bonus pool before founding your settlement.")
-//            return
-//        }
         state.updateTown(id: state.activeTownID) { town in
             var resources = ResourceWallet(balance.baseStartingResources)
             resources.apply(bonusAllocation)
@@ -301,10 +268,6 @@ final class GameViewModel {
         worldMapSystem.effectiveDefenseStrength(for: town, in: state, balance: balance)
     }
 
-    func isAdjacentToActiveTown(_ targetID: UUID) -> Bool {
-        worldMapSystem.adjacentTownIDs(to: state.activeTownID, in: state).contains(targetID)
-    }
-
     func transfer(_ kind: ResourceKind, amount: Int, to destinationID: UUID) {
         let order = TransferOrder(fromTownID: state.activeTownID, toTownID: destinationID, amounts: [kind: amount])
         if let failure = transferSystem.transfer(order: order, state: &state) {
@@ -353,7 +316,7 @@ final class GameViewModel {
         var newsMessage: String?
         state.updateTown(id: state.activeTownID) { town in
             if let failure = buildingSystem.build(kind, at: coordinate, in: &town, balance: balance) {
-                show(feedbackOverlaySystem.text(for: failure, building: kind))
+                show(failure.rawValue)
             } else {
                 selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
                 if let selectedBuildingID {
@@ -371,45 +334,6 @@ final class GameViewModel {
             }
             saveCurrentGame()
         }
-    }
-
-    private func normalizeBuildingsToCurrentGrid() {
-        for townIndex in state.towns.indices {
-            var occupied: Set<GridCoordinate> = []
-            for buildingIndex in state.towns[townIndex].buildings.indices {
-                let coordinate = state.towns[townIndex].buildings[buildingIndex].coordinate
-                if balance.gridSize.contains(coordinate), occupied.contains(coordinate) == false {
-                    occupied.insert(coordinate)
-                } else if let replacement = nearestOpenCoordinate(to: coordinate, occupied: occupied) {
-                    state.towns[townIndex].buildings[buildingIndex].coordinate = replacement
-                    occupied.insert(replacement)
-                }
-            }
-        }
-    }
-
-    private func nearestOpenCoordinate(to coordinate: GridCoordinate, occupied: Set<GridCoordinate>) -> GridCoordinate? {
-        let clampedX = min(max(0, coordinate.x), balance.gridSize.columns - 1)
-        let clampedY = min(max(0, coordinate.y), balance.gridSize.rows - 1)
-        let clamped = GridCoordinate(x: clampedX, y: clampedY)
-        if occupied.contains(clamped) == false {
-            return clamped
-        }
-
-        var best: GridCoordinate?
-        var bestDistance = Int.max
-        for y in 0..<balance.gridSize.rows {
-            for x in 0..<balance.gridSize.columns {
-                let candidate = GridCoordinate(x: x, y: y)
-                guard occupied.contains(candidate) == false else { continue }
-                let distance = abs(candidate.x - coordinate.x) + abs(candidate.y - coordinate.y)
-                if distance < bestDistance {
-                    best = candidate
-                    bestDistance = distance
-                }
-            }
-        }
-        return best
     }
 
     private func startClock() {

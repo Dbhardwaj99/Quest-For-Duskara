@@ -2,6 +2,7 @@ import Foundation
 
 enum BuildingKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case house
+    case pier
     case farm
     case factory
     case barracks
@@ -11,6 +12,7 @@ enum BuildingKind: String, CaseIterable, Identifiable, Codable, Hashable {
     var title: String {
         switch self {
         case .house: "House"
+        case .pier: "Pier"
         case .farm: "Farm"
         case .factory: "Factory"
         case .barracks: "Barracks"
@@ -20,7 +22,9 @@ enum BuildingKind: String, CaseIterable, Identifiable, Codable, Hashable {
 
 enum PlacementRule: Codable, Equatable, Hashable {
     case none
-    case adjacentToBiome(BiomeKind)
+    /// Only tiles on the town board's outer ring qualify. Every town is an
+    /// island, so the board's edge is its shoreline.
+    case onTownEdge
 }
 
 struct BuildingDefinition: Identifiable, Codable, Equatable {

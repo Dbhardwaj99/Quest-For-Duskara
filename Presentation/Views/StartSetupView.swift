@@ -4,82 +4,99 @@ struct StartSetupView: View {
     @Bindable var viewModel: GameViewModel
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer(minLength: 18)
-            VStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 44) {
+            VStack(alignment: .leading, spacing: DuskaraTheme.spacingM) {
                 Text("Quest for Duskara")
                     .font(.largeTitle.weight(.black))
                     .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                Text("Found your first settlement by distributing the bonus stockpile.")
-                    .font(.subheadline.weight(.medium))
+                    .multilineTextAlignment(.leading)
+                Text("Found your first settlement by choosing a starting stockpile.")
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(.white.opacity(0.78))
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(.leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-			VStack(alignment: .center, spacing: 14) {
-				Text("Choose Difficulty")
-					.font(.headline.weight(.bold))
-				
-				
-				ForEach(viewModel.difficulty) { mode in
-					BonusAllocationRow(
-						resourceKind: viewModel.startingResourceKinds,
-						difficulty: mode,
-						onSelected: {
-							viewModel.adjustBonusPresets(for: mode)
-							viewModel.startGame()
-						}
-					)
-				}
-			}
-            .padding(16)
-            .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal, 18)
-            Spacer(minLength: 18)
+            VStack(alignment: .center, spacing: DuskaraTheme.spacingM) {
+                Text("Choose Difficulty")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(DuskaraTheme.ink)
+
+                ForEach(viewModel.difficulty) { mode in
+                    DifficultyRow(
+                        resourceKinds: viewModel.startingResourceKinds,
+                        difficulty: mode,
+                        onSelected: {
+                            viewModel.adjustBonusPresets(for: mode)
+                            viewModel.startGame()
+                        }
+                    )
+                }
+            }
+            .padding(DuskaraTheme.spacingL)
+            .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: DuskaraTheme.cornerS))
+            .frame(width: 420)
         }
+        .padding(.horizontal, 64)
+        .frame(maxWidth: DuskaraTheme.maxContentWidth)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DuskaraTheme.background.ignoresSafeArea())
     }
 }
 
-private struct BonusAllocationRow: View {
-	let resourceKind: [ResourceKind]
-	let difficulty: Difficulty
-	let onSelected: () -> Void
+private struct DifficultyRow: View {
+    let resourceKinds: [ResourceKind]
+    let difficulty: Difficulty
+    let onSelected: () -> Void
 
-	var body: some View {
-		Button(action: onSelected) {
-			VStack(spacing: 8) {
-				HStack {
-					Text(difficulty.description)
-						.font(.title2)
-						.foregroundStyle(.secondary)
-					
-					Spacer()
-				}
-				HStack {
-					Text("Bonus: ")
-					ScrollView(.horizontal, showsIndicators: false) {
-						HStack {
-							ForEach(resourceKind) { kind in
-								HStack {
-									ResourcePill(kind: kind, amount: -100)
-									Text("+ \(difficulty.modebalance[kind] ?? 0)")
-										.font(.caption.monospacedDigit().weight(.semibold))
-										.foregroundStyle(.green)
-								}
-							}
-						}
-					}
-				}
-			}
-			.foregroundStyle(DuskaraTheme.ink)
-			.padding()
-			.background(
-				RoundedRectangle(cornerRadius: 23)
-					.fill(Color.red.opacity(0.15))
-			)
-		}
-		.buttonStyle(DuskaraButtonStyle(prominent: true))
-	}
+    var body: some View {
+        Button(action: onSelected) {
+            VStack(alignment: .leading, spacing: DuskaraTheme.spacingS) {
+                Text(difficulty.title)
+                    .font(.title3.weight(.heavy))
+                    .foregroundStyle(.white)
+                Text(difficulty.description)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    ForEach(resourceKinds) { kind in
+                        HStack(spacing: 4) {
+                            ResourcePill(kind: kind, amount: nil)
+                            Text("+\(difficulty.modebalance[kind] ?? 0)")
+                                .font(.caption.monospacedDigit().weight(.bold))
+                                .foregroundStyle(.white.opacity(0.92))
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(DifficultyRowStyle())
+        .accessibilityLabel("Start on \(difficulty.title)")
+    }
+}
+
+private struct DifficultyRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(DuskaraTheme.spacingM)
+            .background(
+                LinearGradient(
+                    colors: [DuskaraTheme.accent, Color(red: 0.55, green: 0.30, blue: 0.18)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: DuskaraTheme.cornerM)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DuskaraTheme.cornerM)
+                    .stroke(.white.opacity(0.22), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(configuration.isPressed ? 0.10 : 0.18), radius: configuration.isPressed ? 4 : 9, y: configuration.isPressed ? 2 : 5)
+            .opacity(configuration.isPressed ? 0.86 : 1)
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .animation(.smooth(duration: 0.16), value: configuration.isPressed)
+    }
 }

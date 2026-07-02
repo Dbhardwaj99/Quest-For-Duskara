@@ -32,30 +32,15 @@ struct WorldMapSystem {
         )
     }
 
-    func ensureWorldAndTerritory(in state: inout GameState) {
-        territorySystem.ensureWorldAndTerritory(in: &state)
-    }
-
-    func strategicTerritorySnapshot(for townID: UUID, in state: GameState) -> StrategicTerritorySnapshot? {
-        territorySystem.strategicSnapshot(for: townID, in: state)
-    }
-
-    func adjacentTownIDs(to townID: UUID, in state: GameState) -> [UUID] {
-        state.connections.compactMap { connection in
-            if connection.from == townID { return connection.to }
-            if connection.to == townID { return connection.from }
-            return nil
-        }
-    }
-
     func effectiveDefenseStrength(for town: Town, in state: GameState, balance: GameBalance) -> Int {
         combatSystem.effectiveDefenseStrength(for: town, in: state, balance: balance)
     }
 
+    // Every city is an island: the player's armies travel by sea, so any
+    // city in the world is a valid target.
     func canAttack(targetID: UUID, from sourceID: UUID, in state: GameState, balance: GameBalance) -> Bool {
         guard let source = state.towns.first(where: { $0.id == sourceID }), source.isPlayerControlled else { return false }
         guard let target = state.towns.first(where: { $0.id == targetID }), target.isPlayerControlled == false else { return false }
-        guard state.connections.contains(where: { $0.connects(sourceID, targetID) }) else { return false }
         let defense = effectiveDefenseStrength(for: target, in: state, balance: balance)
         return source.armyStrength > defense
     }
@@ -181,7 +166,7 @@ struct WorldMapSystem {
             return Town(
                 name: name,
                 resources: resources,
-                buildings: starterBuildings(for: index, balance: balance),
+                buildings: starterBuildings(balance: balance),
                 biomeLayout: layout,
                 faction: faction,
                 isDuskara: isDuskara,
@@ -192,7 +177,7 @@ struct WorldMapSystem {
 
     private func applyInitialDefenses(to towns: inout [Town], connections: [TownConnection]) {
         guard let duskaraID = towns.first(where: \.isDuskara)?.id else { return }
-        let distances = graphDistances(from: duskaraID, connections: connections)
+        let distances = CombatSystem.graphDistances(from: duskaraID, connections: connections)
         let maxDistance = max(distances.values.max() ?? 1, 1)
 
         for index in towns.indices {
@@ -217,32 +202,13 @@ struct WorldMapSystem {
         }
     }
 
-    private func graphDistances(from sourceID: UUID, connections: [TownConnection]) -> [UUID: Int] {
-        var distances: [UUID: Int] = [sourceID: 0]
-        var queue = [sourceID]
-        var cursor = 0
-
-        while cursor < queue.count {
-            let current = queue[cursor]
-            cursor += 1
-            let nextDistance = (distances[current] ?? 0) + 1
-            for connection in connections where connection.contains(current) {
-                let next = connection.from == current ? connection.to : connection.from
-                guard distances[next] == nil else { continue }
-                distances[next] = nextDistance
-                queue.append(next)
-            }
-        }
-        return distances
-    }
-
-    private func starterBuildings(for index: Int, balance: GameBalance) -> [BuildingInstance] {
+    private func starterBuildings(balance: GameBalance) -> [BuildingInstance] {
         let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
-        var buildings = [BuildingInstance(kind: .house, coordinate: center)]
-        if index % 2 == 0 {
-            buildings.append(BuildingInstance(kind: .farm, coordinate: GridCoordinate(x: center.x, y: center.y + 1)))
-        }
-        return buildings
+        // The pier sits on the board's bottom edge, at the shoreline.
+        let shoreline = GridCoordinate(x: center.x, y: balance.gridSize.rows - 1)
+        return [
+            BuildingInstance(kind: .house, coordinate: center),
+            BuildingInstance(kind: .pier, coordinate: shoreline)
+        ]
     }
-
 }

@@ -4,7 +4,7 @@ struct TerritoryState: Codable, Equatable {
     var algorithmVersion: Int
     var regions: [TerritoryRegion]
 
-    static let currentAlgorithmVersion = 1
+    static let currentAlgorithmVersion = 2
     static let empty = TerritoryState(algorithmVersion: 0, regions: [])
 
     var isEmpty: Bool {
@@ -30,18 +30,4 @@ struct TerritoryRegion: Identifiable, Codable, Equatable {
     var cellCount: Int {
         cells.count
     }
-}
-
-struct TerritoryAdjacency: Codable, Equatable, Hashable {
-    var townID: UUID
-    var neighboringTownID: UUID
-}
-
-struct StrategicTerritorySnapshot: Equatable {
-    var townID: UUID
-    var ownerFaction: TownFaction
-    var cellCount: Int
-    var neighboringTownIDs: [UUID]
-    var borderTownIDs: [UUID]
-    var terrainMix: [TerrainKind: Int]
 }

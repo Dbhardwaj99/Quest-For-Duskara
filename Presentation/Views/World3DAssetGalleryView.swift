@@ -4,7 +4,7 @@ import AppKit
 
 struct World3DAssetGalleryView: View {
     @State private var selectedAsset = World3DAssetPreview.defaultAsset
-	@Environment(\.presentationMode) private var presentationMode
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -57,7 +57,7 @@ struct World3DAssetGalleryView: View {
 
 	private var close: some View {
 		Button(action: {
-			self.presentationMode.wrappedValue.dismiss()
+			dismiss()
 		}) {
 			Image(systemName: "xmark.circle.fill")
 				.font(.title)
@@ -190,6 +190,7 @@ struct World3DAssetPreview: Identifiable, Hashable {
     private static func iconName(for kind: BuildingKind) -> String {
         switch kind {
         case .house: "house.fill"
+        case .pier: "sailboat.fill"
         case .farm: "carrot.fill"
         case .factory: "flask.fill"
         case .barracks: "shield.lefthalf.filled"
@@ -247,11 +248,14 @@ private final class World3DAssetPreviewViewController: NSViewController, NSGestu
             content: asset.content,
             placementState: .normal
         )
+        // The preview coordinate sits on the bottom edge of this grid so
+        // edge-oriented buildings (the pier) face the camera.
         let entity = World3DTileEntity.makeTile(
             snapshot: snapshot,
             tileSize: 1.0,
             tileHeight: 0.13,
-            material: SimpleMaterial(color: asset.materialColor, roughness: 0.86, isMetallic: false)
+            material: SimpleMaterial(color: asset.materialColor, roughness: 0.86, isMetallic: false),
+            gridSize: GridSize(columns: 5, rows: 4)
         )
         entity.position.y = -0.04
         previewRoot.addChild(entity)

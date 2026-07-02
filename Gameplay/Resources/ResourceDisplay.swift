@@ -16,6 +16,7 @@ extension BuildingKind {
     var color: Color {
         switch self {
         case .house: Color(red: 0.75, green: 0.39, blue: 0.25)
+        case .pier: Color(red: 0.30, green: 0.54, blue: 0.66)
         case .farm: Color(red: 0.55, green: 0.67, blue: 0.27)
         case .factory: Color(red: 0.34, green: 0.49, blue: 0.78)
         case .barracks: Color(red: 0.63, green: 0.22, blue: 0.20)

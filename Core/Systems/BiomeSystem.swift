@@ -9,10 +9,4 @@ struct BiomeSystem {
         if coordinate.x == 0 { sides.append(.left) }
         return sides
     }
-
-    func isAdjacent(to biome: BiomeKind, from coordinate: GridCoordinate, in town: Town, gridSize: GridSize) -> Bool {
-        touchingSides(for: coordinate, gridSize: gridSize).contains { side in
-            town.biomeLayout.biome(on: side) == biome
-        }
-    }
 }

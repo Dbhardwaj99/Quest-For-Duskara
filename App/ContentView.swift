@@ -3,29 +3,28 @@ import SwiftUI
 struct ContentView: View {
     @State private var viewModel = GameViewModel()
     @State private var path: [GameRoute] = []
-    @State private var savedGameSummary = GameSaveStore().savedGameSummary()
-
-    private let saveStore = GameSaveStore()
+    @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
 
     var body: some View {
-        NavigationStack(path: $path) {
-            MenuView(
-                savedGameSummary: savedGameSummary,
-                onStartGame: startGame,
-                onLoadGame: loadGame,
-                onOpenAssetGallery: openAssetGallery
-            )
-            .navigationDestination(for: GameRoute.self) { route in
-                switch route {
-                case .game:
-                    GameView(viewModel: viewModel)
-                        .navigationBarBackButtonHidden()
-                case .assetGallery:
-                    World3DAssetGalleryView()
-                }
+        ZStack {
+            NavigationStack(path: $path) {
+                MenuView(onStartGame: startGame)
+                    .navigationDestination(for: GameRoute.self) { route in
+                        switch route {
+                        case .game:
+                            GameView(viewModel: viewModel)
+                                .navigationBarBackButtonHidden()
+                        }
+                    }
+            }
+
+            if hasSeenTutorial == false {
+                TutorialView(onFinish: { hasSeenTutorial = true })
+                    .zIndex(1)
+                    .transition(.opacity)
             }
         }
-        .onAppear(perform: refreshSavedGameSummary)
+        .animation(.smooth(duration: 0.3), value: hasSeenTutorial)
     }
 
     private func startGame() {
@@ -33,43 +32,12 @@ struct ContentView: View {
         newViewModel.saveCurrentGame()
         viewModel.stopClock()
         viewModel = newViewModel
-        refreshSavedGameSummary()
-        openGame()
-    }
-
-    private func loadGame() {
-        guard loadSavedGameIntoViewModel() else { return }
-        openGame()
-    }
-
-    @discardableResult
-    private func loadSavedGameIntoViewModel() -> Bool {
-        guard let savedGame = try? saveStore.loadSavedGame() else {
-            refreshSavedGameSummary()
-            return false
-        }
-        viewModel.stopClock()
-        viewModel = GameViewModel(savedState: savedGame.state)
-        refreshSavedGameSummary()
-        return true
-    }
-
-    private func openGame() {
         path = [.game]
-    }
-
-    private func openAssetGallery() {
-        path = [.assetGallery]
-    }
-
-    private func refreshSavedGameSummary() {
-        savedGameSummary = saveStore.savedGameSummary()
     }
 }
 
 private enum GameRoute: Hashable {
     case game
-    case assetGallery
 }
 
 #Preview {

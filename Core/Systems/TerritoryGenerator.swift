@@ -7,19 +7,21 @@ struct TerritoryGenerator {
         }
 
         let nodeByTownID = Dictionary(uniqueKeysWithValues: nodes.map { ($0.townID, $0) })
-        let terrainByCell = Dictionary(uniqueKeysWithValues: world.terrainTiles.map { ($0.cell, $0.terrain) })
+        let landTiles = world.terrainTiles.filter { $0.terrain.isLand }
+        let terrainByCell = Dictionary(uniqueKeysWithValues: landTiles.map { ($0.cell, $0.terrain) })
         let townEntries = towns.enumerated().compactMap { index, town -> TownEntry? in
             guard let node = nodeByTownID[town.id] else { return nil }
             return TownEntry(index: index, town: town, node: node)
         }
         guard townEntries.isEmpty == false else { return .empty }
 
+        // Only land belongs to a town; open sea stays unowned.
         var ownerByCell: [MapCell: UUID] = [:]
-        for tile in world.terrainTiles {
+        for tile in landTiles {
             ownerByCell[tile.cell] = closestTown(to: tile.cell, entries: townEntries, layout: world.layout, seed: world.generation.seed).town.id
         }
 
-        ensureEveryTownOwnsAtLeastOneCell(entries: townEntries, world: world, ownerByCell: &ownerByCell)
+        ensureEveryTownOwnsAtLeastOneCell(entries: townEntries, landTiles: landTiles, world: world, ownerByCell: &ownerByCell)
 
         var cellsByTownID: [UUID: [MapCell]] = [:]
         for (cell, townID) in ownerByCell {
@@ -53,11 +55,12 @@ struct TerritoryGenerator {
 
     private func ensureEveryTownOwnsAtLeastOneCell(
         entries: [TownEntry],
+        landTiles: [TerrainTile],
         world: WorldMapState,
         ownerByCell: inout [MapCell: UUID]
     ) {
         for entry in entries where ownerByCell.values.contains(entry.town.id) == false {
-            guard let nearestCell = world.terrainTiles.min(by: { lhs, rhs in
+            guard let nearestCell = landTiles.min(by: { lhs, rhs in
                 distanceSquared(from: lhs.cell.center(in: world.layout), to: MapPoint(x: entry.node.x, y: entry.node.y), aspectRatio: world.layout.aspectRatio)
                     < distanceSquared(from: rhs.cell.center(in: world.layout), to: MapPoint(x: entry.node.x, y: entry.node.y), aspectRatio: world.layout.aspectRatio)
             })?.cell else {
@@ -88,7 +91,7 @@ struct TerritoryGenerator {
         seed: Int
     ) -> Double {
         let anchor = MapPoint(x: entry.node.x, y: entry.node.y)
-        let wobble = (noise(seed: seed, column: cell.column, row: cell.row, salt: entry.index + 101) - 0.5) * 0.004
+        let wobble = (WorldNoise.value(seed: seed, column: cell.column, row: cell.row, salt: entry.index + 101) - 0.5) * 0.004
         return distanceSquared(from: point, to: anchor, aspectRatio: layout.aspectRatio) + wobble
     }
 
@@ -96,17 +99,6 @@ struct TerritoryGenerator {
         let dx = (lhs.x - rhs.x) * aspectRatio
         let dy = lhs.y - rhs.y
         return dx * dx + dy * dy
-    }
-
-    private func noise(seed: Int, column: Int, row: Int, salt: Int) -> Double {
-        var value = UInt64(bitPattern: Int64(seed))
-        value = value &+ UInt64(column + 29) &* 0x9E3779B185EBCA87
-        value = value ^ (UInt64(row + 43) &* 0xC2B2AE3D27D4EB4F)
-        value = value &+ UInt64(salt + 71) &* 0x165667B19E3779F9
-        value ^= value >> 33
-        value &*= 0xFF51AFD7ED558CCD
-        value ^= value >> 33
-        return Double(value % 10_000) / 10_000.0
     }
 
     private struct TownEntry {

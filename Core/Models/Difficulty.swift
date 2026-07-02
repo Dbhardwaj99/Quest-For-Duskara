@@ -11,20 +11,24 @@ enum Difficulty: String, CaseIterable, Identifiable {
 	case easy
 	case medium
 	case hard
-	
-	var id: String { rawValue.capitalized }
-	
+
+	var id: String { rawValue }
+
+	var title: String {
+		rawValue.capitalized
+	}
+
 	var description: String {
 		switch self {
 		case .easy:
-			return "Fairly easy"
+			return "A generous treasury to learn the ropes."
 		case .medium:
-			return "Named Medium, but also easy"
+			return "A balanced stockpile for seasoned commanders."
 		case .hard:
-			return "Hard, but its also the same"
+			return "Scarce coin and skill. Earn every island."
 		}
 	}
-	
+
 	var modebalance: [ResourceKind: Int] {
 		switch self {
 		case .easy:
