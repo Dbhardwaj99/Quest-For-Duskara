@@ -7,6 +7,7 @@ struct PlacementValidationSystem {
     func canPlace(_ kind: BuildingKind, on coordinate: GridCoordinate, in town: Town, balance: GameBalance) -> BuildingSystem.BuildFailure? {
         guard balance.gridSize.contains(coordinate) else { return .outOfBounds }
         guard town.buildings.contains(where: { $0.coordinate == coordinate }) == false else { return .occupied }
+        if kind == .pier, town.buildings.contains(where: { $0.kind == .pier }) { return .duplicatePier }
         guard let definition = balance.buildingDefinitions[kind] else { return .missingDefinition }
         guard town.resources.canAfford(definition.cost(for: 1)) else { return .insufficientResources }
         guard townSystem.freePeople(in: town, balance: balance) >= definition.peopleRequired else { return .insufficientPeople }

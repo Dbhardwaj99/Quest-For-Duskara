@@ -2,7 +2,6 @@ import SwiftUI
 
 struct GameView: View {
     @Bindable var viewModel: GameViewModel
-    @State private var isTownViewExpanded = false
     @State private var isNewsPresented = false
 
     var body: some View {
@@ -11,11 +10,20 @@ struct GameView: View {
             case .setup:
                 StartSetupView(viewModel: viewModel)
             case .town:
-                townBody
+                // The world map replaces the town entirely — no popup, and
+                // the 3D scene is not rendered behind it.
+                if viewModel.isWorldMapPresented {
+                    WorldMapView(viewModel: viewModel)
+                        .transition(.opacity)
+                } else {
+                    townBody
+                        .transition(.opacity)
+                }
             case .victory:
                 VictoryView(day: viewModel.state.day)
             }
         }
+        .animation(.smooth(duration: 0.25), value: viewModel.isWorldMapPresented)
     }
 
     private var townBody: some View {
@@ -36,7 +44,7 @@ struct GameView: View {
 
             if isNewsPresented {
                 NewsFeedPanel(events: viewModel.state.newsEvents, onClose: { isNewsPresented = false })
-                    .frame(maxWidth: DuskaraTheme.maxHUDWidth)
+                    .frame(maxWidth: DuskaraTheme.maxTopHUDWidth)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 74)
                     .padding(.horizontal, 14)
@@ -52,7 +60,6 @@ struct GameView: View {
             }
         }
         .animation(.snappy, value: viewModel.feedback?.id)
-        .animation(.smooth(duration: 0.34), value: isTownViewExpanded)
         .animation(.snappy, value: isNewsPresented)
         .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
@@ -64,26 +71,24 @@ struct GameView: View {
             BuildingDetailsSheetView(viewModel: viewModel, buildingID: presentation.id)
                 .frame(minWidth: 430, idealWidth: 460, maxWidth: 520, minHeight: 480, idealHeight: 620)
         }
-        .sheet(isPresented: $viewModel.isWorldMapPresented) {
-            WorldMapView(viewModel: viewModel)
-                .frame(minWidth: 980, idealWidth: 1120, minHeight: 560, idealHeight: 680)
-        }
     }
 
     private var townControls: some View {
-        VStack(spacing: 0) {
+        ZStack {
             topHUD
-                .padding(.top, 8)
-            Spacer(minLength: isTownViewExpanded ? 0 : 12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             placementCancelButton
-                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.bottom, 10)
             bottomBar
-                .padding(.bottom, isTownViewExpanded ? 10 : 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 14)
+                .padding(.bottom, 12)
         }
     }
 
-    // Landscape layout: the HUD docks top-leading instead of stretching
-    // across the whole window.
+    // The HUD docks in the top-left corner instead of stretching across the
+    // whole window.
     private var topHUD: some View {
         HStack(alignment: .top, spacing: DuskaraTheme.spacingS) {
             TopHUDView(
@@ -95,7 +100,7 @@ struct GameView: View {
                 freePeople: viewModel.freePeople,
                 capacity: viewModel.populationCapacity
             )
-            .frame(maxWidth: DuskaraTheme.maxHUDWidth)
+            .frame(maxWidth: DuskaraTheme.maxTopHUDWidth)
             Button {
                 isNewsPresented.toggle()
             } label: {
@@ -103,35 +108,20 @@ struct GameView: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white.opacity(0.94))
                     .frame(width: 38, height: 38)
-                    .background(.ultraThinMaterial, in: Circle())
+                    .background(DuskaraTheme.hudFill, in: Circle())
                     .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("World news")
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, DuskaraTheme.spacingM)
+        .padding(.leading, DuskaraTheme.spacingM)
+        .padding(.top, 10)
     }
 
     private var townView3D: some View {
         World3DTownView(sourceViewModel: viewModel)
             .id(viewModel.state.activeTownID)
             .background(DuskaraTheme.worldBackdrop)
-            .overlay(alignment: .topTrailing) {
-                Button(action: toggleTownViewExpansion) {
-                    Image(systemName: isTownViewExpanded ? "xmark" : "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.94))
-                        .frame(width: 38, height: 38)
-                        .background(.ultraThinMaterial, in: Circle())
-                        .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.28), radius: 12, y: 6)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isTownViewExpanded ? "Collapse town view" : "Expand town view")
-                .padding(.top, 78)
-                .padding(.trailing, 14)
-            }
     }
 
     private var worldVignette: some View {
@@ -156,7 +146,6 @@ struct GameView: View {
             onWorld: { viewModel.isWorldMapPresented = true },
             onNextDay: viewModel.advanceDayManually
         )
-        .frame(maxWidth: DuskaraTheme.maxHUDWidth)
     }
 
     @ViewBuilder
@@ -170,7 +159,7 @@ struct GameView: View {
                     .minimumScaleFactor(0.78)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 11)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(DuskaraTheme.hudFill, in: Capsule())
                     .overlay(Capsule().stroke(DuskaraTheme.glassStroke, lineWidth: 1))
                     .shadow(color: .black.opacity(0.28), radius: 14, y: 7)
             }
@@ -178,12 +167,6 @@ struct GameView: View {
             .padding(.horizontal, 14)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityLabel("Cancel building placement")
-        }
-    }
-
-    private func toggleTownViewExpansion() {
-        withAnimation(.smooth(duration: 0.34)) {
-            isTownViewExpanded.toggle()
         }
     }
 }
@@ -215,7 +198,7 @@ private struct GameFeedbackToastView: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(.ultraThinMaterial, in: Capsule())
+            .background(DuskaraTheme.hudFill, in: Capsule())
             .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
             .shadow(color: .black.opacity(0.26), radius: 14, y: 7)
             .padding(.horizontal, 18)
@@ -231,14 +214,17 @@ private struct NewsFeedPanel: View {
             HStack {
                 Text("World News")
                     .font(.headline.weight(.heavy))
+                    .foregroundStyle(DuskaraTheme.ink)
                 Spacer()
                 Button("Close", action: onClose)
                     .font(.caption.weight(.bold))
+                    .foregroundStyle(DuskaraTheme.warmGold)
+                    .buttonStyle(.plain)
             }
             if events.isEmpty {
                 Text("No world events yet.")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DuskaraTheme.mutedInk)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
@@ -246,9 +232,10 @@ private struct NewsFeedPanel: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Day \(event.day)")
                                     .font(.caption.weight(.heavy))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(DuskaraTheme.mutedInk)
                                 Text(event.message)
                                     .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(DuskaraTheme.ink)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -258,7 +245,7 @@ private struct NewsFeedPanel: View {
             }
         }
         .padding(14)
-        .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: 12))
+        .background(DuskaraTheme.hudFill, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.20), lineWidth: 1))
         .shadow(color: .black.opacity(0.24), radius: 18, y: 8)
     }

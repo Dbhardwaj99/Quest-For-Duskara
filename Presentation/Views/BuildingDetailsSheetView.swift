@@ -20,15 +20,16 @@ struct BuildingDetailsSheetView: View {
                             VStack(alignment: .leading, spacing: 7) {
                                 Text(building.kind.title)
                                     .font(.title2.weight(.black))
+                                    .foregroundStyle(DuskaraTheme.ink)
                                 HStack(spacing: 2) {
                                     ForEach(0..<definition.maxLevel, id: \.self) { index in
                                         Image(systemName: index < building.level ? "star.fill" : "star")
-                                            .foregroundStyle(index < building.level ? .yellow : .secondary)
+                                            .foregroundStyle(index < building.level ? DuskaraTheme.warmGold : DuskaraTheme.mutedInk)
                                     }
                                 }
                                 Text(definition.summary)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(DuskaraTheme.mutedInk)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
@@ -57,7 +58,7 @@ struct BuildingDetailsSheetView: View {
                     .padding(16)
                 }
             }
-            .background(DuskaraTheme.panel.opacity(0.30))
+            .background(DuskaraTheme.sheetBackground)
             .navigationTitle("Building")
         }
         .overlay(alignment: .topTrailing) {
@@ -84,12 +85,14 @@ private struct BarracksTrainingSheetSection: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Training")
                 .font(.headline.weight(.heavy))
+                .foregroundStyle(DuskaraTheme.ink)
             Text("Current Soldiers: \(viewModel.activeTown.armyStrength)")
                 .font(.subheadline.weight(.bold))
+                .foregroundStyle(DuskaraTheme.ink)
             VStack(alignment: .leading, spacing: 6) {
                 Text("Available Resources")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DuskaraTheme.mutedInk)
                 FlowLayout(spacing: 6) {
                     ForEach([ResourceKind.gold, .skill, .food], id: \.self) { kind in
                         ResourcePill(kind: kind, amount: viewModel.activeTown.resources[kind])
@@ -107,9 +110,10 @@ private struct BarracksTrainingSheetSection: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(soldier.title)
                                 .font(.subheadline.weight(.bold))
+                                .foregroundStyle(DuskaraTheme.ink)
                             Text("+\(definition.power) power · \(definition.peopleRequired) people · \(definition.dailyFoodUpkeep) food/day")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(DuskaraTheme.mutedInk)
                         }
                         Spacer()
                         Button("Train") { viewModel.train(soldier) }
@@ -121,12 +125,15 @@ private struct BarracksTrainingSheetSection: View {
                     ResourceCostRow(title: "Training Cost", values: definition.trainingCost)
                     Text(unavailableReason ?? "Ready to train")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(unavailableReason == nil ? .green : .red)
+                        .foregroundStyle(unavailableReason == nil
+                            ? Color(red: 0.56, green: 0.84, blue: 0.44)
+                            : Color(red: 0.96, green: 0.52, blue: 0.44))
                 }
             }
         }
         .padding(12)
-        .background(.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 8))
+        .background(DuskaraTheme.card, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
     }
 
 }

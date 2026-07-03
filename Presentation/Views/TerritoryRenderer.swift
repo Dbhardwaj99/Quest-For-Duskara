@@ -29,27 +29,8 @@ struct TerritoryRenderer: View {
                 connectionLayer(projection: projection)
                 landmarkLayer(projection: projection)
                 townMarkerLayer(projection: projection)
-                mapLegend
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(.white.opacity(0.22), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 10)
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.08, green: 0.13, blue: 0.15),
-                    Color(red: 0.13, green: 0.18, blue: 0.17),
-                    Color(red: 0.18, green: 0.15, blue: 0.11)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
     }
 
     // Faint sea lanes between neighboring islands. Purely decorative: any
@@ -92,23 +73,6 @@ struct TerritoryRenderer: View {
         }
     }
 
-    private var mapLegend: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("Territories")
-                .font(.caption2.weight(.black))
-                .foregroundStyle(.white.opacity(0.88))
-            HStack(spacing: 7) {
-                LegendSwatch(color: TownFaction.player.mapColor, title: "You")
-                LegendSwatch(color: TownFaction.neutral.mapColor, title: "Neutral")
-                LegendSwatch(color: TownFaction.enemy.mapColor, title: "Enemy")
-                LegendSwatch(color: TownFaction.duskara.mapColor, title: "Duskara")
-            }
-        }
-        .padding(9)
-        .background(.black.opacity(0.30), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(10)
-    }
 }
 
 private struct WorldTerrainLayer: View {
@@ -273,9 +237,28 @@ private struct WorldTownMarkerView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
                 .frame(width: 58)
+            infoBadge
         }
         .padding(4)
         .background(isSelected ? .black.opacity(0.30) : .clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    // Friendly cities show their stockpile; everyone else reveals only
+    // soldier count.
+    private var infoBadge: some View {
+        Group {
+            if town.isPlayerControlled {
+                Text("G \(town.resources[.gold]) · F \(town.resources[.food]) · S \(town.resources[.skill])")
+            } else {
+                Label("\(town.armyStrength)", systemImage: "shield.fill")
+                    .labelStyle(.titleAndIcon)
+            }
+        }
+        .font(.system(size: 7, weight: .heavy))
+        .foregroundStyle(.white.opacity(0.92))
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(.black.opacity(0.45), in: Capsule())
     }
 
     private var nodeIcon: String {
@@ -322,22 +305,6 @@ private struct WorldLandmarkView: View {
     }
 }
 
-private struct LegendSwatch: View {
-    let color: Color
-    let title: String
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-            Text(title)
-                .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.white.opacity(0.76))
-        }
-    }
-}
-
 private struct WorldMapProjection {
     var size: CGSize
 
@@ -380,26 +347,30 @@ private struct WorldMapProjection {
     }
 }
 
+// Same colors the 3D town uses (WorldPalette.village): tileGround plains,
+// forestMoss woods, sandy skirt coasts, and open-sea water, so both views
+// read as one game.
 private extension TerrainKind {
     var mapColor: Color {
         switch self {
-        case .plains: return Color(red: 0.43, green: 0.53, blue: 0.30)
-        case .forest: return Color(red: 0.19, green: 0.37, blue: 0.22)
-        case .mountains: return Color(red: 0.47, green: 0.48, blue: 0.45)
-        case .desert: return Color(red: 0.70, green: 0.55, blue: 0.31)
-        case .coast: return Color(red: 0.72, green: 0.64, blue: 0.44)
-        case .water: return Color(red: 0.13, green: 0.27, blue: 0.40)
+        case .plains: return Color(red: 0.47, green: 0.60, blue: 0.36)
+        case .forest: return Color(red: 0.29, green: 0.47, blue: 0.34)
+        case .mountains: return Color(red: 0.62, green: 0.60, blue: 0.54)
+        case .desert: return Color(red: 0.85, green: 0.75, blue: 0.52)
+        case .coast: return Color(red: 0.93, green: 0.83, blue: 0.58)
+        case .water: return Color(red: 0.25, green: 0.51, blue: 0.58)
         }
     }
 }
 
-private extension TownFaction {
+// Shared with WorldMapView's legend.
+extension TownFaction {
     var mapColor: Color {
         switch self {
         case .player: return Color(red: 0.28, green: 0.72, blue: 0.38)
         case .neutral: return Color(red: 0.74, green: 0.67, blue: 0.50)
-        case .enemy: return Color(red: 0.76, green: 0.20, blue: 0.18)
-        case .duskara: return Color(red: 0.32, green: 0.25, blue: 0.56)
+        case .enemy: return Color(red: 0.80, green: 0.24, blue: 0.20)
+        case .duskara: return Color(red: 0.44, green: 0.34, blue: 0.72)
         }
     }
 }

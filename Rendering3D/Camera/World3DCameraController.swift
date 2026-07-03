@@ -20,22 +20,32 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private let camera = PerspectiveCamera()
     private weak var view: NSView?
 
+    // Zoom tuning — `defaultDistance` is the starting zoom; min/max clamp
+    // pinch zoom. Watch the "Camera zoom" console log to pick values.
+    static let defaultDistance: Float = 4.09
+    static let minDistance: Float = 2.8
+    static let maxDistance: Float = 5.0
+
     private let target = SIMD3<Float>(0, 0, 0)
     private var yaw: Float = .pi / 4
     private var pitch: Float = 0.74
-    private var distance: Float = 6.6
+    private var distance: Float = World3DCameraController.defaultDistance
     private var rotateStartYaw: Float = .pi / 4
     private var rotateStartPitch: Float = 0.74
-    private var pinchStartDistance: Float = 6.6
+    private var pinchStartDistance: Float = World3DCameraController.defaultDistance
     private var activeGestureIDs: Set<ObjectIdentifier> = []
     private var inertiaTimer: Timer?
     private var yawVelocity: Float = 0
     private var pitchVelocity: Float = 0
     private var distanceVelocity: Float = 0
+    private var lastLoggedDistance: Float = World3DCameraController.defaultDistance
     private(set) var isInteracting = false
+    /// Fired when a gesture (and its inertia) fully ends, so the view can
+    /// replay any renders skipped while interacting.
+    var onInteractionEnded: (() -> Void)?
 
-    private let minDistance: Float = 3.2
-    private let maxDistance: Float = 8.86
+    private let minDistance = World3DCameraController.minDistance
+    private let maxDistance = World3DCameraController.maxDistance
     private let minPitch: Float = 0.56
     private let maxPitch: Float = 1.02
 
@@ -101,6 +111,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     private func updateCamera() {
         sanitizeState()
+        logZoomIfChanged()
         let horizontalDistance = cos(pitch) * distance
         let position = target + SIMD3<Float>(
             sin(yaw) * horizontalDistance,
@@ -126,6 +137,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
         } else {
             isInteracting = false
             updateCamera()
+            onInteractionEnded?()
         }
     }
 
@@ -160,6 +172,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
             stopInertia()
             isInteracting = false
             updateCamera()
+            onInteractionEnded?()
         }
     }
 
@@ -172,7 +185,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private func sanitizeState() {
         yaw = normalizedAngle(safeFloat(yaw, fallback: .pi / 4))
         pitch = min(maxPitch, max(minPitch, safeFloat(pitch, fallback: 0.74)))
-        distance = min(maxDistance, max(minDistance, safeFloat(distance, fallback: 6.6)))
+        distance = min(maxDistance, max(minDistance, safeFloat(distance, fallback: Self.defaultDistance)))
     }
 
     private func normalizedAngle(_ value: Float) -> Float {
@@ -189,6 +202,13 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     private func safeFloat(_ value: Float, fallback: Float) -> Float {
         value.isFinite ? value : fallback
+    }
+
+    private func logZoomIfChanged() {
+        guard abs(distance - lastLoggedDistance) > 0.01 else { return }
+        lastLoggedDistance = distance
+        let percent = (maxDistance - distance) / (maxDistance - minDistance) * 100
+        print(String(format: "Camera zoom: distance=%.2f (%.0f%% zoomed in, min=%.2f max=%.2f)", distance, percent, minDistance, maxDistance))
     }
 
 }

@@ -80,6 +80,9 @@ final class World3DTownViewController: NSViewController {
             bounds: renderer.cameraBounds(for: sourceViewModel.balance.gridSize),
             parent: renderer.cameraParent
         )
+        cameraController.onInteractionEnded = { [weak self] in
+            self?.syncFromGameState()
+        }
         self.renderer = renderer
 
         let tap = NSClickGestureRecognizer(target: self, action: #selector(handleTap(_:)))

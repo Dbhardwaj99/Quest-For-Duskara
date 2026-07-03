@@ -26,7 +26,7 @@ struct BuildMenuView: View {
                 }
                 .padding(.bottom, 16)
             }
-            .background(DuskaraTheme.panel.opacity(0.35))
+            .background(DuskaraTheme.sheetBackground)
             .navigationTitle("Build")
             .toolbar {
                 ToolbarItem(placement: .status) {
@@ -52,7 +52,7 @@ private struct BuildResourcesHeader: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Resources")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(DuskaraTheme.ink.opacity(0.72))
+                .foregroundStyle(.secondary)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(ResourceKind.allCases) { kind in
@@ -81,9 +81,10 @@ private struct BuildingMenuCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(kind.title)
                         .font(.headline.weight(.heavy))
+                        .foregroundStyle(DuskaraTheme.ink)
                     Text(definition.summary)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DuskaraTheme.mutedInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
@@ -99,7 +100,7 @@ private struct BuildingMenuCard: View {
             if definition.peopleRequired > 0 {
                 Label("Requires \(definition.peopleRequired) free people", systemImage: "person.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color(red: 0.96, green: 0.52, blue: 0.44))
             }
             if definition.production(for: 1).isEmpty == false {
                 ResourceCostRow(title: "Daily Production", values: definition.production(for: 1))
@@ -107,7 +108,8 @@ private struct BuildingMenuCard: View {
             PlacementRuleView(rules: definition.placementRules)
         }
         .padding(12)
-        .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+        .background(DuskaraTheme.card, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
     }
 }
 
@@ -119,7 +121,7 @@ private struct PlacementRuleView: View {
         if filtered.isEmpty {
             Label("Can be built on any empty plot", systemImage: "square.grid.3x3.fill")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DuskaraTheme.mutedInk)
         } else {
             ForEach(Array(filtered.enumerated()), id: \.offset) { _, rule in
                 switch rule {
@@ -128,7 +130,7 @@ private struct PlacementRuleView: View {
                 case .onTownEdge:
                     Label("Must be built on the town's edge, by the water", systemImage: "water.waves")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DuskaraTheme.mutedInk)
                 }
             }
         }

@@ -13,7 +13,6 @@ struct World3DTileEntity {
         let theme: WorldTheme
     }
 
-    private static let placementOverlayName = "world3d_placement_overlay"
     private static var templateCache: [TemplateKey: Entity] = [:]
 
     static func makeTile(
@@ -50,7 +49,6 @@ struct World3DTileEntity {
             addBuilding(kind, level: level, to: root, tileSize: tileSize, coordinate: snapshot.coordinate, gridSize: gridSize)
         }
 
-        addPlacementOverlay(snapshot.placementState, to: root, tileSize: tileSize)
         return root
     }
 
@@ -67,13 +65,6 @@ struct World3DTileEntity {
             cursor = current.parent
         }
         return nil
-    }
-
-    static func updatePlacementOverlay(_ state: TilePlacementState, on root: Entity, tileSize: Float) {
-        root.children
-            .filter { $0.name == placementOverlayName }
-            .forEach { $0.removeFromParent() }
-        addPlacementOverlay(state, to: root, tileSize: tileSize)
     }
 
     static func addTree(to root: Entity, tileSize: Float) {
@@ -460,40 +451,66 @@ struct World3DTileEntity {
         }
     }
 
-    private static func addPlacementOverlay(_ state: TilePlacementState, to root: Entity, tileSize: Float) {
-        let color: NSColor
-        let height: Float
-        switch state {
-        case .normal:
-            return
-        case .valid:
-            color = NSColor(red: 0.93, green: 0.70, blue: 0.28, alpha: 0.52)
-            height = 0.026
-        case .invalid:
-            color = NSColor(red: 0.25, green: 0.24, blue: 0.25, alpha: 0.58)
-            height = 0.018
-        }
-
-        let overlay = World3DRenderResources.makeBox(
-            size: SIMD3<Float>(tileSize * 0.82, height, tileSize * 0.82),
-            material: material(color, roughness: 0.56),
-            cornerRadius: tileSize * 0.04
+    // Gentle autoreversing loop used by ambient details (smoke, animals,
+    // boats). GPU-side, so no per-frame CPU work.
+    private static func addAmbientDrift(to entity: Entity, offset: SIMD3<Float>, scaleTo: Float = 1, duration: TimeInterval) {
+        var to = entity.transform
+        to.translation += offset
+        to.scale *= SIMD3<Float>(repeating: scaleTo)
+        let animation = FromToByAnimation<Transform>(
+            from: entity.transform,
+            to: to,
+            duration: duration,
+            timing: .easeInOut,
+            bindTarget: .transform,
+            repeatMode: .autoReverse
         )
-        overlay.name = placementOverlayName
-        overlay.position.y = 0.052
-        root.addChild(overlay)
-
-        if state == .valid {
-            let glint = World3DRenderResources.makeBox(
-                size: SIMD3<Float>(tileSize * 0.62, 0.012, tileSize * 0.07),
-                material: material(NSColor(red: 1.0, green: 0.84, blue: 0.34, alpha: 0.74), roughness: 0.30),
-                cornerRadius: tileSize * 0.01
-            )
-            glint.name = placementOverlayName
-            glint.position.y = 0.075
-            glint.orientation = simd_quatf(angle: 0.72, axis: SIMD3<Float>(0, 1, 0))
-            root.addChild(glint)
+        if let resource = try? AnimationResource.generate(with: animation) {
+            entity.playAnimation(resource.repeat())
         }
+    }
+
+    // Two soft translucent puffs rising above a chimney (tile units).
+    private static func addChimneySmoke(to root: Entity, tileSize: Float, above top: SIMD3<Float>) {
+        for index in 0..<2 {
+            let puff = World3DRenderResources.makeSphere(
+                radius: (0.024 + Float(index) * 0.011) * tileSize,
+                material: material(NSColor(red: 0.93, green: 0.93, blue: 0.95, alpha: 0.34 - CGFloat(index) * 0.08), roughness: 1.0)
+            )
+            puff.position = (top + SIMD3<Float>(Float(index) * 0.022, 0.035 + Float(index) * 0.065, 0)) * tileSize
+            root.addChild(puff)
+            addAmbientDrift(
+                to: puff,
+                offset: SIMD3<Float>(0.014, 0.055, 0.010) * tileSize,
+                scaleTo: 1.35,
+                duration: 2.6 + Double(index) * 1.1
+            )
+        }
+    }
+
+    // A grazing sheep slowly wandering back and forth (tile units).
+    private static func addSheep(to root: Entity, tileSize: Float, at spot: SIMD2<Float>, wander: SIMD2<Float>, duration: TimeInterval, yaw: Float) {
+        let sheep = Entity()
+        addBox(
+            to: sheep,
+            size: SIMD3<Float>(0.070, 0.052, 0.098) * tileSize,
+            position: SIMD3<Float>(0, 0.045, 0) * tileSize,
+            color: NSColor(red: 0.93, green: 0.91, blue: 0.85, alpha: 1),
+            roughness: 0.95,
+            cornerRadius: tileSize * 0.02
+        )
+        addBox(
+            to: sheep,
+            size: SIMD3<Float>(0.034, 0.034, 0.040) * tileSize,
+            position: SIMD3<Float>(0, 0.052, 0.060) * tileSize,
+            color: Palette.darkTimber,
+            roughness: 0.92,
+            cornerRadius: tileSize * 0.008
+        )
+        sheep.position = SIMD3<Float>(spot.x, 0.012, spot.y) * tileSize
+        sheep.orientation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+        root.addChild(sheep)
+        addAmbientDrift(to: sheep, offset: SIMD3<Float>(wander.x, 0, wander.y) * tileSize, duration: duration)
     }
 
     private static func addBuilding(_ kind: BuildingKind, level: Int, to root: Entity, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize) {
@@ -559,6 +576,7 @@ struct World3DTileEntity {
         let chimney = addBox(to: root, size: SIMD3<Float>(0.085, 0.20, 0.085) * tileSize, position: SIMD3<Float>(0.14 + jitter(coordinate, salt: 224) * 0.05, 0.66, -0.12) * tileSize, color: Palette.smokeStone, roughness: 0.9, cornerRadius: tileSize * 0.01)
         chimney.orientation = simd_quatf(angle: jitter(coordinate, salt: 225) * 0.09, axis: SIMD3<Float>(0, 0, 1))
         addBox(to: root, size: SIMD3<Float>(0.12, 0.03, 0.11) * tileSize, position: SIMD3<Float>(chimney.position.x / tileSize, 0.775, chimney.position.z / tileSize) * tileSize, color: Palette.deepStone, roughness: 0.9, cornerRadius: tileSize * 0.005)
+        addChimneySmoke(to: root, tileSize: tileSize, above: SIMD3<Float>(chimney.position.x / tileSize, 0.80, chimney.position.z / tileSize))
 
         addBox(to: root, size: SIMD3<Float>(0.12, 0.13, 0.035) * tileSize, position: SIMD3<Float>(-0.21, 0.25, 0.20) * tileSize, color: Palette.warmWindow, roughness: 0.42, cornerRadius: tileSize * 0.004)
         addShutters(to: root, tileSize: tileSize, center: SIMD3<Float>(-0.21, 0.25, 0.225))
@@ -604,6 +622,8 @@ struct World3DTileEntity {
         addScarecrow(to: root, tileSize: tileSize, coordinate: coordinate, position: SIMD3<Float>(-0.34, 0.11, 0.20))
         addCart(to: root, tileSize: tileSize, coordinate: coordinate, center: SIMD3<Float>(0.33, 0.075, 0.03))
         addSack(to: root, tileSize: tileSize, position: SIMD3<Float>(0.05, 0.055, 0.31), coordinate: coordinate, salt: 271)
+        addSheep(to: root, tileSize: tileSize, at: SIMD2<Float>(-0.26, 0.27), wander: SIMD2<Float>(0.11, -0.04), duration: 7.5, yaw: 1.4 + jitter(coordinate, salt: 272) * 0.4)
+        addSheep(to: root, tileSize: tileSize, at: SIMD2<Float>(-0.02, 0.30), wander: SIMD2<Float>(-0.08, 0.03), duration: 9.5, yaw: -1.7 + jitter(coordinate, salt: 273) * 0.4)
         addLevelPips(level, to: root, tileSize: tileSize)
     }
 
@@ -642,16 +662,18 @@ struct World3DTileEntity {
         // Mooring post rising above the deck at the far end.
         addCylinder(to: dock, radius: 0.030 * tileSize, height: 0.16 * tileSize, position: SIMD3<Float>(0.125, 0.16, 0.86) * tileSize, color: Palette.railWood, roughness: 0.90)
 
-        // Moored rowing boat floating beside the deck's end.
+        // Moored rowing boat floating beside the deck's end; grouped so the
+        // whole boat bobs gently on the water as one piece.
         let boatCenter = SIMD3<Float>(-0.30, -0.30, 0.80)
-        let boatYaw = simd_quatf(angle: 0.10 + jitter(coordinate, salt: 361) * 0.10, axis: SIMD3<Float>(0, 1, 0))
-        let hull = addBox(to: dock, size: SIMD3<Float>(0.17, 0.065, 0.34) * tileSize, position: boatCenter * tileSize, color: Palette.doorWood, roughness: 0.86, cornerRadius: tileSize * 0.022)
-        hull.orientation = boatYaw
-        let rim = addBox(to: dock, size: SIMD3<Float>(0.19, 0.020, 0.36) * tileSize, position: (boatCenter + SIMD3<Float>(0, 0.042, 0)) * tileSize, color: Palette.barnWood, roughness: 0.86, cornerRadius: tileSize * 0.024)
-        rim.orientation = boatYaw
-        let bench = addBox(to: dock, size: SIMD3<Float>(0.15, 0.016, 0.045) * tileSize, position: (boatCenter + SIMD3<Float>(0, 0.030, 0.02)) * tileSize, color: Palette.cutWood, roughness: 0.88, cornerRadius: tileSize * 0.004)
-        bench.orientation = boatYaw
-        addCylinder(to: dock, radius: 0.012 * tileSize, height: 0.30 * tileSize, position: (boatCenter + SIMD3<Float>(0, 0.19, -0.06)) * tileSize, color: Palette.bark, roughness: 0.90)
+        let boat = Entity()
+        boat.position = boatCenter * tileSize
+        boat.orientation = simd_quatf(angle: 0.10 + jitter(coordinate, salt: 361) * 0.10, axis: SIMD3<Float>(0, 1, 0))
+        dock.addChild(boat)
+        addBox(to: boat, size: SIMD3<Float>(0.17, 0.065, 0.34) * tileSize, position: .zero, color: Palette.doorWood, roughness: 0.86, cornerRadius: tileSize * 0.022)
+        addBox(to: boat, size: SIMD3<Float>(0.19, 0.020, 0.36) * tileSize, position: SIMD3<Float>(0, 0.042, 0) * tileSize, color: Palette.barnWood, roughness: 0.86, cornerRadius: tileSize * 0.024)
+        addBox(to: boat, size: SIMD3<Float>(0.15, 0.016, 0.045) * tileSize, position: SIMD3<Float>(0, 0.030, 0.02) * tileSize, color: Palette.cutWood, roughness: 0.88, cornerRadius: tileSize * 0.004)
+        addCylinder(to: boat, radius: 0.012 * tileSize, height: 0.30 * tileSize, position: SIMD3<Float>(0, 0.19, -0.06) * tileSize, color: Palette.bark, roughness: 0.90)
+        addAmbientDrift(to: boat, offset: SIMD3<Float>(0, 0.014, 0) * tileSize, duration: 2.4)
 
         // Mooring rope sagging from the deck post down to the boat.
         let rope = addBox(to: dock, size: SIMD3<Float>(0.17, 0.012, 0.012) * tileSize, position: SIMD3<Float>(-0.075, -0.05, 0.83) * tileSize, color: Palette.sackCloth, roughness: 0.95, cornerRadius: tileSize * 0.003)
@@ -694,6 +716,7 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.15, 0.50, 0.15) * tileSize, position: SIMD3<Float>(0.22, 0.38, -0.13) * tileSize, color: Palette.smokeStone, roughness: 0.88, cornerRadius: tileSize * 0.012)
         addBox(to: root, size: SIMD3<Float>(0.19, 0.05, 0.19) * tileSize, position: SIMD3<Float>(0.22, 0.645, -0.13) * tileSize, color: Palette.deepStone, roughness: 0.88, cornerRadius: tileSize * 0.008)
         addBox(to: root, size: SIMD3<Float>(0.10, 0.07, 0.10) * tileSize, position: SIMD3<Float>(0.22, 0.70, -0.13) * tileSize, color: Palette.arcaneBlue, roughness: 0.38, cornerRadius: tileSize * 0.012)
+        addChimneySmoke(to: root, tileSize: tileSize, above: SIMD3<Float>(0.22, 0.76, -0.13))
         // Wall pipe and side flue
         addBox(to: root, size: SIMD3<Float>(0.08, 0.08, 0.42) * tileSize, position: SIMD3<Float>(-0.28, 0.40, 0.00) * tileSize, color: Palette.arcaneBlue, roughness: 0.38, cornerRadius: tileSize * 0.01)
         addBox(to: root, size: SIMD3<Float>(0.09, 0.30, 0.09) * tileSize, position: SIMD3<Float>(-0.27, 0.17, 0.24) * tileSize, color: Palette.smokeStone, roughness: 0.88, cornerRadius: tileSize * 0.010)

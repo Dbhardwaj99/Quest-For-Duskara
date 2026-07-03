@@ -41,13 +41,12 @@ struct TopHUDView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14)))
+        .background(DuskaraTheme.hudFill, in: UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14)))
         .overlay(
             UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14))
                 .stroke(DuskaraTheme.glassStroke, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.28), radius: 18, x: 0, y: 10)
-        .padding(.horizontal, 12)
     }
 
     private var dayDial: some View {
@@ -84,8 +83,10 @@ struct BottomBarView: View {
     let onWorld: () -> Void
     let onNextDay: () -> Void
 
+    // Compact floating panel: the buttons hug their labels instead of
+    // stretching across the window.
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Button(action: onBuild) {
                 Label("Build", systemImage: "hammer.fill")
             }
@@ -101,12 +102,12 @@ struct BottomBarView: View {
             }
             .buttonStyle(DuskaraButtonStyle(prominent: true))
         }
+        .fixedSize()
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background(DuskaraTheme.hudFill, in: Capsule())
         .overlay(Capsule().stroke(DuskaraTheme.glassStroke, lineWidth: 1))
         .shadow(color: .black.opacity(0.28), radius: 18, y: 10)
-        .padding(.horizontal, 14)
     }
 }
 
@@ -140,7 +141,7 @@ struct DuskaraButtonStyle: ButtonStyle {
             ))
         } else {
             AnyShapeStyle(LinearGradient(
-                colors: [DuskaraTheme.panel.opacity(0.96), Color(red: 0.76, green: 0.67, blue: 0.50).opacity(0.94)],
+                colors: [Color(red: 0.33, green: 0.28, blue: 0.22), Color(red: 0.24, green: 0.20, blue: 0.15)],
                 startPoint: .top,
                 endPoint: .bottom
             ))

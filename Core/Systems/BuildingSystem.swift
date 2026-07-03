@@ -7,6 +7,7 @@ struct BuildingSystem {
         case insufficientResources = "Not enough resources."
         case insufficientPeople = "Not enough free people."
         case placementRule = "This building must be placed on the town's edge, by the water."
+        case duplicatePier = "This town already has a Pier."
         case maxLevel = "This building is already fully upgraded."
         case missingDefinition = "Missing building definition."
 

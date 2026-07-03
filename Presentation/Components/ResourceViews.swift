@@ -29,10 +29,10 @@ struct ResourcePill: View {
             if let income, income != 0 {
                 Text(income > 0 ? "+\(income)" : "\(income)")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(income > 0 ? Color(red: 0.25, green: 0.48, blue: 0.20) : Color(red: 0.58, green: 0.22, blue: 0.18))
+                    .foregroundStyle(income > 0 ? Color(red: 0.56, green: 0.84, blue: 0.44) : Color(red: 0.94, green: 0.48, blue: 0.40))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
-                    .background(.white.opacity(0.42), in: Capsule())
+                    .background(.black.opacity(0.32), in: Capsule())
                     .contentTransition(.numericText())
             }
         }
@@ -40,13 +40,13 @@ struct ResourcePill: View {
         .padding(.vertical, 6)
         .background(
             LinearGradient(
-                colors: [Color(red: 0.96, green: 0.89, blue: 0.72).opacity(0.92), Color(red: 0.74, green: 0.66, blue: 0.48).opacity(0.78)],
+                colors: [Color(red: 0.33, green: 0.28, blue: 0.22), Color(red: 0.24, green: 0.20, blue: 0.15)],
                 startPoint: .top,
                 endPoint: .bottom
             ),
             in: Capsule()
         )
-        .overlay(Capsule().stroke(.white.opacity(0.30), lineWidth: 1))
+        .overlay(Capsule().stroke(.white.opacity(0.16), lineWidth: 1))
         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
         .animation(.smooth(duration: 0.22), value: amount)
         .animation(.smooth(duration: 0.22), value: income)
@@ -61,7 +61,7 @@ struct ResourceCostRow: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DuskaraTheme.mutedInk)
             FlowLayout(spacing: 6) {
                 ForEach(values.positiveEntries, id: \.0) { kind, amount in
                     ResourcePill(kind: kind, amount: amount)
@@ -69,7 +69,7 @@ struct ResourceCostRow: View {
                 if values.positiveEntries.isEmpty {
                     Text("None")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(DuskaraTheme.mutedInk)
                 }
             }
         }
