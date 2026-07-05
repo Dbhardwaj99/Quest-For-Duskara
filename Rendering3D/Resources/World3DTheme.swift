@@ -1,4 +1,5 @@
 import AppKit
+import Observation
 
 enum WorldTheme: String, CaseIterable {
     case village
@@ -6,8 +7,7 @@ enum WorldTheme: String, CaseIterable {
     case mountains
     case forest
 
-    // Fixed for now; read during main-thread rendering. Theme selection can
-    // return once it has a real home in the UI.
+    // Written from ThemeManager (main actor) only; read during main-thread rendering.
     nonisolated(unsafe) static var current: WorldTheme = .village
 
     var displayName: String {
@@ -19,6 +19,12 @@ enum WorldTheme: String, CaseIterable {
         }
     }
 
+    var next: WorldTheme {
+        let all = Self.allCases
+        let index = all.firstIndex(of: self) ?? 0
+        return all[(index + 1) % all.count]
+    }
+
     var palette: WorldPalette {
         switch self {
         case .village: .village
@@ -26,6 +32,21 @@ enum WorldTheme: String, CaseIterable {
         case .mountains: .mountains
         case .forest: .forest
         }
+    }
+}
+
+@MainActor
+@Observable
+final class ThemeManager {
+    static let shared = ThemeManager()
+
+    private(set) var theme: WorldTheme = .village
+
+    private init() {}
+
+    func cycle() {
+        theme = theme.next
+        WorldTheme.current = theme
     }
 }
 

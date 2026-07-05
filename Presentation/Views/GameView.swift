@@ -113,9 +113,32 @@ struct GameView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("World news")
+
+            themeCycleButton
         }
         .padding(.leading, DuskaraTheme.spacingM)
         .padding(.top, 10)
+    }
+
+    private var themeCycleButton: some View {
+        Button {
+            ThemeManager.shared.cycle()
+        } label: {
+            VStack(spacing: 1) {
+                Image(systemName: "paintpalette.fill")
+                    .font(.system(size: 13, weight: .bold))
+                Text(ThemeManager.shared.theme.displayName)
+                    .font(DuskaraTheme.Fonts.label)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(.white.opacity(0.94))
+            .frame(width: 44, height: 38)
+            .background(DuskaraTheme.hudFill, in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Cycle world theme")
     }
 
     private var townView3D: some View {
@@ -153,7 +176,7 @@ struct GameView: View {
         if let kind = viewModel.placementBuildingKind {
             Button(action: viewModel.cancelPlacement) {
                 Label("Cancel \(kind.title)", systemImage: "xmark.circle.fill")
-                    .font(.subheadline.weight(.heavy))
+                    .font(DuskaraTheme.Fonts.subheading)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
@@ -177,10 +200,10 @@ private struct VictoryView: View {
     var body: some View {
         VStack(spacing: 12) {
             Text("Victory")
-                .font(.largeTitle.weight(.black))
+                .font(DuskaraTheme.Fonts.title)
                 .foregroundStyle(.white)
             Text("Duskara fell on Day \(day).")
-                .font(.headline.weight(.semibold))
+                .font(DuskaraTheme.Fonts.heading)
                 .foregroundStyle(.white.opacity(0.82))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -193,7 +216,7 @@ private struct GameFeedbackToastView: View {
 
     var body: some View {
         Text(message)
-            .font(.subheadline.weight(.bold))
+            .font(DuskaraTheme.Fonts.subheading)
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
@@ -213,17 +236,17 @@ private struct NewsFeedPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("World News")
-                    .font(.headline.weight(.heavy))
+                    .font(DuskaraTheme.Fonts.heading)
                     .foregroundStyle(DuskaraTheme.ink)
                 Spacer()
                 Button("Close", action: onClose)
-                    .font(.caption.weight(.bold))
+                    .font(DuskaraTheme.Fonts.caption)
                     .foregroundStyle(DuskaraTheme.warmGold)
                     .buttonStyle(.plain)
             }
             if events.isEmpty {
                 Text("No world events yet.")
-                    .font(.subheadline.weight(.semibold))
+                    .font(DuskaraTheme.Fonts.body)
                     .foregroundStyle(DuskaraTheme.mutedInk)
             } else {
                 ScrollView {
@@ -231,10 +254,10 @@ private struct NewsFeedPanel: View {
                         ForEach(events) { event in
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Day \(event.day)")
-                                    .font(.caption.weight(.heavy))
+                                    .font(DuskaraTheme.Fonts.caption)
                                     .foregroundStyle(DuskaraTheme.mutedInk)
                                 Text(event.message)
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(DuskaraTheme.Fonts.body)
                                     .foregroundStyle(DuskaraTheme.ink)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)

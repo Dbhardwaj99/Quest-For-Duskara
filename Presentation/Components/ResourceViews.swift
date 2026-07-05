@@ -13,7 +13,7 @@ struct ResourcePill: View {
                 Circle()
                     .stroke(.white.opacity(0.36), lineWidth: 1)
                 Text(kind.symbol)
-                    .font(.caption2.bold())
+                    .font(DuskaraTheme.Fonts.label)
                     .foregroundStyle(.white)
             }
             .frame(width: 20, height: 20)
@@ -21,14 +21,14 @@ struct ResourcePill: View {
 
             if let amount {
                 Text("\(amount)")
-                    .font(.caption.weight(.heavy))
+                    .font(DuskaraTheme.Fonts.number)
                     .foregroundStyle(DuskaraTheme.ink)
                     .contentTransition(.numericText())
             }
 
             if let income, income != 0 {
                 Text(income > 0 ? "+\(income)" : "\(income)")
-                    .font(.caption2.weight(.bold))
+                    .font(DuskaraTheme.Fonts.numberSmall)
                     .foregroundStyle(income > 0 ? Color(red: 0.56, green: 0.84, blue: 0.44) : Color(red: 0.94, green: 0.48, blue: 0.40))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
@@ -60,7 +60,7 @@ struct ResourceCostRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(DuskaraTheme.Fonts.caption)
                 .foregroundStyle(DuskaraTheme.mutedInk)
             FlowLayout(spacing: 6) {
                 ForEach(values.positiveEntries, id: \.0) { kind, amount in
@@ -68,7 +68,7 @@ struct ResourceCostRow: View {
                 }
                 if values.positiveEntries.isEmpty {
                     Text("None")
-                        .font(.caption)
+                        .font(DuskaraTheme.Fonts.caption)
                         .foregroundStyle(DuskaraTheme.mutedInk)
                 }
             }

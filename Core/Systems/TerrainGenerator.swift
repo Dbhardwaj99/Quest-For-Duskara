@@ -1,10 +1,10 @@
 import Foundation
 
 struct TerrainGenerator {
-    // Base island radius in aspect-corrected map units. Together with the
-    // coastline wobble below it stays under half the town-node spacing, so
-    // neighboring islands always keep open water between them.
-    private let islandRadius = 0.054
+    // Base island radius in aspect-corrected map units. Max wobbled radius
+    // (×1.22) doubled stays under WorldGenerator.minimumSeparation (0.135),
+    // so even tightly clustered islands always keep open water between them.
+    private let islandRadius = 0.050
     // Fraction of the radius that is interior terrain; the rest is shoreline.
     private let coastFraction = 0.70
 

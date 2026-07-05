@@ -316,7 +316,11 @@ private extension World3DRenderResources.MaterialKey {
         var green: CGFloat = 0
         var blue: CGFloat = 0
         var alpha: CGFloat = 0
-        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        // getRed raises on non-RGB colorspaces (grayscale, catalog), and
+        // only at runtime — convert first so a stray NSColor(white:) can
+        // never crash the scene build.
+        let rgb = color.usingColorSpace(.deviceRGB) ?? color
+        rgb.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
 
         self.red = Self.quantized(red)
         self.green = Self.quantized(green)

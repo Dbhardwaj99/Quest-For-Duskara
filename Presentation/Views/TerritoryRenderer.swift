@@ -8,10 +8,36 @@ struct TerritoryRenderer: View {
     let connections: [TownConnection]
     let activeTownID: UUID
     let selectedTownID: UUID?
+    /// Counter-scale for markers/landmarks so they stay readable instead of
+    /// ballooning while the terrain zooms.
+    var markerScale: CGFloat = 1
     let onSelectTown: (UUID) -> Void
 
     private var townByID: [UUID: Town] {
         Dictionary(uniqueKeysWithValues: towns.map { ($0.id, $0) })
+    }
+
+    // Every sea lane, tagged with whether it is a live trade route (player
+    // pier town <-> neutral free city) and whether a ship sails it.
+    private var seaRoutes: [SeaRoute] {
+        let byID = townByID
+        let nodeByTown = Dictionary(uniqueKeysWithValues: nodes.map { ($0.townID, MapPoint(x: $0.x, y: $0.y)) })
+        return connections.compactMap { connection in
+            guard let from = nodeByTown[connection.from],
+                  let to = nodeByTown[connection.to],
+                  let townA = byID[connection.from],
+                  let townB = byID[connection.to] else { return nil }
+            let isTrade = SeaRoute.isTradeRoute(townA, townB) || SeaRoute.isTradeRoute(townB, townA)
+            let seed = SeaRoute.stableHash(connection.id)
+            return SeaRoute(
+                id: connection.id,
+                from: from,
+                to: to,
+                isTrade: isTrade,
+                hasShip: isTrade || seed % 3 == 0,
+                seed: seed
+            )
+        }
     }
 
     var body: some View {
@@ -26,31 +52,36 @@ struct TerritoryRenderer: View {
                     selectedTownID: selectedTownID,
                     activeTownID: activeTownID
                 )
-                connectionLayer(projection: projection)
+                laneLayer
+                SeaTrafficLayer(routes: seaRoutes)
                 landmarkLayer(projection: projection)
                 townMarkerLayer(projection: projection)
             }
         }
     }
 
-    // Faint sea lanes between neighboring islands. Purely decorative: any
-    // city can be attacked, but the lanes hint at the archipelago's shape.
-    private func connectionLayer(projection: WorldMapProjection) -> some View {
-        ZStack {
-            ForEach(connections) { connection in
-                Path { path in
-                    path.move(to: projection.point(for: connection.from, nodes: nodes))
-                    path.addLine(to: projection.point(for: connection.to, nodes: nodes))
-                }
-                .stroke(.white.opacity(0.10), style: StrokeStyle(lineWidth: 1.0, lineCap: .round, dash: [4, 8]))
+    // Faint curved sea lanes between neighboring islands. Purely decorative:
+    // any city can be attacked, but the lanes hint at the archipelago's
+    // shape. Trade routes are drawn (animated) by SeaTrafficLayer instead.
+    private var laneLayer: some View {
+        Canvas { context, size in
+            let projection = WorldMapProjection(size: size)
+            for route in seaRoutes where route.isTrade == false {
+                context.stroke(
+                    route.path(projection: projection),
+                    with: .color(.white.opacity(0.13)),
+                    style: StrokeStyle(lineWidth: 1.0, lineCap: .round, dash: [4, 8])
+                )
             }
         }
+        .allowsHitTesting(false)
     }
 
     private func landmarkLayer(projection: WorldMapProjection) -> some View {
         ZStack {
             ForEach(world.landmarks) { landmark in
                 WorldLandmarkView(landmark: landmark)
+                    .scaleEffect(markerScale)
                     .position(projection.point(for: landmark.position))
             }
         }
@@ -65,6 +96,7 @@ struct TerritoryRenderer: View {
                         isActive: node.townID == activeTownID,
                         isSelected: node.townID == selectedTownID
                     )
+                    .scaleEffect(markerScale)
                     .position(projection.point(for: MapPoint(x: node.x, y: node.y)))
                     .onTapGesture { onSelectTown(node.townID) }
                     .zIndex(node.townID == selectedTownID ? 3 : 2)
@@ -75,24 +107,209 @@ struct TerritoryRenderer: View {
 
 }
 
+// MARK: - Sea traffic
+
+private struct SeaRoute: Identifiable {
+    let id: String
+    let from: MapPoint
+    let to: MapPoint
+    let isTrade: Bool
+    let hasShip: Bool
+    let seed: Int
+
+    static func isTradeRoute(_ pierTown: Town, _ partner: Town) -> Bool {
+        pierTown.isPlayerControlled
+            && pierTown.buildings.contains { $0.kind == .pier }
+            && partner.faction == .neutral
+    }
+
+    // Hasher's per-launch seed would reshuffle ships every run; this stays
+    // stable so each lane keeps its curve, pace, and phase.
+    static func stableHash(_ value: String) -> Int {
+        var hash = 5381
+        for scalar in value.unicodeScalars {
+            hash = (hash &* 33) &+ Int(scalar.value)
+        }
+        return abs(hash)
+    }
+
+    // Lanes bow gently to one side so crossings read as shipping arcs, not
+    // a straight wire diagram.
+    func controlPoint(projection: WorldMapProjection) -> CGPoint {
+        let start = projection.point(for: from)
+        let end = projection.point(for: to)
+        let mid = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let length = max(1, hypot(dx, dy))
+        let side: CGFloat = seed.isMultiple(of: 2) ? 1 : -1
+        let bulge = min(30, length * 0.16) * side
+        return CGPoint(x: mid.x - dy / length * bulge, y: mid.y + dx / length * bulge)
+    }
+
+    func path(projection: WorldMapProjection) -> Path {
+        var path = Path()
+        path.move(to: projection.point(for: from))
+        path.addQuadCurve(to: projection.point(for: to), control: controlPoint(projection: projection))
+        return path
+    }
+
+    func point(at t: CGFloat, projection: WorldMapProjection) -> CGPoint {
+        let start = projection.point(for: from)
+        let end = projection.point(for: to)
+        let control = controlPoint(projection: projection)
+        let inverse = 1 - t
+        return CGPoint(
+            x: inverse * inverse * start.x + 2 * inverse * t * control.x + t * t * end.x,
+            y: inverse * inverse * start.y + 2 * inverse * t * control.y + t * t * end.y
+        )
+    }
+
+    func heading(at t: CGFloat, projection: WorldMapProjection) -> CGFloat {
+        let start = projection.point(for: from)
+        let end = projection.point(for: to)
+        let control = controlPoint(projection: projection)
+        let dx = 2 * (1 - t) * (control.x - start.x) + 2 * t * (end.x - control.x)
+        let dy = 2 * (1 - t) * (control.y - start.y) + 2 * t * (end.y - control.y)
+        return atan2(dy, dx)
+    }
+}
+
+// Animated layer: flowing gold trade lanes, little ships shuttling between
+// islands, and slow cloud shadows. One Canvas redrawn at ~24 fps; everything
+// else on the map stays static.
+private struct SeaTrafficLayer: View {
+    let routes: [SeaRoute]
+
+    private static let tradeGold = Color(red: 0.94, green: 0.78, blue: 0.42)
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 24)) { timeline in
+            Canvas { context, size in
+                let projection = WorldMapProjection(size: size)
+                let time = timeline.date.timeIntervalSinceReferenceDate
+
+                drawCloudShadows(context: context, size: size, time: time)
+
+                for route in routes where route.isTrade {
+                    // Dashes flow along the lane so trade reads as movement
+                    // even between ship crossings.
+                    context.stroke(
+                        route.path(projection: projection),
+                        with: .color(Self.tradeGold.opacity(0.55)),
+                        style: StrokeStyle(
+                            lineWidth: 1.6,
+                            lineCap: .round,
+                            dash: [5, 7],
+                            dashPhase: CGFloat(route.seed % 12) - CGFloat(time * 10)
+                        )
+                    )
+                }
+
+                for route in routes where route.hasShip {
+                    drawShip(route: route, projection: projection, time: time, context: context)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    // Ships shuttle back and forth with an eased turnaround at each pier.
+    private func drawShip(route: SeaRoute, projection: WorldMapProjection, time: TimeInterval, context: GraphicsContext) {
+        let period = Double(16 + route.seed % 7 * 2)
+        let phase = Double(route.seed % 100) / 100
+        let raw = ((time / period) + phase).truncatingRemainder(dividingBy: 1)
+        let outbound = raw < 0.5
+        let linear = CGFloat(outbound ? raw * 2 : 2 - raw * 2)
+        let t = linear * linear * (3 - 2 * linear)
+
+        let position = route.point(at: t, projection: projection)
+        var heading = route.heading(at: t, projection: projection)
+        if outbound == false { heading += .pi }
+
+        context.drawLayer { layer in
+            layer.translateBy(x: position.x, y: position.y)
+            layer.rotate(by: Angle(radians: heading + .pi / 2))
+
+            var wake = Path()
+            wake.move(to: CGPoint(x: -1.6, y: 5))
+            wake.addLine(to: CGPoint(x: -2.8, y: 11))
+            wake.move(to: CGPoint(x: 1.6, y: 5))
+            wake.addLine(to: CGPoint(x: 2.8, y: 11))
+            layer.stroke(wake, with: .color(.white.opacity(0.35)), lineWidth: 1)
+
+            var hull = Path()
+            hull.move(to: CGPoint(x: 0, y: -6))
+            hull.addQuadCurve(to: CGPoint(x: 3, y: 4), control: CGPoint(x: 3.6, y: -2))
+            hull.addLine(to: CGPoint(x: -3, y: 4))
+            hull.addQuadCurve(to: CGPoint(x: 0, y: -6), control: CGPoint(x: -3.6, y: -2))
+            layer.fill(hull, with: .color(Color(red: 0.45, green: 0.32, blue: 0.23)))
+
+            var sail = Path()
+            sail.move(to: CGPoint(x: 0, y: -4.5))
+            sail.addLine(to: CGPoint(x: 2.8, y: 1.5))
+            sail.addLine(to: CGPoint(x: 0, y: 1.5))
+            sail.closeSubpath()
+            layer.fill(sail, with: .color(route.isTrade ? Self.tradeGold : .white.opacity(0.92)))
+        }
+    }
+
+    // Big soft shadows sliding across the sea sell scale and motion for
+    // almost nothing: three radial-gradient ellipses per frame.
+    private func drawCloudShadows(context: GraphicsContext, size: CGSize, time: TimeInterval) {
+        for index in 0..<3 {
+            let speed = 0.006 + Double(index) * 0.003
+            let x = ((time * speed + Double(index) * 0.37).truncatingRemainder(dividingBy: 1.3) - 0.15) * size.width
+            let y = size.height * (0.18 + Double(index) * 0.28)
+            let radius = size.width * (0.10 + CGFloat(index) * 0.03)
+            let center = CGPoint(x: x, y: y)
+            let rect = CGRect(x: center.x - radius * 1.6, y: center.y - radius, width: radius * 3.2, height: radius * 2)
+            context.fill(
+                Path(ellipseIn: rect),
+                with: .radialGradient(
+                    Gradient(colors: [.black.opacity(0.07), .clear]),
+                    center: center,
+                    startRadius: 0,
+                    endRadius: radius * 1.6
+                )
+            )
+        }
+    }
+}
+
+// Water cells are never painted — the shared sea shows through — so the
+// terrain canvas has no visible rectangle edge. Islands get a shallow-water
+// shelf, one cohesive sand silhouette with a soft drop shadow, then the
+// per-cell terrain colors on top.
 private struct WorldTerrainLayer: View {
     let world: WorldMapState
 
     var body: some View {
         Canvas { context, size in
             let projection = WorldMapProjection(size: size)
-            for tile in world.terrainTiles {
+            let landTiles = world.terrainTiles.filter { $0.terrain != .water }
+
+            var shelf = Path()
+            var silhouette = Path()
+            for tile in landTiles {
+                let rect = projection.rect(for: tile.cell, layout: world.layout)
+                shelf.addRect(rect.insetBy(dx: -3.4, dy: -3.4))
+                silhouette.addRect(rect.insetBy(dx: -1.1, dy: -1.1))
+            }
+
+            // Pale turquoise shallows fuse each island group into one shape.
+            context.fill(shelf, with: .color(Color(red: 0.42, green: 0.71, blue: 0.73).opacity(0.55)))
+
+            context.drawLayer { layer in
+                layer.addFilter(.shadow(color: .black.opacity(0.28), radius: 5, x: 0, y: 3))
+                layer.fill(silhouette, with: .color(Color(red: 0.93, green: 0.83, blue: 0.58)))
+            }
+
+            for tile in landTiles {
                 let rect = projection.rect(for: tile.cell, layout: world.layout).insetBy(dx: -0.4, dy: -0.4)
                 context.fill(Path(rect), with: .color(tile.terrain.mapColor))
             }
         }
-        .overlay(
-            LinearGradient(
-                colors: [.white.opacity(0.10), .clear, .black.opacity(0.18)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
     }
 }
 
@@ -125,10 +342,13 @@ private struct TerritoryRegionLayer: View {
                 opacity = 0.29
             }
 
+            // One merged path per region: a continuous tint instead of a
+            // grid of gapped squares.
+            var regionPath = Path()
             for cell in region.cells {
-                let rect = projection.rect(for: cell, layout: world.layout).insetBy(dx: 0.45, dy: 0.45)
-                context.fill(Path(rect), with: .color(region.ownerFaction.mapColor.opacity(opacity)))
+                regionPath.addRect(projection.rect(for: cell, layout: world.layout))
             }
+            context.fill(regionPath, with: .color(region.ownerFaction.mapColor.opacity(opacity)))
         }
     }
 
@@ -216,9 +436,14 @@ private struct WorldTownMarkerView: View {
     let isActive: Bool
     let isSelected: Bool
 
+    @State private var isHovered = false
+
     var body: some View {
         VStack(spacing: 2) {
             ZStack {
+                if isActive {
+                    PulsingRing(color: town.faction.mapColor)
+                }
                 Circle()
                     .fill(town.faction.mapColor.gradient)
                     .frame(width: nodeSize, height: nodeSize)
@@ -241,6 +466,16 @@ private struct WorldTownMarkerView: View {
         }
         .padding(4)
         .background(isSelected ? .black.opacity(0.30) : .clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .scaleEffect(isHovered ? 1.12 : 1)
+        .animation(.smooth(duration: 0.16), value: isHovered)
+        .onHover { isHovered = $0 }
+        .help(helpText)
+    }
+
+    private var helpText: String {
+        if town.isPlayerControlled { return "\(town.name) — your city. Click to inspect, Visit to rule it." }
+        if town.isDuskara { return "\(town.name) — the stronghold. Defeat its \(town.armyStrength) soldiers to win." }
+        return "\(town.name) — garrison of \(town.armyStrength). Click to inspect or attack."
     }
 
     // Friendly cities show their stockpile; everyone else reveals only
@@ -272,6 +507,25 @@ private struct WorldTownMarkerView: View {
         if isActive { return 27 }
         if town.isDuskara { return 29 }
         return isSelected ? 25 : 20
+    }
+}
+
+// Slow expanding ring under the active town so the player's "you are here"
+// reads at a glance.
+private struct PulsingRing: View {
+    let color: Color
+    @State private var expanded = false
+
+    var body: some View {
+        Circle()
+            .stroke(color.opacity(expanded ? 0 : 0.75), lineWidth: 2)
+            .frame(width: 30, height: 30)
+            .scaleEffect(expanded ? 1.8 : 0.85)
+            .onAppear {
+                withAnimation(.easeOut(duration: 2.0).repeatForever(autoreverses: false)) {
+                    expanded = true
+                }
+            }
     }
 }
 
@@ -358,7 +612,9 @@ private extension TerrainKind {
         case .mountains: return Color(red: 0.62, green: 0.60, blue: 0.54)
         case .desert: return Color(red: 0.85, green: 0.75, blue: 0.52)
         case .coast: return Color(red: 0.93, green: 0.83, blue: 0.58)
-        case .water: return Color(red: 0.25, green: 0.51, blue: 0.58)
+        // Matches the map's open-sea backdrop; water cells are not painted
+        // over it, so any mismatch here would resurrect the old border seam.
+        case .water: return Color(red: 0.28, green: 0.56, blue: 0.62)
         }
     }
 }

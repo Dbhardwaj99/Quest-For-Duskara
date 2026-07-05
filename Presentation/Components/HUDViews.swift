@@ -14,12 +14,12 @@ struct TopHUDView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(town.name)
-                        .font(.headline.weight(.heavy))
+                        .font(DuskaraTheme.Fonts.heading)
                         .foregroundStyle(.white.opacity(0.96))
-                    HStack(spacing: 10) {
-                        HUDMetric(systemImage: "sun.max.fill", text: "Day \(day)")
-                        HUDMetric(systemImage: "shield.fill", text: "\(armyStrength)")
-                        HUDMetric(systemImage: "person.2.fill", text: "\(freePeople)/\(capacity)")
+                    HStack(spacing: 12) {
+                        HUDMetric(systemImage: "sun.max.fill", value: "Day \(day)")
+                        HUDMetric(systemImage: "shield.fill", value: "\(armyStrength)")
+                        HUDMetric(systemImage: "person.2.fill", value: "\(freePeople)/\(capacity)")
                     }
                 }
                 Spacer(minLength: 10)
@@ -41,7 +41,7 @@ struct TopHUDView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(DuskaraTheme.hudFill, in: UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14)))
+        .background(DuskaraTheme.hudGlassFill, in: UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14)))
         .overlay(
             UnevenRoundedRectangle(cornerRadii: .init(topLeading: 18, bottomLeading: 14, bottomTrailing: 18, topTrailing: 14))
                 .stroke(DuskaraTheme.glassStroke, lineWidth: 1)
@@ -66,15 +66,21 @@ struct TopHUDView: View {
     }
 }
 
+// Icon stays small and dim; the number carries the weight.
 private struct HUDMetric: View {
     let systemImage: String
-    let text: String
+    let value: String
 
     var body: some View {
-        Label(text, systemImage: systemImage)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.82))
-            .labelStyle(.titleAndIcon)
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white.opacity(0.60))
+            Text(value)
+                .font(DuskaraTheme.Fonts.number)
+                .foregroundStyle(.white.opacity(0.94))
+                .contentTransition(.numericText())
+        }
     }
 }
 
@@ -116,7 +122,7 @@ struct DuskaraButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.subheadline.weight(.bold))
+            .font(DuskaraTheme.Fonts.subheading)
             .foregroundStyle(prominent ? .white : DuskaraTheme.ink)
             .lineLimit(1)
             .minimumScaleFactor(0.78)

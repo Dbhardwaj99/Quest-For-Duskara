@@ -7,11 +7,11 @@ struct StartSetupView: View {
         HStack(alignment: .center, spacing: 44) {
             VStack(alignment: .leading, spacing: DuskaraTheme.spacingM) {
                 Text("Quest for Duskara")
-                    .font(.largeTitle.weight(.black))
+                    .font(DuskaraTheme.Fonts.hero)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.leading)
                 Text("Found your first settlement by choosing a starting stockpile.")
-                    .font(.title3.weight(.medium))
+                    .font(DuskaraTheme.Fonts.bodyLarge)
                     .foregroundStyle(.white.opacity(0.78))
                     .multilineTextAlignment(.leading)
             }
@@ -19,7 +19,7 @@ struct StartSetupView: View {
 
             VStack(alignment: .center, spacing: DuskaraTheme.spacingM) {
                 Text("Choose Difficulty")
-                    .font(.headline.weight(.bold))
+                    .font(DuskaraTheme.Fonts.heading)
                     .foregroundStyle(DuskaraTheme.ink)
 
                 ForEach(viewModel.difficulty) { mode in
@@ -53,10 +53,10 @@ private struct DifficultyRow: View {
         Button(action: onSelected) {
             VStack(alignment: .leading, spacing: DuskaraTheme.spacingS) {
                 Text(difficulty.title)
-                    .font(.title3.weight(.heavy))
+                    .font(DuskaraTheme.Fonts.heading)
                     .foregroundStyle(.white)
                 Text(difficulty.description)
-                    .font(.caption.weight(.semibold))
+                    .font(DuskaraTheme.Fonts.caption)
                     .foregroundStyle(.white.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
@@ -64,7 +64,7 @@ private struct DifficultyRow: View {
                         HStack(spacing: 4) {
                             ResourcePill(kind: kind, amount: nil)
                             Text("+\(difficulty.modebalance[kind] ?? 0)")
-                                .font(.caption.monospacedDigit().weight(.bold))
+                                .font(DuskaraTheme.Fonts.numberSmall)
                                 .foregroundStyle(.white.opacity(0.92))
                         }
                     }

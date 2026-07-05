@@ -1,5 +1,6 @@
 import RealityKit
 import AppKit
+import Observation
 
 @MainActor
 final class World3DTownViewController: NSViewController {
@@ -30,6 +31,25 @@ final class World3DTownViewController: NSViewController {
         super.viewDidLoad()
         configureScene()
         syncFromGameState()
+        observePlacementState()
+    }
+
+    // SwiftUI's representable update only re-fires if the last sync actually
+    // read the model — a sync skipped mid-gesture reads nothing, dropping the
+    // dependency and stranding placement overlays after Cancel. Observing the
+    // placement state directly guarantees a render on every change.
+    private func observePlacementState() {
+        withObservationTracking { [weak self] in
+            _ = self?.sourceViewModel.placementBuildingKind
+            _ = self?.sourceViewModel.selectedCoordinate
+        } onChange: { [weak self] in
+            let controller = self
+            Task { @MainActor in
+                guard let controller else { return }
+                controller.syncFromGameState()
+                controller.observePlacementState()
+            }
+        }
     }
 
     override func viewDidAppear() {

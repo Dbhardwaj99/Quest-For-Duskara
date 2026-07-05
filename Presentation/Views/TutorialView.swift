@@ -21,7 +21,7 @@ struct TutorialView: View {
                 Spacer()
                 Button("Skip", action: onFinish)
                     .buttonStyle(.plain)
-                    .font(.subheadline.weight(.bold))
+                    .font(DuskaraTheme.Fonts.subheading)
                     .foregroundStyle(.white.opacity(0.72))
                     .accessibilityLabel("Skip tutorial")
             }
@@ -117,12 +117,12 @@ private struct TutorialPageView: View {
 
             VStack(alignment: .leading, spacing: DuskaraTheme.spacingM) {
                 Text(page.title)
-                    .font(.title.weight(.black))
+                    .font(DuskaraTheme.Fonts.title)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.leading)
 
                 Text(page.body)
-                    .font(.body.weight(.medium))
+                    .font(DuskaraTheme.Fonts.bodyLarge)
                     .foregroundStyle(.white.opacity(0.82))
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)

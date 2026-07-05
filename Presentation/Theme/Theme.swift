@@ -1,6 +1,35 @@
 import SwiftUI
+import AppKit
 
 enum DuskaraTheme {
+    /// One project-wide font: Avenir Next Condensed suits the boxy low-poly
+    /// look. Every gameplay view reads through these so the face and scale
+    /// stay consistent. Number fonts use monospaced digits so changing
+    /// amounts and timers don't jitter.
+    enum Fonts {
+        private static func face(_ name: String, _ size: CGFloat, fallback: Font.Weight) -> Font {
+            NSFont(name: name, size: size) != nil
+                ? .custom(name, fixedSize: size)
+                : .system(size: size, weight: fallback)
+        }
+
+        /// Menu/setup hero titles.
+        static let hero = face("AvenirNextCondensed-Heavy", 34, fallback: .black)
+        static let title = face("AvenirNextCondensed-Heavy", 26, fallback: .heavy)
+        static let heading = face("AvenirNextCondensed-Bold", 18, fallback: .bold)
+        /// Long-form copy: taglines, tutorial pages.
+        static let bodyLarge = face("AvenirNextCondensed-Medium", 17, fallback: .medium)
+        static let subheading = face("AvenirNextCondensed-DemiBold", 15, fallback: .semibold)
+        static let body = face("AvenirNextCondensed-Medium", 14, fallback: .medium)
+        static let caption = face("AvenirNextCondensed-DemiBold", 12, fallback: .semibold)
+        /// Tiny badges and micro-labels (pill symbols, status chips).
+        static let label = face("AvenirNextCondensed-DemiBold", 10, fallback: .semibold)
+        /// Key amounts: HUD metrics, resource pill values.
+        static let number = face("AvenirNextCondensed-Bold", 16, fallback: .bold).monospacedDigit()
+        /// Secondary amounts: income deltas, timers.
+        static let numberSmall = face("AvenirNextCondensed-Bold", 11, fallback: .bold).monospacedDigit()
+    }
+
     static let background = LinearGradient(
         colors: [
             Color(red: 0.14, green: 0.19, blue: 0.18),
@@ -32,6 +61,9 @@ enum DuskaraTheme {
     static let glassStroke = Color.white.opacity(0.14)
     /// Shared translucent fill for floating HUD panels over the 3D world.
     static let hudFill = Color(red: 0.13, green: 0.11, blue: 0.09).opacity(0.86)
+    /// Lighter glass fill for the top HUD so it reads as an in-game overlay,
+    /// distinct from the solid building sheets.
+    static let hudGlassFill = Color(red: 0.19, green: 0.16, blue: 0.12).opacity(0.60)
     /// Solid backdrop for sheets, and the card fill that sits on it. Explicit
     /// colors (not .primary/.secondary) so contrast holds in either appearance.
     static let sheetBackground = Color(red: 0.15, green: 0.13, blue: 0.10)

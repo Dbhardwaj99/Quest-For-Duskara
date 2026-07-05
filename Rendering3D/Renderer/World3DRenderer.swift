@@ -11,6 +11,8 @@ final class World3DRenderer {
     private let staticRoot = Entity()
     private let tileRoot = Entity()
     private let overlayRoot = Entity()
+    private let soldierRoot = Entity()
+    private var soldierSignature = ""
 
     private var selectedCoordinate: GridCoordinate?
     private var gridSize = GridSize(columns: 5, rows: 5)
@@ -50,6 +52,7 @@ final class World3DRenderer {
         boardRoot.addChild(staticRoot)
         boardRoot.addChild(tileRoot)
         boardRoot.addChild(overlayRoot)
+        boardRoot.addChild(soldierRoot)
         anchor.addChild(boardRoot)
         arView.scene.anchors.append(anchor)
     }
@@ -107,6 +110,7 @@ final class World3DRenderer {
         }
 
         updatePierDockPoint(town: adapter.town)
+        updateSoldierPieces(town: adapter.town, snapshots: snapshots)
         updatePlacementOverlays(snapshots)
         select(adapter.viewModel.selectedCoordinate)
         reportDiagnosticsIfNeeded()
@@ -330,7 +334,144 @@ final class World3DRenderer {
             y: islandShadow.position.y + 0.006
         )
 
+        addShorelineSurf(
+            boardWidth: boardWidth,
+            boardDepth: boardDepth,
+            y: islandShadow.position.y + 0.004
+        )
+
         spawnBoats(boardWidth: boardWidth, boardDepth: boardDepth, waterY: surfaceY + 0.012)
+        addOceanDecor(surfaceY: surfaceY)
+    }
+
+    // Decorative-only props: no collision components, so taps and gameplay
+    // ignore them. Near props sit inside the boat lanes' inner ring, distant
+    // islets outside the outer ring, and everything avoids the +z corridor
+    // boats use to reach the pier.
+    private func addOceanDecor(surfaceY: Float) {
+        let sand = matte(palette.skirt, roughness: 0.95)
+
+        // Distant low islets with a single palm — depth for the horizon.
+        let isletSpecs: [(angle: Float, radius: Float, size: Float)] = [
+            (0.9, 4.6, 1.0),
+            (2.6, 5.4, 1.35),
+            (-1.9, 5.0, 0.85),
+            (-2.8, 4.4, 0.7)
+        ]
+        for spec in isletSpecs {
+            let islet = Entity()
+            islet.position = SIMD3<Float>(sin(spec.angle) * spec.radius, surfaceY, cos(spec.angle) * spec.radius)
+            staticRoot.addChild(islet)
+
+            let mound = World3DRenderResources.makeSphere(
+                radius: tileSize * 0.42 * spec.size,
+                material: sand,
+                scale: SIMD3<Float>(1.6, 0.28, 1.2)
+            )
+            islet.addChild(mound)
+
+            let trunk = World3DRenderResources.makeCylinder(
+                radius: tileSize * 0.022 * spec.size,
+                height: tileSize * 0.26 * spec.size,
+                material: matte(palette.bark, roughness: 0.9)
+            )
+            trunk.position = SIMD3<Float>(tileSize * 0.08, tileSize * 0.16 * spec.size, 0)
+            islet.addChild(trunk)
+
+            let canopy = World3DRenderResources.makeSphere(
+                radius: tileSize * 0.12 * spec.size,
+                material: matte(palette.frond, roughness: 0.9),
+                scale: SIMD3<Float>(1.5, 0.6, 1.5)
+            )
+            canopy.position = SIMD3<Float>(tileSize * 0.08, tileSize * 0.30 * spec.size, 0)
+            islet.addChild(canopy)
+        }
+
+        // Rocks breaking the surface between the island and the sea lanes.
+        let rockSpecs: [(angle: Float, radius: Float, scale: Float)] = [
+            (0.8, 1.62, 1.0),
+            (2.1, 1.88, 0.75),
+            (-1.1, 1.70, 0.85),
+            (-2.4, 1.92, 1.15)
+        ]
+        for (index, spec) in rockSpecs.enumerated() {
+            let rock = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(tileSize * 0.14, tileSize * 0.10, tileSize * 0.11) * spec.scale,
+                material: matte(index.isMultiple(of: 2) ? palette.deepStone : palette.warmStone, roughness: 0.96),
+                cornerRadius: tileSize * 0.02
+            )
+            rock.position = SIMD3<Float>(sin(spec.angle) * spec.radius, surfaceY + tileSize * 0.02 * spec.scale, cos(spec.angle) * spec.radius)
+            rock.orientation = simd_quatf(angle: spec.angle * 1.7, axis: SIMD3<Float>(0, 1, 0))
+            staticRoot.addChild(rock)
+        }
+
+        // Pale sandbars just breaking the waterline.
+        for (angle, radius) in [(Float(1.5), Float(1.78)), (Float(-0.6), Float(1.95))] {
+            let bar = World3DRenderResources.makeSphere(
+                radius: tileSize * 0.30,
+                material: sand,
+                scale: SIMD3<Float>(1.8, 0.06, 0.9)
+            )
+            bar.position = SIMD3<Float>(sin(angle) * radius, surfaceY + 0.003, cos(angle) * radius)
+            bar.orientation = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 1, 0))
+            staticRoot.addChild(bar)
+        }
+
+        // Bits of driftwood bobbing near the shallows.
+        let debrisSpecs: [(angle: Float, radius: Float)] = [(2.7, 1.75), (-1.7, 1.85), (0.6, 1.98)]
+        for (index, spec) in debrisSpecs.enumerated() {
+            let plank = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(tileSize * 0.10, tileSize * 0.018, tileSize * 0.035),
+                material: matte(palette.cutWood, roughness: 0.92),
+                cornerRadius: tileSize * 0.006
+            )
+            plank.position = SIMD3<Float>(sin(spec.angle) * spec.radius, surfaceY + 0.004, cos(spec.angle) * spec.radius)
+            plank.orientation = simd_quatf(angle: spec.angle * 2.3, axis: SIMD3<Float>(0, 1, 0))
+            staticRoot.addChild(plank)
+            addDriftAnimation(
+                to: plank,
+                offset: SIMD3<Float>(tileSize * 0.03, 0.003, tileSize * 0.02),
+                duration: 3.0 + Double(index) * 0.8
+            )
+        }
+    }
+
+    // Faint white surf strips hugging the island's waterline so the shore
+    // feels alive. Static boxes on a jittered ring around the skirt; every
+    // third one drifts gently. Low alpha keeps it a whisper, not clutter.
+    private func addShorelineSurf(boardWidth: Float, boardDepth: Float, y: Float) {
+        let halfWidth = boardWidth / 2 + tileSize * 0.55
+        let halfDepth = boardDepth / 2 + tileSize * 0.55
+        let count = 16
+
+        for index in 0..<count {
+            let wobble = sin(Float(index) * 2.39)
+            let angle = (Float(index) + 0.5) / Float(count) * .pi * 2 + wobble * 0.14
+            let direction = SIMD2<Float>(sin(angle), cos(angle))
+            // Project the direction onto the island's rectangular footprint,
+            // then push outward a touch so the strip sits just off the skirt.
+            let ringScale = 1 / max(abs(direction.x) / halfWidth, abs(direction.y) / halfDepth)
+            let outward = ringScale + tileSize * (0.12 + (wobble + 1) * 0.14)
+
+            let strip = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(tileSize * (0.26 + (1 - wobble * wobble) * 0.22), 0.005, tileSize * 0.030),
+                // Must be RGB, not NSColor(white:): the material cache reads
+                // RGB components and grayscale-space colors raise.
+                material: matte(NSColor(red: 1, green: 1, blue: 1, alpha: index.isMultiple(of: 2) ? 0.20 : 0.13), roughness: 0.45),
+                cornerRadius: tileSize * 0.010
+            )
+            strip.position = SIMD3<Float>(direction.x * outward, y, direction.y * outward)
+            strip.orientation = simd_quatf(angle: atan2(direction.x, direction.y) + wobble * 0.12, axis: SIMD3<Float>(0, 1, 0))
+            staticRoot.addChild(strip)
+
+            if index.isMultiple(of: 3) {
+                addDriftAnimation(
+                    to: strip,
+                    offset: SIMD3<Float>(direction.x, 0, direction.y) * (tileSize * 0.05),
+                    duration: 2.8 + Double(index % 4) * 0.6
+                )
+            }
+        }
     }
 
     private func addWaterSheen(width: Float, depth: Float, y: Float) {
@@ -490,6 +631,137 @@ final class World3DRenderer {
         pierDockPoint = point
     }
 
+    // MARK: - Soldier pieces
+
+    // Static board-game pieces for the trained roster: up to 3 archers and 3
+    // knights clustered on a grass tile beside the barracks. No collisions,
+    // no per-frame logic; rebuilt only when counts, anchor, or theme change.
+    private func updateSoldierPieces(town: Town, snapshots: [World3DTileSnapshot]) {
+        let archers = min(town.soldierRoster[.archer], 3)
+        let knights = min(town.soldierRoster[.knight], 3)
+        let anchor = soldierAnchorCoordinate(town: town, snapshots: snapshots)
+        let signature = "\(archers)|\(knights)|\(anchor?.x ?? -1),\(anchor?.y ?? -1)|\(WorldTheme.current.rawValue)"
+        guard signature != soldierSignature else { return }
+        soldierSignature = signature
+
+        soldierRoot.children.forEach { $0.removeFromParent() }
+        guard archers + knights > 0, let anchor else { return }
+
+        var base = position(for: anchor)
+        base.y += tileElevation(for: anchor)
+
+        // Archers form the front rank, knights the back, like chess pieces.
+        for (kind, count, rowZ) in [(SoldierKind.archer, archers, Float(0.13)), (.knight, knights, Float(-0.13))] {
+            for slot in 0..<count {
+                let piece = makeSoldierPiece(kind: kind)
+                piece.position = base + SIMD3<Float>(
+                    (Float(slot) - Float(count - 1) / 2) * tileSize * 0.26,
+                    0,
+                    rowZ * tileSize
+                )
+                piece.orientation = simd_quatf(angle: Float(slot) * 0.22 - 0.18, axis: SIMD3<Float>(0, 1, 0))
+                soldierRoot.addChild(piece)
+            }
+        }
+    }
+
+    private func soldierAnchorCoordinate(town: Town, snapshots: [World3DTileSnapshot]) -> GridCoordinate? {
+        var grass = Set<GridCoordinate>()
+        for snapshot in snapshots where snapshot.content == .grass {
+            grass.insert(snapshot.coordinate)
+        }
+        if let barracks = town.buildings.first(where: { $0.kind == .barracks }) {
+            let c = barracks.coordinate
+            let neighbors = [
+                GridCoordinate(x: c.x, y: c.y + 1),
+                GridCoordinate(x: c.x + 1, y: c.y),
+                GridCoordinate(x: c.x, y: c.y - 1),
+                GridCoordinate(x: c.x - 1, y: c.y)
+            ]
+            if let open = neighbors.first(where: grass.contains) { return open }
+        }
+        // No barracks (or it is boxed in): muster on the grass tile nearest
+        // the board center.
+        let centerX = Float(gridSize.columns - 1) / 2
+        let centerY = Float(gridSize.rows - 1) / 2
+        return grass.min {
+            let a = (Float($0.x) - centerX, Float($0.y) - centerY)
+            let b = (Float($1.x) - centerX, Float($1.y) - centerY)
+            return a.0 * a.0 + a.1 * a.1 < b.0 * b.0 + b.1 * b.1
+        }
+    }
+
+    // Blocky chess-piece figure: plinth, tunic body, head, plus a helmet and
+    // shield for knights or a bow and quiver for archers.
+    private func makeSoldierPiece(kind: SoldierKind) -> Entity {
+        let piece = Entity()
+        let s = tileSize
+        let skin = NSColor(red: 0.91, green: 0.75, blue: 0.58, alpha: 1)
+        let tunic = kind == .knight ? palette.bannerRed : palette.forestMoss
+
+        let plinth = World3DRenderResources.makeCylinder(
+            radius: s * 0.058,
+            height: s * 0.022,
+            material: matte(palette.plinthStone, roughness: 0.94)
+        )
+        plinth.position.y = s * 0.011
+        piece.addChild(plinth)
+
+        let body = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(0.072, 0.095, 0.052) * s,
+            material: matte(tunic, roughness: 0.86),
+            cornerRadius: s * 0.012
+        )
+        body.position.y = s * 0.070
+        piece.addChild(body)
+
+        let head = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(repeating: 0.042) * s,
+            material: matte(skin, roughness: 0.88),
+            cornerRadius: s * 0.008
+        )
+        head.position.y = s * 0.139
+        piece.addChild(head)
+
+        switch kind {
+        case .knight:
+            let helmet = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(0.050, 0.020, 0.050) * s,
+                material: matte(palette.paleStone, roughness: 0.60),
+                cornerRadius: s * 0.006
+            )
+            helmet.position.y = s * 0.166
+            piece.addChild(helmet)
+
+            let shield = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(0.014, 0.058, 0.046) * s,
+                material: matte(palette.warmGold, roughness: 0.70),
+                cornerRadius: s * 0.010
+            )
+            shield.position = SIMD3<Float>(0.048, 0.072, 0) * s
+            piece.addChild(shield)
+        case .archer:
+            let bow = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(0.010, 0.105, 0.014) * s,
+                material: matte(palette.bark, roughness: 0.88),
+                cornerRadius: s * 0.005
+            )
+            bow.position = SIMD3<Float>(-0.048, 0.082, 0.012) * s
+            bow.orientation = simd_quatf(angle: 0.16, axis: SIMD3<Float>(0, 0, 1))
+            piece.addChild(bow)
+
+            let quiver = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(0.020, 0.055, 0.020) * s,
+                material: matte(palette.darkTimber, roughness: 0.90),
+                cornerRadius: s * 0.005
+            )
+            quiver.position = SIMD3<Float>(0.018, 0.095, -0.034) * s
+            quiver.orientation = simd_quatf(angle: 0.20, axis: SIMD3<Float>(1, 0, 0))
+            piece.addChild(quiver)
+        }
+        return piece
+    }
+
     private func angleDelta(_ value: Float) -> Float {
         var delta = value.truncatingRemainder(dividingBy: .pi * 2)
         if delta > .pi { delta -= .pi * 2 }
@@ -526,6 +798,34 @@ final class World3DRenderer {
         )
         sail.position = SIMD3<Float>(0, tileSize * 0.19, tileSize * 0.075) * scale
         bobber.addChild(sail)
+
+        // Tiny blocky sailors standing in the hull; they ride the bobber, so
+        // the existing bob animation is all the motion they need. The larger
+        // trader gets a second crew member.
+        let skin = NSColor(red: 0.91, green: 0.75, blue: 0.58, alpha: 1)
+        var crewSpots: [(z: Float, tunic: NSColor)] = [
+            (-0.11, NSColor(red: 0.36, green: 0.42, blue: 0.55, alpha: 1))
+        ]
+        if scale > 1.2 {
+            crewSpots.append((0.14, NSColor(red: 0.56, green: 0.36, blue: 0.28, alpha: 1)))
+        }
+        for spot in crewSpots {
+            let body = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(0.034, 0.052, 0.026) * (tileSize * scale),
+                material: matte(spot.tunic, roughness: 0.88),
+                cornerRadius: tileSize * 0.006 * scale
+            )
+            body.position = SIMD3<Float>(0, 0.054, spot.z) * (tileSize * scale)
+            bobber.addChild(body)
+
+            let head = World3DRenderResources.makeBox(
+                size: SIMD3<Float>(repeating: 0.024) * (tileSize * scale),
+                material: matte(skin, roughness: 0.88),
+                cornerRadius: tileSize * 0.004 * scale
+            )
+            head.position = SIMD3<Float>(0, 0.092, spot.z) * (tileSize * scale)
+            bobber.addChild(head)
+        }
 
         addDriftAnimation(
             to: bobber,
@@ -600,29 +900,61 @@ final class World3DRenderer {
         context.fill(CGRect(x: 0, y: 0, width: size, height: size))
 
         // Single faint stroke pass: sparse thin arcs a touch lighter than
-        // the base color, so the water shimmers instead of looking scaled.
+        // the base color. Spacing, row offset, radius, alpha, and the
+        // occasional missing arc all vary so the tiling reads organic
+        // instead of gridded. A fixed-seed LCG keeps the texture identical
+        // on every build.
         let arcColor = blend(base, with: World3DRenderer.rgbWhite, amount: 0.13)
         context.setLineCap(.round)
-        context.setStrokeColor(arcColor.cgColor)
         context.setLineWidth(2.5)
 
-        let rows = 5
+        var seed: UInt64 = 0x9E37_79B9_7F4A_7C15
+        func unitRandom() -> CGFloat {
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return CGFloat((seed >> 33) & 0xFFFF) / CGFloat(0xFFFF)
+        }
+
+        // Arcs near a border are redrawn wrapped to the opposite side so the
+        // repeating texture stays seamless despite the irregular placement.
+        func strokeWrappedArc(center: CGPoint, radius: CGFloat, alpha: CGFloat) {
+            context.setStrokeColor(arcColor.withAlphaComponent(alpha).cgColor)
+            let pad = radius + 3
+            var xShifts: [CGFloat] = [0]
+            if center.x < pad { xShifts.append(CGFloat(size)) }
+            if center.x > CGFloat(size) - pad { xShifts.append(-CGFloat(size)) }
+            var yShifts: [CGFloat] = [0]
+            if center.y < pad { yShifts.append(CGFloat(size)) }
+            if center.y > CGFloat(size) - pad { yShifts.append(-CGFloat(size)) }
+            for xShift in xShifts {
+                for yShift in yShifts {
+                    context.addArc(
+                        center: CGPoint(x: center.x + xShift, y: center.y + yShift),
+                        radius: radius,
+                        startAngle: .pi * 0.15,
+                        endAngle: .pi * 0.85,
+                        clockwise: false
+                    )
+                    context.strokePath()
+                }
+            }
+        }
+
+        let rows = 6
         let rowHeight = CGFloat(size) / CGFloat(rows)
-        let waveSpacing: CGFloat = CGFloat(size) / 5
+        let baseSpacing = CGFloat(size) / 5
         for row in 0..<rows {
-            let y = rowHeight * (CGFloat(row) + 0.5)
-            let xOffset = row.isMultiple(of: 2) ? 0 : waveSpacing / 2
-            var x = -waveSpacing + xOffset
-            while x < CGFloat(size) + waveSpacing {
-                context.addArc(
+            var x = unitRandom() * baseSpacing
+            while x < CGFloat(size) {
+                let spacing = baseSpacing * (0.72 + unitRandom() * 0.70)
+                defer { x += spacing }
+                // Skip some arcs entirely; the gaps break up the pattern.
+                if unitRandom() < 0.22 { continue }
+                let y = rowHeight * (CGFloat(row) + 0.30 + unitRandom() * 0.40)
+                strokeWrappedArc(
                     center: CGPoint(x: x, y: y),
-                    radius: waveSpacing * 0.24,
-                    startAngle: .pi * 0.15,
-                    endAngle: .pi * 0.85,
-                    clockwise: false
+                    radius: baseSpacing * (0.16 + unitRandom() * 0.15),
+                    alpha: 0.55 + unitRandom() * 0.45
                 )
-                context.strokePath()
-                x += waveSpacing
             }
         }
 

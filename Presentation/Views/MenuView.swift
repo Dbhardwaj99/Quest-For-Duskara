@@ -7,11 +7,11 @@ struct MenuView: View {
         HStack(alignment: .center, spacing: 48) {
             VStack(alignment: .leading, spacing: DuskaraTheme.spacingM) {
                 Text("Quest for Duskara")
-                    .font(.largeTitle.weight(.black))
+                    .font(DuskaraTheme.Fonts.hero)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.leading)
                 Text("Build, train, and sail before dusk claims the isles.")
-                    .font(.title3.weight(.medium))
+                    .font(DuskaraTheme.Fonts.bodyLarge)
                     .foregroundStyle(.white.opacity(0.78))
                     .multilineTextAlignment(.leading)
             }

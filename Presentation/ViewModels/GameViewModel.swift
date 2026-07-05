@@ -1,6 +1,16 @@
 import Foundation
 import Observation
 
+/// One rolling offer from a neighboring free city, shown at the Pier.
+struct TradeOffer: Identifiable {
+    let id = UUID()
+    let cityID: UUID
+    let cityName: String
+    let wants: [ResourceKind: Int]
+    let gives: [ResourceKind: Int]
+    let expiresAt: Date
+}
+
 @MainActor
 @Observable
 final class GameViewModel {
@@ -16,6 +26,8 @@ final class GameViewModel {
     var isBuildMenuPresented = false
     var isWorldMapPresented = false
     var feedback: GameMessage?
+    var currentTradeOffer: TradeOffer?
+    private var tradeCooldownUntil = Date.distantPast
 
     private var clockTask: Task<Void, Never>?
     private var feedbackTask: Task<Void, Never>?
@@ -230,6 +242,8 @@ final class GameViewModel {
         buildingPresentation = nil
         placementBuildingKind = nil
         isWorldMapPresented = false
+        // Offers belong to the town that received them.
+        currentTradeOffer = nil
         saveCurrentGame()
     }
 
@@ -279,6 +293,101 @@ final class GameViewModel {
             }
             saveCurrentGame()
         }
+    }
+
+    // MARK: - Harbor trade
+
+    var tradeOfferSecondsRemaining: Int {
+        guard let offer = currentTradeOffer else { return 0 }
+        return max(0, Int(offer.expiresAt.timeIntervalSinceNow.rounded()))
+    }
+
+    var tradeCooldownSecondsRemaining: Int {
+        max(0, Int(tradeCooldownUntil.timeIntervalSinceNow.rounded()))
+    }
+
+    var hasTradePartners: Bool {
+        tradePartners.isEmpty == false
+    }
+
+    var canAcceptCurrentTrade: Bool {
+        guard let offer = currentTradeOffer else { return false }
+        return activeTown.resources.canAfford(offer.wants)
+    }
+
+    func acceptTradeOffer() {
+        guard let offer = currentTradeOffer else { return }
+        guard activeTown.resources.canAfford(offer.wants) else {
+            show("Not enough resources for this trade.")
+            return
+        }
+        state.updateTown(id: state.activeTownID) { town in
+            _ = town.resources.spend(offer.wants)
+            for (kind, amount) in offer.gives {
+                town.resources.add(kind, amount: amount)
+            }
+        }
+        currentTradeOffer = nil
+        tradeCooldownUntil = Date().addingTimeInterval(60)
+        newsStore.record(.resourceTransfer, message: "You traded with \(offer.cityName)", state: &state)
+        show("Trade completed with \(offer.cityName).")
+        saveCurrentGame()
+    }
+
+    func declineTradeOffer() {
+        guard let offer = currentTradeOffer else { return }
+        currentTradeOffer = nil
+        tradeCooldownUntil = Date().addingTimeInterval(60)
+        show("Declined \(offer.cityName)'s offer.")
+    }
+
+    /// Free (neutral) cities connected to the active town by a sea lane.
+    private var tradePartners: [Town] {
+        state.connections
+            .compactMap { connection -> UUID? in
+                if connection.from == state.activeTownID { return connection.to }
+                if connection.to == state.activeTownID { return connection.from }
+                return nil
+            }
+            .compactMap { state.town(id: $0) }
+            .filter { $0.faction == .neutral }
+    }
+
+    private func updateTradeOffers() {
+        let now = Date()
+        if let offer = currentTradeOffer {
+            let partnerStillFree = state.town(id: offer.cityID)?.faction == .neutral
+            guard now >= offer.expiresAt || partnerStillFree == false else { return }
+            // An ignored offer expires; a fresh one arrives right away.
+            currentTradeOffer = nil
+        }
+        guard now >= tradeCooldownUntil else { return }
+        guard activeTown.buildings.contains(where: { $0.kind == .pier }) else { return }
+        currentTradeOffer = makeTradeOffer()
+    }
+
+    private func makeTradeOffer() -> TradeOffer? {
+        guard let partner = tradePartners.randomElement() else { return nil }
+        let tradable: [ResourceKind] = [.gold, .food, .skill]
+        let amounts: [ResourceKind: ClosedRange<Int>] = [.gold: 15...45, .food: 10...32, .skill: 8...26]
+
+        guard let wantKind = tradable.randomElement() else { return nil }
+        let giveOptions = tradable.filter { $0 != wantKind }
+        guard let giveKind = giveOptions.randomElement() else { return nil }
+
+        var gives = [giveKind: Int.random(in: amounts[giveKind] ?? 10...20)]
+        // Every fourth ship or so sweetens the deal with a second resource.
+        if Int.random(in: 0..<4) == 0, let extra = giveOptions.first(where: { $0 != giveKind }) {
+            gives[extra] = Int.random(in: 5...14)
+        }
+
+        return TradeOffer(
+            cityID: partner.id,
+            cityName: partner.name,
+            wants: [wantKind: Int.random(in: amounts[wantKind] ?? 10...20)],
+            gives: gives,
+            expiresAt: Date().addingTimeInterval(60)
+        )
     }
 
     func canTrain(_ soldier: SoldierKind) -> Bool {
@@ -349,6 +458,7 @@ final class GameViewModel {
     private func tickSecond() {
         guard phase == .town else { return }
         state.elapsedSecondsInDay += 1
+        updateTradeOffers()
         if timeSystem.shouldAdvanceDay(elapsedSeconds: state.elapsedSecondsInDay, balance: balance) {
             simulationSystem.advanceDay(state: &state, balance: balance)
             sanitizePresentationState()

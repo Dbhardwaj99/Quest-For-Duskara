@@ -9,16 +9,19 @@ struct WorldGenerationResult {
 struct WorldGenerator {
     private let terrainGenerator = TerrainGenerator()
 
-    func generate(towns: [Town], seed: Int = 73_021) -> WorldGenerationResult {
+    /// Aspect-corrected center separation that keeps two max-wobble islands
+    /// from ever merging (2 × max island radius, plus a water channel).
+    private let minimumSeparation = 0.135
+
+    func generate(towns: [Town], seed: Int = Int.random(in: 0..<1_000_000)) -> WorldGenerationResult {
         let layout = MapLayout.standard
         let generation = WorldGenerationState(
             seed: seed,
-            algorithmVersion: 2,
-            templateID: "island-realm-v1"
+            algorithmVersion: 3,
+            templateID: "archipelago-v1"
         )
         // Nodes come first: every island is grown around its town's node.
-        let gridColumns = cityGridColumns(for: towns.count)
-        let nodes = makeNodes(towns: towns, layout: layout, gridColumns: gridColumns, seed: seed)
+        let nodes = makeNodes(towns: towns, layout: layout, seed: seed)
         let terrainTiles = terrainGenerator.generateTerrain(layout: layout, seed: seed, nodes: nodes)
         let world = WorldMapState(
             generation: generation,
@@ -26,70 +29,155 @@ struct WorldGenerator {
             terrainTiles: terrainTiles,
             landmarks: makeLandmarks(from: terrainTiles, layout: layout)
         )
-        let connections = makeConnections(townIDs: towns.map(\.id), gridColumns: gridColumns)
+        let connections = makeConnections(nodes: nodes, layout: layout)
 
         return WorldGenerationResult(world: world, nodes: nodes, connections: connections)
     }
 
-    private func makeNodes(
-        towns: [Town],
-        layout: MapLayout,
-        gridColumns: Int,
-        seed: Int
-    ) -> [WorldTownNode] {
+    // Organic archipelago placement: most islands gather around a handful of
+    // cluster centers, the rest scatter loose. Candidates too close to an
+    // existing island are rejected, so islands cluster tightly without ever
+    // merging, and nothing sits on a grid.
+    private func makeNodes(towns: [Town], layout: MapLayout, seed: Int) -> [WorldTownNode] {
         guard towns.isEmpty == false else { return [] }
-        let rows = Int(ceil(Double(towns.count) / Double(max(1, gridColumns))))
-        let xSpan = 1.0 - layout.playableInset * 2.0
-        let ySpan = 1.0 - layout.playableInset * 2.0
+        let inset = layout.playableInset
+        let span = 1.0 - inset * 2.0
 
-        return towns.enumerated().map { index, town in
-            let column = index % gridColumns
-            let row = index / gridColumns
-            let baseX = layout.playableInset + normalizedOffset(column, count: gridColumns) * xSpan
-            let baseY = layout.playableInset + normalizedOffset(row, count: rows) * ySpan
-            let jitterX = WorldNoise.signedValue(seed: seed, index: index, salt: 7) * 0.032
-            let jitterY = WorldNoise.signedValue(seed: seed, index: index, salt: 19) * 0.026
-
-            return WorldTownNode(
-                townID: town.id,
-                x: clamp(baseX + jitterX, min: layout.playableInset, max: 1.0 - layout.playableInset),
-                y: clamp(baseY + jitterY, min: layout.playableInset, max: 1.0 - layout.playableInset)
+        let clusterCount = 4
+        let clusters: [MapPoint] = (0..<clusterCount).map { index in
+            MapPoint(
+                x: inset + WorldNoise.value(seed: seed, column: index, row: 3, salt: 401) * span,
+                y: inset + WorldNoise.value(seed: seed, column: index, row: 9, salt: 409) * span
             )
+        }
+
+        var placed: [MapPoint] = []
+        for index in towns.indices {
+            var best: MapPoint?
+            var bestClearance = -Double.infinity
+
+            for attempt in 0..<50 {
+                let candidate = candidatePoint(
+                    seed: seed, index: index, attempt: attempt,
+                    clusters: clusters, inset: inset, span: span
+                )
+                let clearance = placed
+                    .map { distance(from: candidate, to: $0, aspectRatio: layout.aspectRatio) }
+                    .min() ?? .infinity
+
+                if clearance >= minimumSeparation {
+                    // First valid candidate wins: cluster-biased sampling
+                    // means it usually lands snug beside its neighbors.
+                    best = candidate
+                    bestClearance = clearance
+                    break
+                }
+                if clearance > bestClearance {
+                    best = candidate
+                    bestClearance = clearance
+                }
+            }
+
+            placed.append(best ?? MapPoint(x: 0.5, y: 0.5))
+        }
+
+        return zip(towns, placed).map { town, point in
+            WorldTownNode(townID: town.id, x: point.x, y: point.y)
         }
     }
 
-    private func makeConnections(townIDs: [UUID], gridColumns: Int) -> [TownConnection] {
-        guard townIDs.isEmpty == false else { return [] }
-        let rows = Int(ceil(Double(townIDs.count) / Double(max(1, gridColumns))))
+    private func candidatePoint(
+        seed: Int, index: Int, attempt: Int,
+        clusters: [MapPoint], inset: Double, span: Double
+    ) -> MapPoint {
+        let pick = WorldNoise.value(seed: seed, column: index, row: attempt, salt: 431)
+        let x: Double
+        let y: Double
+        if pick < 0.72 {
+            // Near a cluster center; squared falloff keeps most towns tight.
+            let cluster = clusters[Int(pick * 100) % clusters.count]
+            let radius = 0.05 + pow(WorldNoise.value(seed: seed, column: index, row: attempt, salt: 443), 2) * 0.24
+            let angle = WorldNoise.value(seed: seed, column: index, row: attempt, salt: 457) * .pi * 2
+            x = cluster.x + cos(angle) * radius
+            y = cluster.y + sin(angle) * radius
+        } else {
+            // Loner island anywhere in the playable area.
+            x = inset + WorldNoise.value(seed: seed, column: index, row: attempt, salt: 461) * span
+            y = inset + WorldNoise.value(seed: seed, column: index, row: attempt, salt: 479) * span
+        }
+        return MapPoint(
+            x: clamp(x, min: inset, max: 1.0 - inset),
+            y: clamp(y, min: inset, max: 1.0 - inset)
+        )
+    }
+
+    // Sea lanes: each island links to its nearest neighbors, then any
+    // disconnected groups are stitched together via their closest pair, so
+    // the whole archipelago stays navigable.
+    private func makeConnections(nodes: [WorldTownNode], layout: MapLayout) -> [TownConnection] {
+        guard nodes.count > 1 else { return [] }
         var connections: Set<TownConnection> = []
 
-        func townID(row: Int, column: Int) -> UUID? {
-            guard row >= 0, column >= 0, column < gridColumns else { return nil }
-            let index = row * gridColumns + column
-            guard index >= 0 && index < townIDs.count else { return nil }
-            return townIDs[index]
+        func nodeDistance(_ a: Int, _ b: Int) -> Double {
+            distance(
+                from: MapPoint(x: nodes[a].x, y: nodes[a].y),
+                to: MapPoint(x: nodes[b].x, y: nodes[b].y),
+                aspectRatio: layout.aspectRatio
+            )
         }
 
-        func connect(_ source: UUID?, _ target: UUID?) {
-            guard let source, let target else { return }
-            connections.insert(TownConnection(from: source, to: target))
-        }
-
-        for row in 0..<rows {
-            for column in 0..<gridColumns {
-                let current = townID(row: row, column: column)
-                connect(current, townID(row: row, column: column + 1))
-                connect(current, townID(row: row + 1, column: column))
-
-                if (row + column).isMultiple(of: 2) {
-                    connect(current, townID(row: row + 1, column: column + 1))
-                } else {
-                    connect(current, townID(row: row + 1, column: column - 1))
-                }
+        for index in nodes.indices {
+            let nearest = nodes.indices
+                .filter { $0 != index }
+                .sorted { nodeDistance(index, $0) < nodeDistance(index, $1) }
+                .prefix(2)
+            for neighbor in nearest {
+                connections.insert(TownConnection(from: nodes[index].townID, to: nodes[neighbor].townID))
             }
         }
 
+        // Union-find over the nearest-neighbor graph; bridge components
+        // through their closest pair until one archipelago remains.
+        var parent = Array(nodes.indices)
+        func find(_ value: Int) -> Int {
+            var root = value
+            while parent[root] != root { root = parent[root] }
+            parent[value] = root
+            return root
+        }
+        func union(_ a: Int, _ b: Int) { parent[find(a)] = find(b) }
+
+        let idToIndex = Dictionary(uniqueKeysWithValues: nodes.enumerated().map { ($0.element.townID, $0.offset) })
+        for connection in connections {
+            if let a = idToIndex[connection.from], let b = idToIndex[connection.to] {
+                union(a, b)
+            }
+        }
+
+        while Set(nodes.indices.map(find)).count > 1 {
+            var bestPair: (Int, Int)?
+            var bestDistance = Double.infinity
+            for a in nodes.indices {
+                for b in nodes.indices where find(a) != find(b) {
+                    let separation = nodeDistance(a, b)
+                    if separation < bestDistance {
+                        bestDistance = separation
+                        bestPair = (a, b)
+                    }
+                }
+            }
+            guard let pair = bestPair else { break }
+            connections.insert(TownConnection(from: nodes[pair.0].townID, to: nodes[pair.1].townID))
+            union(pair.0, pair.1)
+        }
+
         return Array(connections)
+    }
+
+    private func distance(from lhs: MapPoint, to rhs: MapPoint, aspectRatio: Double) -> Double {
+        let dx = (lhs.x - rhs.x) * aspectRatio
+        let dy = lhs.y - rhs.y
+        return (dx * dx + dy * dy).squareRoot()
     }
 
     private func makeLandmarks(from tiles: [TerrainTile], layout: MapLayout) -> [WorldLandmark] {
@@ -109,15 +197,6 @@ struct WorldGenerator {
             }
             return WorldLandmark(name: request.0, kind: request.1, position: tile.cell.center(in: layout))
         }
-    }
-
-    private func cityGridColumns(for townCount: Int) -> Int {
-        max(5, Int(ceil(sqrt(Double(max(1, townCount)) * 1.12))))
-    }
-
-    private func normalizedOffset(_ index: Int, count: Int) -> Double {
-        guard count > 1 else { return 0.5 }
-        return Double(index) / Double(count - 1)
     }
 
     private func clamp(_ value: Double, min minimum: Double, max maximum: Double) -> Double {
