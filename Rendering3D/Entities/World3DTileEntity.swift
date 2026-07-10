@@ -906,6 +906,8 @@ struct World3DTileEntity {
         addBox(to: root, size: SIMD3<Float>(0.045, 0.44, 0.045) * tileSize, position: polePosition * tileSize, color: Palette.darkTimber, roughness: 0.92, cornerRadius: tileSize * 0.005)
         let banner = addBox(to: root, size: SIMD3<Float>(0.21, 0.13, 0.035) * tileSize, position: SIMD3<Float>(polePosition.x + side * 0.10, polePosition.y + 0.12, polePosition.z) * tileSize, color: Palette.bannerRed, roughness: 0.78, cornerRadius: tileSize * 0.004)
         banner.orientation = simd_quatf(angle: jitter(coordinate, salt: 901 + Int(side)) * 0.07, axis: SIMD3<Float>(0, 0, 1))
+        // Gentle sway so flags never sit perfectly still.
+        addAmbientDrift(to: banner, offset: SIMD3<Float>(0, 0.006, side * 0.012) * tileSize, duration: 2.8 + Double(side) * 0.4)
         addBox(to: root, size: SIMD3<Float>(0.06, 0.06, 0.06) * tileSize, position: SIMD3<Float>(polePosition.x, polePosition.y + 0.24, polePosition.z) * tileSize, color: Palette.warmGold, roughness: 0.5, cornerRadius: tileSize * 0.01)
     }
 

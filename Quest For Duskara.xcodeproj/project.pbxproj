@@ -19,6 +19,8 @@
 		0018CE282FC9672100307E36 /* SoldierModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CE212FC9672100307E36 /* SoldierModels.swift */; };
 		0018CE3A2FC9672600307E36 /* GameSaveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CE2C2FC9672600307E36 /* GameSaveStore.swift */; };
 		0018CEA02FC9700000307E36 /* World3DTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CEA12FC9700000307E36 /* World3DTheme.swift */; };
+		00DE51032FDC100000307E36 /* OceanShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51012FDC100000307E36 /* OceanShaders.metal */; };
+		00DE51042FDC100000307E36 /* World3DOcean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51022FDC100000307E36 /* World3DOcean.swift */; };
 		003AC6E32FBB30B9007CEC60 /* agents.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6DF2FBB30B9007CEC60 /* agents.md */; };
 		003AC6E42FBB30B9007CEC60 /* design.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E02FBB30B9007CEC60 /* design.md */; };
 		003AC6E52FBB30B9007CEC60 /* screen.png in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E12FBB30B9007CEC60 /* screen.png */; };
@@ -37,6 +39,8 @@
 		0018CE212FC9672100307E36 /* SoldierModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoldierModels.swift; sourceTree = "<group>"; };
 		0018CE2C2FC9672600307E36 /* GameSaveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSaveStore.swift; sourceTree = "<group>"; };
 		0018CEA12FC9700000307E36 /* World3DTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTheme.swift; sourceTree = "<group>"; };
+		00DE51012FDC100000307E36 /* OceanShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = OceanShaders.metal; sourceTree = "<group>"; };
+		00DE51022FDC100000307E36 /* World3DOcean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DOcean.swift; sourceTree = "<group>"; };
 		003AC6DF2FBB30B9007CEC60 /* agents.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = agents.md; sourceTree = "<group>"; };
 		003AC6E02FBB30B9007CEC60 /* design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = design.md; sourceTree = "<group>"; };
 		003AC6E12FBB30B9007CEC60 /* screen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = screen.png; sourceTree = "<group>"; };
@@ -212,6 +216,8 @@
 			children = (
 				0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */,
 				0018CEA12FC9700000307E36 /* World3DTheme.swift */,
+				00DE51012FDC100000307E36 /* OceanShaders.metal */,
+				00DE51022FDC100000307E36 /* World3DOcean.swift */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -360,6 +366,8 @@
 				0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */,
 				0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */,
 				0018CEA02FC9700000307E36 /* World3DTheme.swift in Sources */,
+				00DE51032FDC100000307E36 /* OceanShaders.metal in Sources */,
+				00DE51042FDC100000307E36 /* World3DOcean.swift in Sources */,
 				0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */,
 				0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */,
 				0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */,

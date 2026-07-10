@@ -317,6 +317,25 @@ struct WorldPalette {
     }()
 }
 
+// Design language: every palette color passes through one pastel pass —
+// gently desaturated and lifted so the whole world reads as calm painted
+// wood rather than saturated plastic. Tune here, never per-color.
 private func c(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat) -> NSColor {
+    var hue: CGFloat = 0
+    var saturation: CGFloat = 0
+    var brightness: CGFloat = 0
+    var alpha: CGFloat = 0
     NSColor(red: red, green: green, blue: blue, alpha: 1)
+        .getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+    let pastel = NSColor(
+        hue: hue,
+        saturation: saturation * 0.76,
+        // Lift scales with existing brightness so dark accents (timber,
+        // mine mouths) keep their depth instead of washing out.
+        brightness: min(1, brightness + 0.06 * brightness),
+        alpha: 1
+    )
+    // Renderer material keys require RGB-space colors (getRed raises on
+    // other spaces); hue-initialized colors must be converted back.
+    return pastel.usingColorSpace(.deviceRGB) ?? pastel
 }

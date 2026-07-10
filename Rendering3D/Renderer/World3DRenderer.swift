@@ -1,6 +1,5 @@
 import RealityKit
 import AppKit
-import Metal
 
 @MainActor
 final class World3DRenderer {
@@ -25,6 +24,7 @@ final class World3DRenderer {
     private var lastDiagnosticsReportTime = Date.distantPast
     private var lastPlacementStates: [GridCoordinate: TilePlacementState] = [:]
 
+    private var ocean: World3DOcean?
     private var boatCruisers: [BoatCruiser] = []
     private var boatTimer: Timer?
     private var boatWaterY: Float = -0.16
@@ -35,6 +35,7 @@ final class World3DRenderer {
     private let tileGap: Float = 0.020
     private let tileHeight: Float = 0.060
     private let sun = DirectionalLight()
+    private let fillLight = DirectionalLight()
     // NSColor.white is grayscale-space; blend() needs RGB components.
     static let rgbWhite = NSColor(red: 1, green: 1, blue: 1, alpha: 1)
 
@@ -93,6 +94,7 @@ final class World3DRenderer {
                 continue
             }
 
+            let previousContent = tileSnapshots[snapshot.coordinate]?.content
             tileEntities[snapshot.coordinate]?.removeFromParent()
             World3DDiagnostics.tileDidRebuild()
             let entity = World3DTileEntity.makeTile(
@@ -107,6 +109,17 @@ final class World3DRenderer {
             tileRoot.addChild(entity)
             tileEntities[snapshot.coordinate] = entity
             tileSnapshots[snapshot.coordinate] = snapshot
+
+            // Any real content change touches the living ocean: an expanding
+            // ripple rolls out from the island, and new buildings settle into
+            // place like pieces set down by hand. First render of a town has
+            // no previous content, so loading stays still.
+            if let previousContent, previousContent != snapshot.content {
+                ocean?.ripple(at: SIMD2<Float>(entity.position.x, entity.position.z))
+                if case .building = snapshot.content {
+                    playSettleAnimation(on: entity)
+                }
+            }
         }
 
         updatePierDockPoint(town: adapter.town)
@@ -203,9 +216,20 @@ final class World3DRenderer {
     }
 
     private func configureView() {
-        sun.light.intensity = 4500
+        // Overcast-afternoon lighting: a softened warm sun with real (gentle)
+        // shadows so geometry creates the depth textures never will, plus a
+        // cool fill from the opposite side to keep contrast low.
+        sun.light.intensity = 3200
+        // ponytail: shadows double draw calls; drop maximumDistance or gate
+        // on visual quality if low-end FPS ever suffers.
+        sun.shadow = DirectionalLightComponent.Shadow(maximumDistance: 6, depthBias: 4)
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
+
+        fillLight.light.intensity = 1100
+        fillLight.light.color = NSColor(red: 0.80, green: 0.86, blue: 0.93, alpha: 1)
+        fillLight.orientation = simd_quatf(angle: -.pi / 3.6, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi + .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
+        anchor.addChild(fillLight)
         applyEnvironment()
     }
 
@@ -289,59 +313,61 @@ final class World3DRenderer {
         // any yaw/zoom; the visible ground region stays inside the camera far
         // plane (28) even at max zoom-out on ultra-wide windows.
         let seaSpan = tileSize * 100
-        let waterHeight: Float = 0.018
         // Surface at -0.16 keeps the earth plate/skirt band (top ~-0.085)
         // visibly above the waterline so the island reads as rising from it.
-        let waterY: Float = -0.169
+        let surfaceY: Float = -0.16
 
-        let sea = World3DRenderResources.makeBox(
-            size: SIMD3<Float>(seaSpan, waterHeight, seaSpan),
-            material: matte(palette.waterOpen, roughness: 0.68)
+        // One continuous living plane: Gerstner-style waves, depth coloring,
+        // fresnel, shore foam, and interaction ripples all live in
+        // OceanShaders.metal — no water tiles, no textures.
+        let ocean = World3DOcean(
+            islandHalfExtents: SIMD2<Float>(boardWidth / 2 + 0.09, boardDepth / 2 + 0.09),
+            span: seaSpan,
+            deepColor: palette.waterOpen
         )
-        sea.position.y = waterY
-        staticRoot.addChild(sea)
-
-        let surfaceY = waterY + waterHeight / 2
-
-        // Stylized cartoon water: one static plane with faint ripple arcs
-        // plus a very subtle translucent copy drifting on top. Kept low
-        // contrast so the sea reads calm, not scaly.
-        if let waveTexture = makeCartoonWaveTexture() {
-            let planeMesh = MeshResource.generatePlane(width: seaSpan, depth: seaSpan)
-            let tiles = SIMD2<Float>(repeating: seaSpan / (tileSize * 2.2))
-
-            let surface = ModelEntity(mesh: planeMesh, materials: [waveMaterial(texture: waveTexture, tiles: tiles, opacity: 1)])
-            surface.position.y = surfaceY + 0.001
-            staticRoot.addChild(surface)
-
-            let drift = ModelEntity(mesh: planeMesh, materials: [waveMaterial(texture: waveTexture, tiles: tiles * 1.27, opacity: 0.14)])
-            drift.position.y = surfaceY + 0.004
-            staticRoot.addChild(drift)
-            addDriftAnimation(to: drift, offset: SIMD3<Float>(tileSize * 0.6, 0, tileSize * 0.4), duration: 9)
-        }
-
-        let islandShadow = World3DRenderResources.makeBox(
-            size: SIMD3<Float>(boardWidth + tileSize * 1.5, 0.008, boardDepth + tileSize * 1.5),
-            material: matte(palette.waterShadow, roughness: 0.60),
-            cornerRadius: 0.42
-        )
-        islandShadow.position.y = surfaceY + 0.006
-        staticRoot.addChild(islandShadow)
-
-        addWaterSheen(
-            width: boardWidth + tileSize * 4.5,
-            depth: boardDepth + tileSize * 4.5,
-            y: islandShadow.position.y + 0.006
-        )
-
-        addShorelineSurf(
-            boardWidth: boardWidth,
-            boardDepth: boardDepth,
-            y: islandShadow.position.y + 0.004
-        )
+        ocean.entity.position.y = surfaceY
+        staticRoot.addChild(ocean.entity)
+        self.ocean = ocean
 
         spawnBoats(boardWidth: boardWidth, boardDepth: boardDepth, waterY: surfaceY + 0.012)
         addOceanDecor(surfaceY: surfaceY)
+        addBirds(boardWidth: boardWidth)
+    }
+
+    // Two or three gulls gliding slow circles above the island at staggered
+    // heights — silhouette only, no flapping, no per-frame CPU.
+    private func addBirds(boardWidth: Float) {
+        let plumage = NSColor(red: 0.36, green: 0.42, blue: 0.53, alpha: 1)
+        for index in 0..<3 {
+            let bird = Entity()
+            for side: Float in [-1, 1] {
+                let wing = World3DRenderResources.makeBox(
+                    size: SIMD3<Float>(tileSize * 0.085, 0.006, tileSize * 0.024),
+                    material: matte(plumage, roughness: 0.9),
+                    cornerRadius: 0.002
+                )
+                wing.position.x = side * tileSize * 0.042
+                wing.orientation = simd_quatf(angle: side * 0.38, axis: SIMD3<Float>(0, 0, 1))
+                bird.addChild(wing)
+            }
+            let radius = boardWidth * (0.65 + Float(index) * 0.30)
+            let height = tileSize * (2.1 + Float(index) * 0.55)
+            bird.position = SIMD3<Float>(radius, height, 0)
+            staticRoot.addChild(bird)
+
+            let orbit = OrbitAnimation(
+                duration: 34 + Double(index) * 11,
+                axis: SIMD3<Float>(0, 1, 0),
+                startTransform: Transform(translation: bird.position),
+                spinClockwise: index.isMultiple(of: 2),
+                orientToPath: true,
+                rotationCount: 1,
+                bindTarget: .transform
+            )
+            if let resource = try? AnimationResource.generate(with: orbit) {
+                bird.playAnimation(resource.repeat())
+            }
+        }
     }
 
     // Decorative-only props: no collision components, so taps and gameplay
@@ -432,70 +458,6 @@ final class World3DRenderer {
                 to: plank,
                 offset: SIMD3<Float>(tileSize * 0.03, 0.003, tileSize * 0.02),
                 duration: 3.0 + Double(index) * 0.8
-            )
-        }
-    }
-
-    // Faint white surf strips hugging the island's waterline so the shore
-    // feels alive. Static boxes on a jittered ring around the skirt; every
-    // third one drifts gently. Low alpha keeps it a whisper, not clutter.
-    private func addShorelineSurf(boardWidth: Float, boardDepth: Float, y: Float) {
-        let halfWidth = boardWidth / 2 + tileSize * 0.55
-        let halfDepth = boardDepth / 2 + tileSize * 0.55
-        let count = 16
-
-        for index in 0..<count {
-            let wobble = sin(Float(index) * 2.39)
-            let angle = (Float(index) + 0.5) / Float(count) * .pi * 2 + wobble * 0.14
-            let direction = SIMD2<Float>(sin(angle), cos(angle))
-            // Project the direction onto the island's rectangular footprint,
-            // then push outward a touch so the strip sits just off the skirt.
-            let ringScale = 1 / max(abs(direction.x) / halfWidth, abs(direction.y) / halfDepth)
-            let outward = ringScale + tileSize * (0.12 + (wobble + 1) * 0.14)
-
-            let strip = World3DRenderResources.makeBox(
-                size: SIMD3<Float>(tileSize * (0.26 + (1 - wobble * wobble) * 0.22), 0.005, tileSize * 0.030),
-                // Must be RGB, not NSColor(white:): the material cache reads
-                // RGB components and grayscale-space colors raise.
-                material: matte(NSColor(red: 1, green: 1, blue: 1, alpha: index.isMultiple(of: 2) ? 0.20 : 0.13), roughness: 0.45),
-                cornerRadius: tileSize * 0.010
-            )
-            strip.position = SIMD3<Float>(direction.x * outward, y, direction.y * outward)
-            strip.orientation = simd_quatf(angle: atan2(direction.x, direction.y) + wobble * 0.12, axis: SIMD3<Float>(0, 1, 0))
-            staticRoot.addChild(strip)
-
-            if index.isMultiple(of: 3) {
-                addDriftAnimation(
-                    to: strip,
-                    offset: SIMD3<Float>(direction.x, 0, direction.y) * (tileSize * 0.05),
-                    duration: 2.8 + Double(index % 4) * 0.6
-                )
-            }
-        }
-    }
-
-    private func addWaterSheen(width: Float, depth: Float, y: Float) {
-        let sheenMaterial = matte(palette.waterSheen, roughness: 0.26)
-        let positions: [SIMD3<Float>] = [
-            SIMD3<Float>(-width * 0.26, y, -depth * 0.40),
-            SIMD3<Float>(width * 0.24, y, -depth * 0.33),
-            SIMD3<Float>(-width * 0.34, y, depth * 0.36),
-            SIMD3<Float>(width * 0.30, y, depth * 0.28)
-        ]
-
-        for (index, position) in positions.enumerated() {
-            let sheen = World3DRenderResources.makeBox(
-                size: SIMD3<Float>(tileSize * (0.48 + Float(index % 2) * 0.18), 0.006, tileSize * 0.035),
-                material: sheenMaterial,
-                cornerRadius: tileSize * 0.008
-            )
-            sheen.position = position
-            sheen.orientation = simd_quatf(angle: 0.12 + Float(index) * 0.21, axis: SIMD3<Float>(0, 1, 0))
-            staticRoot.addChild(sheen)
-            addDriftAnimation(
-                to: sheen,
-                offset: SIMD3<Float>(tileSize * 0.14, 0, tileSize * (0.05 + Float(index % 3) * 0.04)),
-                duration: 2.6 + Double(index) * 0.7
             )
         }
     }
@@ -835,6 +797,28 @@ final class World3DRenderer {
         return boat
     }
 
+    // Placement settle: the tile eases down from slightly above with a soft
+    // vertical squash, like a wooden piece pressed gently onto the board.
+    private func playSettleAnimation(on entity: Entity) {
+        let settled = entity.transform
+        var lifted = settled
+        lifted.translation.y += tileSize * 0.14
+        lifted.scale = SIMD3<Float>(0.92, 1.06, 0.92)
+        entity.transform = lifted
+        let animation = FromToByAnimation<Transform>(
+            from: lifted,
+            to: settled,
+            duration: 0.45,
+            timing: .easeOut,
+            bindTarget: .transform
+        )
+        if let resource = try? AnimationResource.generate(with: animation) {
+            entity.playAnimation(resource)
+        } else {
+            entity.transform = settled
+        }
+    }
+
     // Slow autoreversing drift; GPU-side, so no per-frame CPU work.
     private func addDriftAnimation(to entity: Entity, offset: SIMD3<Float>, duration: TimeInterval) {
         var to = entity.transform
@@ -850,118 +834,6 @@ final class World3DRenderer {
         if let resource = try? AnimationResource.generate(with: animation) {
             entity.playAnimation(resource.repeat())
         }
-    }
-
-    private func waveMaterial(texture: TextureResource, tiles: SIMD2<Float>, opacity: Float) -> PhysicallyBasedMaterial {
-        let sampler = MTLSamplerDescriptor()
-        sampler.sAddressMode = .repeat
-        sampler.tAddressMode = .repeat
-        sampler.minFilter = .linear
-        sampler.magFilter = .linear
-        sampler.mipFilter = .linear
-
-        var material = PhysicallyBasedMaterial()
-        material.baseColor = .init(tint: .white, texture: .init(texture, sampler: .init(sampler)))
-        // High roughness + low specular keep the sun from flaring off the
-        // water at glancing camera angles.
-        material.roughness = 0.62
-        material.specular = 0.15
-        material.metallic = 0.0
-        material.textureCoordinateTransform = .init(scale: tiles)
-        if opacity < 1 {
-            material.blending = .transparent(opacity: .init(floatLiteral: opacity))
-        }
-        return material
-    }
-
-    // One texture per theme for the app's lifetime; regenerating it on every
-    // scaffold rebuild (town switches) wasted CPU and allocations.
-    private static var waveTextureCache: [WorldTheme: TextureResource] = [:]
-
-    // Hand-drawn-style tiling texture: water base with offset rows of pale
-    // wave arcs, matching the flat-color cartoon look of the tiles.
-    private func makeCartoonWaveTexture() -> TextureResource? {
-        if let cached = Self.waveTextureCache[WorldTheme.current] {
-            return cached
-        }
-        let size = 256
-        guard let context = CGContext(
-            data: nil,
-            width: size,
-            height: size,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
-
-        let base = palette.waterOpen.usingColorSpace(.deviceRGB) ?? palette.waterOpen
-        context.setFillColor(base.cgColor)
-        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
-
-        // Single faint stroke pass: sparse thin arcs a touch lighter than
-        // the base color. Spacing, row offset, radius, alpha, and the
-        // occasional missing arc all vary so the tiling reads organic
-        // instead of gridded. A fixed-seed LCG keeps the texture identical
-        // on every build.
-        let arcColor = blend(base, with: World3DRenderer.rgbWhite, amount: 0.13)
-        context.setLineCap(.round)
-        context.setLineWidth(2.5)
-
-        var seed: UInt64 = 0x9E37_79B9_7F4A_7C15
-        func unitRandom() -> CGFloat {
-            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
-            return CGFloat((seed >> 33) & 0xFFFF) / CGFloat(0xFFFF)
-        }
-
-        // Arcs near a border are redrawn wrapped to the opposite side so the
-        // repeating texture stays seamless despite the irregular placement.
-        func strokeWrappedArc(center: CGPoint, radius: CGFloat, alpha: CGFloat) {
-            context.setStrokeColor(arcColor.withAlphaComponent(alpha).cgColor)
-            let pad = radius + 3
-            var xShifts: [CGFloat] = [0]
-            if center.x < pad { xShifts.append(CGFloat(size)) }
-            if center.x > CGFloat(size) - pad { xShifts.append(-CGFloat(size)) }
-            var yShifts: [CGFloat] = [0]
-            if center.y < pad { yShifts.append(CGFloat(size)) }
-            if center.y > CGFloat(size) - pad { yShifts.append(-CGFloat(size)) }
-            for xShift in xShifts {
-                for yShift in yShifts {
-                    context.addArc(
-                        center: CGPoint(x: center.x + xShift, y: center.y + yShift),
-                        radius: radius,
-                        startAngle: .pi * 0.15,
-                        endAngle: .pi * 0.85,
-                        clockwise: false
-                    )
-                    context.strokePath()
-                }
-            }
-        }
-
-        let rows = 6
-        let rowHeight = CGFloat(size) / CGFloat(rows)
-        let baseSpacing = CGFloat(size) / 5
-        for row in 0..<rows {
-            var x = unitRandom() * baseSpacing
-            while x < CGFloat(size) {
-                let spacing = baseSpacing * (0.72 + unitRandom() * 0.70)
-                defer { x += spacing }
-                // Skip some arcs entirely; the gaps break up the pattern.
-                if unitRandom() < 0.22 { continue }
-                let y = rowHeight * (CGFloat(row) + 0.30 + unitRandom() * 0.40)
-                strokeWrappedArc(
-                    center: CGPoint(x: x, y: y),
-                    radius: baseSpacing * (0.16 + unitRandom() * 0.15),
-                    alpha: 0.55 + unitRandom() * 0.45
-                )
-            }
-        }
-
-        guard let image = context.makeImage() else { return nil }
-        let texture = try? TextureResource(image: image, options: .init(semantic: .color))
-        Self.waveTextureCache[WorldTheme.current] = texture
-        return texture
     }
 
     private func addCloudCluster(center: SIMD3<Float>, scale: Float) {
