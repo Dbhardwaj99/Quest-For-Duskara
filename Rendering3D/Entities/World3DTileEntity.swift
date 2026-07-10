@@ -14,6 +14,7 @@ struct World3DTileEntity {
     }
 
     private static var templateCache: [TemplateKey: Entity] = [:]
+    private static var buildingModelCache: [BuildingKind: Entity] = [:]
 
     static func makeTile(
         snapshot: World3DTileSnapshot,
@@ -517,6 +518,13 @@ struct World3DTileEntity {
         // The pier is shoreline furniture, not a plinth building: it lays its
         // own boardwalk instead of the stone platform.
         guard kind != .pier else {
+            let dock = Entity()
+            dock.orientation = simd_quatf(angle: shorelineYaw(for: coordinate, gridSize: gridSize), axis: SIMD3<Float>(0, 1, 0))
+            if addBundledBuilding(.pier, to: dock, tileSize: tileSize) {
+                root.addChild(dock)
+                addLevelPips(level, to: root, tileSize: tileSize)
+                return
+            }
             addPier(level: level, to: root, tileSize: tileSize, coordinate: coordinate, gridSize: gridSize)
             return
         }
@@ -540,6 +548,12 @@ struct World3DTileEntity {
         )
         plinth.orientation = simd_quatf(angle: jitter(coordinate, salt: 216) * 0.08, axis: SIMD3<Float>(0, 1, 0))
 
+        if addBundledBuilding(kind, to: root, tileSize: tileSize) {
+            addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 3, around: SIMD2<Float>(0, 0), radius: 0.43)
+            addLevelPips(level, to: root, tileSize: tileSize)
+            return
+        }
+
         switch kind {
         case .house:
             addHouse(level: level, to: root, tileSize: tileSize, coordinate: coordinate)
@@ -554,6 +568,28 @@ struct World3DTileEntity {
         }
 
         addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 3, around: SIMD2<Float>(0, 0), radius: 0.43)
+    }
+
+    private static func addBundledBuilding(_ kind: BuildingKind, to root: Entity, tileSize: Float) -> Bool {
+        guard WorldTheme.current == .village else { return false }
+
+        let template: Entity
+        if let cached = buildingModelCache[kind] {
+            template = cached
+        } else {
+            guard
+                let url = Bundle.main.url(forResource: "building_\(kind.rawValue)", withExtension: "usdz"),
+                let loaded = try? Entity.load(contentsOf: url)
+            else { return false }
+            buildingModelCache[kind] = loaded
+            template = loaded
+        }
+
+        let model = template.clone(recursive: true)
+        model.name = "world3d_building_\(kind.rawValue)"
+        model.scale = SIMD3<Float>(repeating: tileSize)
+        root.addChild(model)
+        return true
     }
 
     private static func addHouse(level: Int, to root: Entity, tileSize: Float, coordinate: GridCoordinate) {

@@ -22,6 +22,11 @@
 		003AC6E32FBB30B9007CEC60 /* agents.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6DF2FBB30B9007CEC60 /* agents.md */; };
 		003AC6E42FBB30B9007CEC60 /* design.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E02FBB30B9007CEC60 /* design.md */; };
 		003AC6E52FBB30B9007CEC60 /* screen.png in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E12FBB30B9007CEC60 /* screen.png */; };
+		00B100012FDB500100000001 /* building_house.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00B110012FDB500100000001 /* building_house.usdz */; };
+		00B100022FDB500100000002 /* building_farm.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00B110022FDB500100000002 /* building_farm.usdz */; };
+		00B100032FDB500100000003 /* building_pier.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00B110032FDB500100000003 /* building_pier.usdz */; };
+		00B100042FDB500100000004 /* building_factory.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00B110042FDB500100000004 /* building_factory.usdz */; };
+		00B100052FDB500100000005 /* building_barracks.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00B110052FDB500100000005 /* building_barracks.usdz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +46,11 @@
 		003AC6E02FBB30B9007CEC60 /* design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = design.md; sourceTree = "<group>"; };
 		003AC6E12FBB30B9007CEC60 /* screen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = screen.png; sourceTree = "<group>"; };
 		005C61792FB7949100C85FA6 /* Quest For Duskara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Quest For Duskara.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		00B110012FDB500100000001 /* building_house.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_house.usdz; sourceTree = "<group>"; };
+		00B110022FDB500100000002 /* building_farm.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_farm.usdz; sourceTree = "<group>"; };
+		00B110032FDB500100000003 /* building_pier.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_pier.usdz; sourceTree = "<group>"; };
+		00B110042FDB500100000004 /* building_factory.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_factory.usdz; sourceTree = "<group>"; };
+		00B110052FDB500100000005 /* building_barracks.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_barracks.usdz; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -228,8 +238,22 @@
 			isa = PBXGroup;
 			children = (
 				0018CDDA2FC9652B00307E36 /* Assets.xcassets */,
+				00B120012FDB500100000001 /* Building Models */,
 			);
 			path = Assets;
+			sourceTree = "<group>";
+		};
+		00B120012FDB500100000001 /* Building Models */ = {
+			isa = PBXGroup;
+			children = (
+				00B110012FDB500100000001 /* building_house.usdz */,
+				00B110022FDB500100000002 /* building_farm.usdz */,
+				00B110032FDB500100000003 /* building_pier.usdz */,
+				00B110042FDB500100000004 /* building_factory.usdz */,
+				00B110052FDB500100000005 /* building_barracks.usdz */,
+			);
+			name = "Building Models";
+			path = Buildings/Models;
 			sourceTree = "<group>";
 		};
 		003AC6E22FBB30B9007CEC60 /* docs */ = {
@@ -339,6 +363,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00B100012FDB500100000001 /* building_house.usdz in Resources */,
+				00B100022FDB500100000002 /* building_farm.usdz in Resources */,
+				00B100032FDB500100000003 /* building_pier.usdz in Resources */,
+				00B100042FDB500100000004 /* building_factory.usdz in Resources */,
+				00B100052FDB500100000005 /* building_barracks.usdz in Resources */,
 				003AC6E32FBB30B9007CEC60 /* agents.md in Resources */,
 				003AC6E42FBB30B9007CEC60 /* design.md in Resources */,
 				0018CE0F2FC9652B00307E36 /* Assets.xcassets in Resources */,
