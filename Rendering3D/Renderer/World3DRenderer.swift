@@ -33,7 +33,7 @@ final class World3DRenderer {
 
     private let tileSize: Float = 0.46
     private let tileGap: Float = 0.020
-    private let tileHeight: Float = 0.060
+    private let tileHeight: Float = 0.085
     private let sun = DirectionalLight()
     private let fillLight = DirectionalLight()
     // NSColor.white is grayscale-space; blend() needs RGB components.
@@ -219,14 +219,14 @@ final class World3DRenderer {
         // Overcast-afternoon lighting: a softened warm sun with real (gentle)
         // shadows so geometry creates the depth textures never will, plus a
         // cool fill from the opposite side to keep contrast low.
-        sun.light.intensity = 3200
+        sun.light.intensity = 2800
         // ponytail: shadows double draw calls; drop maximumDistance or gate
         // on visual quality if low-end FPS ever suffers.
         sun.shadow = DirectionalLightComponent.Shadow(maximumDistance: 6, depthBias: 4)
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
 
-        fillLight.light.intensity = 1100
+        fillLight.light.intensity = 1800
         fillLight.light.color = NSColor(red: 0.80, green: 0.86, blue: 0.93, alpha: 1)
         fillLight.orientation = simd_quatf(angle: -.pi / 3.6, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi + .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(fillLight)
@@ -259,41 +259,24 @@ final class World3DRenderer {
         let boardWidth = terrainWidth(for: gridSize)
         let boardDepth = terrainDepth(for: gridSize)
 
-        let earth = World3DRenderResources.makeBox(
-            size: SIMD3<Float>(boardWidth + 0.14, 0.32, boardDepth + 0.14),
-            material: matte(palette.earth, roughness: 0.96),
-            cornerRadius: 0.18
+        // Dark soil core under the tiles: a thin visible band between the
+        // grass overhang and the sand, like a cut through real earth.
+        let soil = World3DRenderResources.makeBox(
+            size: SIMD3<Float>(boardWidth - 0.02, 0.22, boardDepth - 0.02),
+            material: matte(palette.rootSoil, roughness: 0.97),
+            cornerRadius: 0.10
         )
-        earth.position.y = -0.25
-        staticRoot.addChild(earth)
+        soil.position.y = -0.16
+        staticRoot.addChild(soil)
 
-        addTerrainSkirt(width: boardWidth, depth: boardDepth)
-    }
-
-    private func addTerrainSkirt(width: Float, depth: Float) {
-        let sideMaterial = matte(palette.skirt, roughness: 0.98)
-        let frontBackSize = SIMD3<Float>(width + 0.10, 0.24, 0.11)
-        let sideSize = SIMD3<Float>(0.11, 0.24, depth + 0.10)
-
-        let topZ = depth / 2 + 0.035
-        let sideX = width / 2 + 0.035
-        let y: Float = -0.205
-
-        let front = World3DRenderResources.makeBox(size: frontBackSize, material: sideMaterial, cornerRadius: 0.035)
-        front.position = SIMD3<Float>(0, y, topZ)
-        staticRoot.addChild(front)
-
-        let back = World3DRenderResources.makeBox(size: frontBackSize, material: sideMaterial, cornerRadius: 0.035)
-        back.position = SIMD3<Float>(0, y, -topZ)
-        staticRoot.addChild(back)
-
-        let left = World3DRenderResources.makeBox(size: sideSize, material: sideMaterial, cornerRadius: 0.035)
-        left.position = SIMD3<Float>(-sideX, y, 0)
-        staticRoot.addChild(left)
-
-        let right = World3DRenderResources.makeBox(size: sideSize, material: sideMaterial, cornerRadius: 0.035)
-        right.position = SIMD3<Float>(sideX, y, 0)
-        staticRoot.addChild(right)
+        // Organic sand mound with a wobbling coastline; the shape is shared
+        // with World3DOcean so shader foam hugs the actual shore.
+        let beach = World3DOcean.makeBeach(
+            islandHalfExtents: SIMD2<Float>(boardWidth / 2, boardDepth / 2),
+            tileSize: tileSize,
+            material: matte(palette.skirt, roughness: 0.97)
+        )
+        staticRoot.addChild(beach)
     }
 
     private func addDuskBackdrop(for gridSize: GridSize) {
@@ -321,9 +304,10 @@ final class World3DRenderer {
         // fresnel, shore foam, and interaction ripples all live in
         // OceanShaders.metal — no water tiles, no textures.
         let ocean = World3DOcean(
-            islandHalfExtents: SIMD2<Float>(boardWidth / 2 + 0.09, boardDepth / 2 + 0.09),
+            islandHalfExtents: SIMD2<Float>(boardWidth / 2, boardDepth / 2),
+            tileSize: tileSize,
             span: seaSpan,
-            deepColor: palette.waterOpen
+            deepColor: palette.waterDeep
         )
         ocean.entity.position.y = surfaceY
         staticRoot.addChild(ocean.entity)
@@ -413,7 +397,8 @@ final class World3DRenderer {
             islet.addChild(canopy)
         }
 
-        // Rocks breaking the surface between the island and the sea lanes.
+        // Rounded boulders breaking the surface between the island and the
+        // sea lanes — each a small cluster of two soft domes.
         let rockSpecs: [(angle: Float, radius: Float, scale: Float)] = [
             (0.8, 1.62, 1.0),
             (2.1, 1.88, 0.75),
@@ -421,44 +406,23 @@ final class World3DRenderer {
             (-2.4, 1.92, 1.15)
         ]
         for (index, spec) in rockSpecs.enumerated() {
-            let rock = World3DRenderResources.makeBox(
-                size: SIMD3<Float>(tileSize * 0.14, tileSize * 0.10, tileSize * 0.11) * spec.scale,
-                material: matte(index.isMultiple(of: 2) ? palette.deepStone : palette.warmStone, roughness: 0.96),
-                cornerRadius: tileSize * 0.02
+            let center = SIMD3<Float>(sin(spec.angle) * spec.radius, surfaceY - tileSize * 0.02, cos(spec.angle) * spec.radius)
+            let stone = matte(index.isMultiple(of: 2) ? palette.deepStone : palette.warmStone, roughness: 0.96)
+            let rock = World3DRenderResources.makeSphere(
+                radius: tileSize * 0.09 * spec.scale,
+                material: stone,
+                scale: SIMD3<Float>(1.25, 0.85, 1.05)
             )
-            rock.position = SIMD3<Float>(sin(spec.angle) * spec.radius, surfaceY + tileSize * 0.02 * spec.scale, cos(spec.angle) * spec.radius)
-            rock.orientation = simd_quatf(angle: spec.angle * 1.7, axis: SIMD3<Float>(0, 1, 0))
+            rock.position = center
             staticRoot.addChild(rock)
-        }
 
-        // Pale sandbars just breaking the waterline.
-        for (angle, radius) in [(Float(1.5), Float(1.78)), (Float(-0.6), Float(1.95))] {
-            let bar = World3DRenderResources.makeSphere(
-                radius: tileSize * 0.30,
-                material: sand,
-                scale: SIMD3<Float>(1.8, 0.06, 0.9)
+            let companion = World3DRenderResources.makeSphere(
+                radius: tileSize * 0.055 * spec.scale,
+                material: stone,
+                scale: SIMD3<Float>(1.1, 0.75, 1.2)
             )
-            bar.position = SIMD3<Float>(sin(angle) * radius, surfaceY + 0.003, cos(angle) * radius)
-            bar.orientation = simd_quatf(angle: angle, axis: SIMD3<Float>(0, 1, 0))
-            staticRoot.addChild(bar)
-        }
-
-        // Bits of driftwood bobbing near the shallows.
-        let debrisSpecs: [(angle: Float, radius: Float)] = [(2.7, 1.75), (-1.7, 1.85), (0.6, 1.98)]
-        for (index, spec) in debrisSpecs.enumerated() {
-            let plank = World3DRenderResources.makeBox(
-                size: SIMD3<Float>(tileSize * 0.10, tileSize * 0.018, tileSize * 0.035),
-                material: matte(palette.cutWood, roughness: 0.92),
-                cornerRadius: tileSize * 0.006
-            )
-            plank.position = SIMD3<Float>(sin(spec.angle) * spec.radius, surfaceY + 0.004, cos(spec.angle) * spec.radius)
-            plank.orientation = simd_quatf(angle: spec.angle * 2.3, axis: SIMD3<Float>(0, 1, 0))
-            staticRoot.addChild(plank)
-            addDriftAnimation(
-                to: plank,
-                offset: SIMD3<Float>(tileSize * 0.03, 0.003, tileSize * 0.02),
-                duration: 3.0 + Double(index) * 0.8
-            )
+            companion.position = center + SIMD3<Float>(tileSize * 0.09, -tileSize * 0.01, tileSize * 0.04) * spec.scale
+            staticRoot.addChild(companion)
         }
     }
 
@@ -837,23 +801,30 @@ final class World3DRenderer {
     }
 
     private func addCloudCluster(center: SIMD3<Float>, scale: Float) {
-        // Slightly translucent so the clouds blend into the sky.
-        let cloudMaterial = matte(palette.cloud.withAlphaComponent(0.70), roughness: 1.0)
-        let puffs: [(SIMD3<Float>, Float, SIMD3<Float>, SimpleMaterial)] = [
-            (SIMD3<Float>(-0.12, -0.01, 0), 0.17, SIMD3<Float>(1.7, 0.46, 0.30), cloudMaterial),
-            (SIMD3<Float>(0.02, 0.03, 0.02), 0.22, SIMD3<Float>(1.9, 0.52, 0.32), cloudMaterial),
-            (SIMD3<Float>(0.15, 0.00, -0.01), 0.15, SIMD3<Float>(1.6, 0.42, 0.28), cloudMaterial)
+        // Solid, puffy cumulus: overlapping near-round spheres so clouds read
+        // as sculpted cotton, not translucent pancakes.
+        let cloudMaterial = matte(palette.cloud.withAlphaComponent(0.94), roughness: 1.0)
+        let puffs: [(offset: SIMD3<Float>, radius: Float, scale: SIMD3<Float>)] = [
+            (SIMD3<Float>(-0.24, -0.03, 0.02), 0.16, SIMD3<Float>(1.15, 0.80, 0.95)),
+            (SIMD3<Float>(0.00, 0.06, 0.00), 0.22, SIMD3<Float>(1.20, 0.90, 1.00)),
+            (SIMD3<Float>(0.24, -0.02, -0.03), 0.15, SIMD3<Float>(1.10, 0.78, 0.92)),
+            (SIMD3<Float>(0.08, -0.06, 0.10), 0.13, SIMD3<Float>(1.25, 0.70, 1.05))
         ]
 
+        let cluster = Entity()
+        cluster.position = center
+        staticRoot.addChild(cluster)
         for puff in puffs {
             let cloud = World3DRenderResources.makeSphere(
-                radius: tileSize * puff.1 * scale,
-                material: puff.3,
-                scale: puff.2
+                radius: tileSize * puff.radius * scale,
+                material: cloudMaterial,
+                scale: puff.scale
             )
-            cloud.position = center + puff.0 * (tileSize * scale)
-            staticRoot.addChild(cloud)
+            cloud.position = puff.offset * (tileSize * scale * 2.2)
+            cluster.addChild(cloud)
         }
+        // The whole cluster drifts almost imperceptibly.
+        addDriftAnimation(to: cluster, offset: SIMD3<Float>(tileSize * 0.18, tileSize * 0.03, 0), duration: 14)
     }
 
     // Subtle gold edge frame — no filled slab covering the tile.

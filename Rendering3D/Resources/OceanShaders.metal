@@ -19,9 +19,9 @@ namespace ocean {
 // All amplitudes intentionally small — the water breathes, never churns.
 inline float waveHeight(float2 p, float t) {
     float h = 0.0;
-    h += 0.014 * sin(dot(p, float2(0.55, 0.83)) * 1.4 + t * 0.60);
-    h += 0.008 * sin(dot(p, float2(-0.71, 0.71)) * 3.1 + t * 1.10);
-    h += 0.004 * sin(dot(p, float2(0.94, -0.34)) * 7.0 + t * 1.90);
+    h += 0.020 * sin(dot(p, float2(0.55, 0.83)) * 1.6 + t * 0.55);
+    h += 0.011 * sin(dot(p, float2(-0.71, 0.71)) * 3.3 + t * 1.05);
+    h += 0.005 * sin(dot(p, float2(0.94, -0.34)) * 7.0 + t * 1.80);
     return h;
 }
 
@@ -58,24 +58,33 @@ void oceanSurface(realitykit::surface_parameters params)
     // Deep-water color comes from the theme via the material's base tint;
     // shallow and foam colors are derived from it so themes stay coherent.
     half3 deep = half3(params.material_constants().base_color_tint());
-    half3 shallow = mix(deep, half3(0.62h, 0.88h, 0.86h), 0.55h);
+    half3 mid = mix(deep, half3(0.36h, 0.66h, 0.68h), 0.6h);
+    half3 lagoon = half3(0.55h, 0.84h, 0.82h);
 
-    // Depth coloring: deep far out, lighter turquoise hugging the island.
-    half shallowness = half(exp(-shoreDistance * 1.9));
-    half3 color = mix(deep, shallow, shallowness);
+    // Depth coloring: deep navy far out, a mid teal band, then a bright
+    // turquoise lagoon hugging the sand. Bands kept tight so the island
+    // sits in a small glowing shelf instead of a giant halo.
+    half3 color = mix(deep, mid, half(exp(-shoreDistance * 1.1)));
+    color = mix(color, lagoon, half(exp(-shoreDistance * 4.2)));
+
+    // Crest shading sells the motion: gentle brightening on wave tops,
+    // a touch of deepening in the troughs.
+    float crest = ocean::waveHeight(worldPosition.xz, time) / 0.036;
+    color = mix(color, half3(0.80h, 0.94h, 0.94h), half(saturate(crest) * 0.18));
+    color = mix(color, deep, half(saturate(-crest) * 0.14));
 
     // Fresnel: grazing angles pick up a pale sky sheen.
     float3 normal = ocean::waveNormal(worldPosition.xz, time);
     float3 view = normalize(params.geometry().view_direction());
     float fresnel = pow(1.0 - saturate(dot(normal, view)), 3.0);
-    color = mix(color, half3(0.85h, 0.93h, 0.95h), half(fresnel * 0.45));
+    color = mix(color, half3(0.85h, 0.93h, 0.95h), half(fresnel * 0.40));
 
-    // Permanent shoreline foam: a soft band that slowly swells and relaxes.
-    float foamPulse = 0.05 * sin(time * 0.7 + shoreDistance * 9.0);
-    float foam = 1.0 - smoothstep(0.03, 0.24 + foamPulse, shoreDistance);
-    // A second, fainter lace line just past the main band.
-    float lace = (1.0 - smoothstep(0.02, 0.10, abs(shoreDistance - 0.36 - foamPulse * 2.0))) * 0.35;
-    color = mix(color, half3(0.97h, 0.98h, 0.97h), half(saturate(foam + lace) * 0.85));
+    // Permanent shoreline foam: one thin bright line at the sand, breathing
+    // slowly, with a fainter lace line drifting just past it.
+    float foamPulse = 0.03 * sin(time * 0.6 + shoreDistance * 7.0);
+    float foam = 1.0 - smoothstep(0.02, 0.11 + foamPulse, shoreDistance);
+    float lace = (1.0 - smoothstep(0.0, 0.045, abs(shoreDistance - 0.24 - foamPulse * 3.0))) * 0.4;
+    color = mix(color, half3(0.98h, 0.99h, 0.98h), half(saturate(foam + lace) * 0.9));
 
     // Interaction ripple: one thin white ring expanding at constant speed.
     float4 ripple = params.uniforms().custom_parameter();

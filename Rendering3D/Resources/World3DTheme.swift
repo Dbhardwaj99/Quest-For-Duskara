@@ -120,6 +120,9 @@ struct WorldPalette {
 
     // Water
     var waterSheen = NSColor(red: 0.72, green: 0.86, blue: 0.86, alpha: 0.45)
+    // Deep-ocean base deliberately bypasses the pastel pass: the sea needs
+    // real depth so the pale island pops against it (see DESIGN_LANGUAGE.md).
+    var waterDeep = NSColor(red: 0.15, green: 0.34, blue: 0.47, alpha: 1)
     var waterOpen = c(0.28, 0.56, 0.62)
     var waterShadow = c(0.20, 0.44, 0.52)
     var tileWater = c(0.24, 0.50, 0.58)
@@ -182,6 +185,7 @@ struct WorldPalette {
         p.cropGold = c(0.90, 0.78, 0.46)
         p.cropGreen = c(0.62, 0.68, 0.40)
         p.mushroomCap = c(0.84, 0.56, 0.36)
+        p.waterDeep = NSColor(red: 0.16, green: 0.40, blue: 0.47, alpha: 1)
         p.waterOpen = c(0.30, 0.62, 0.62)
         p.waterShadow = c(0.22, 0.50, 0.54)
         p.tileWater = c(0.28, 0.56, 0.60)
@@ -236,6 +240,7 @@ struct WorldPalette {
         p.strawShadow = c(0.58, 0.52, 0.38)
         p.fortifiedClay = c(0.60, 0.58, 0.58)
         p.slateRoof = c(0.38, 0.44, 0.54)
+        p.waterDeep = NSColor(red: 0.13, green: 0.31, blue: 0.47, alpha: 1)
         p.waterOpen = c(0.30, 0.56, 0.66)
         p.waterShadow = c(0.22, 0.44, 0.56)
         p.tileWater = c(0.26, 0.48, 0.58)
@@ -293,6 +298,7 @@ struct WorldPalette {
         p.cropGold = c(0.78, 0.68, 0.40)
         p.cropGreen = c(0.44, 0.58, 0.32)
         p.mushroomCap = c(0.85, 0.40, 0.33)
+        p.waterDeep = NSColor(red: 0.10, green: 0.28, blue: 0.36, alpha: 1)
         p.waterOpen = c(0.22, 0.50, 0.52)
         p.waterShadow = c(0.16, 0.40, 0.44)
         p.tileWater = c(0.20, 0.42, 0.48)
