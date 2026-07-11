@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuView: View {
     let onStartGame: () -> Void
+    let onMultiplayer: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 48) {
@@ -23,6 +24,11 @@ struct MenuView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(DuskaraButtonStyle(prominent: true))
+                Button(action: onMultiplayer) {
+                    Label("Multiplayer", systemImage: "person.2.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(DuskaraButtonStyle(prominent: true))
             }
             .padding(DuskaraTheme.spacingL)
             .background(DuskaraTheme.panel, in: RoundedRectangle(cornerRadius: DuskaraTheme.cornerS))
@@ -36,5 +42,5 @@ struct MenuView: View {
 }
 
 #Preview {
-    MenuView(onStartGame: { })
+    MenuView(onStartGame: { }, onMultiplayer: { })
 }

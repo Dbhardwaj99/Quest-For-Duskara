@@ -5,7 +5,7 @@ import FirebaseCore
 @main
 struct Quest_For_DuskaraApp: App {
 	init() {
-		FirebaseApp.configure()
+		FirebaseBootstrap.configureIfNeeded()
 	}
 
     var body: some Scene {
