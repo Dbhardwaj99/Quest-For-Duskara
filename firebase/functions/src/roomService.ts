@@ -3,6 +3,7 @@ import {getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getDatabase} from "firebase-admin/database";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
+import {createInitialGame} from "./gameReducer.js";
 
 if (!getApps().length) initializeApp();
 const db = getFirestore();
@@ -128,11 +129,14 @@ export async function setReadyHandler(request: CallableRequest): Promise<{}> {
 
 export async function startRoomHandler(request: CallableRequest): Promise<{room: RoomSession}> {
   const uid = requireUID(request); const roomID = String(request.data?.roomID ?? ""); const roomRef = db.collection("rooms").doc(roomID);
+  const initial = createInitialGame(roomID);
   await db.runTransaction(async tx => {
     const snap = await tx.get(roomRef); if (!snap.exists) throw new HttpsError("not-found", "Room not found.");
     const data = snap.data()!; const members = data.memberIDs as string[]; const ready = data.readyParticipantIDs as string[];
     if (data.ownerID !== uid) throw new HttpsError("permission-denied", "Only the lobby owner can start.");
     if (members.length !== 2 || !members.every(id => ready.includes(id))) throw new HttpsError("failed-precondition", "Both players must be ready.");
+    tx.create(roomRef.collection("world").doc("definition"), initial.world);
+    tx.create(roomRef.collection("state").doc("checkpoint"), initial.state);
     tx.update(roomRef, {status: "active", "publicSession.status": "active", startedAt: FieldValue.serverTimestamp()});
   });
   return {room: session(roomID, (await roomRef.get()).data()!, uid)};
