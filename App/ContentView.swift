@@ -20,7 +20,7 @@ struct ContentView: View {
                         case .lobby:
                             RoomLobbyView(
                                 viewModel: multiplayer,
-                                onCampaignReady: { },
+                                onCampaignReady: joinCampaign,
                                 onLeave: { path = [.multiplayer] }
                             )
                         }
@@ -42,6 +42,21 @@ struct ContentView: View {
         viewModel.stopClock()
         viewModel = newViewModel
         path = [.game]
+    }
+
+    private func joinCampaign() {
+        guard path.last != .game, let roomID = multiplayer.session?.roomID else { return }
+        Task {
+            do {
+                let replication = RoomReplicationService()
+                try await replication.start(roomID: roomID)
+                viewModel.stopClock()
+                viewModel = GameViewModel(replication: replication)
+                path.append(.game)
+            } catch {
+                multiplayer.errorMessage = error.localizedDescription
+            }
+        }
     }
 }
 

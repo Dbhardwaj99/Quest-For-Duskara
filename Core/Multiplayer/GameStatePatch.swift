@@ -24,6 +24,33 @@ struct GameStatePatch: Codable, Equatable {
 }
 
 extension GameStatePatch {
+    enum ApplicationError: Error, Equatable {
+        case duplicate
+        case revisionGap(expected: Int, received: Int)
+        case unknownTown(String)
+    }
+
+    func apply(to state: inout MatchState) throws {
+        if revision <= state.revision { throw ApplicationError.duplicate }
+        guard revision == state.revision + 1 else {
+            throw ApplicationError.revisionGap(expected: state.revision + 1, received: revision)
+        }
+        for town in updatedTowns {
+            guard let index = state.towns.firstIndex(where: { $0.id == town.id }) else {
+                throw ApplicationError.unknownTown(town.id)
+            }
+            state.towns[index] = town
+        }
+        state.revision = revision
+        state.day = day
+        state.dayStartServerMillis = dayStartServerMillis
+        state.status = status
+        state.news.insert(contentsOf: appendedNews, at: 0)
+        if state.news.count > 40 { state.news.removeLast(state.news.count - 40) }
+        state.tradeOffers = tradeOffers
+        state.entityCounter = entityCounter
+    }
+
     /// Diffs two assembled states into a patch (used by the local
     /// single-player dispatcher and by contract tests; the server builds
     /// patches the same way).

@@ -7,6 +7,13 @@ struct RoomSnapshot: Equatable {
     var isFromCache: Bool
 }
 
+struct AuthoritativeCheckpoint {
+    var room: RoomSession
+    var world: WorldDefinition
+    var match: MatchState
+    var serverNowMillis: Int64
+}
+
 @MainActor
 final class FirestoreRoomRepository {
     private let store: Firestore
@@ -60,6 +67,19 @@ final class FirestoreRoomRepository {
 
     func verifyMembership(roomID: String) async throws -> RoomSession {
         try await callRoom("fetchCheckpoint", data: ["roomID": roomID], key: "room")
+    }
+
+    func fetchCheckpoint(roomID: String) async throws -> AuthoritativeCheckpoint {
+        let result = try await functions.httpsCallable("fetchCheckpoint").call(["roomID": roomID])
+        guard let value = result.data as? [String: Any], let serverNow = value["serverNowMillis"] as? NSNumber else {
+            throw RoomRepositoryError.invalidResponse
+        }
+        return try AuthoritativeCheckpoint(
+            room: decode(RoomSession.self, from: value["room"] as Any),
+            world: decode(WorldDefinition.self, from: value["world"] as Any),
+            match: decode(MatchState.self, from: value["checkpoint"] as Any),
+            serverNowMillis: serverNow.int64Value
+        )
     }
 
     func observe(roomID: String, onChange: @escaping @MainActor (Result<RoomSnapshot, Error>) -> Void) -> ListenerRegistration {
