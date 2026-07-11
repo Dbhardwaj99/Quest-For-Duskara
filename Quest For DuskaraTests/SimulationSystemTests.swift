@@ -6,7 +6,7 @@ struct SimulationSystemTests {
     let system = SimulationSystem()
     let balance = TestFixtures.balance
 
-    @Test func advanceDayAppliesIncomeAndResetsClock() {
+    @Test func advanceDayAppliesIncome() {
         var roster = SoldierRoster()
         roster.add(.archer, count: 1)
         var state = TestFixtures.state(towns: [
@@ -18,12 +18,9 @@ struct SimulationSystemTests {
                 soldierRoster: roster
             )
         ])
-        state.elapsedSecondsInDay = 60
-
         system.advanceDay(state: &state, balance: balance)
 
         #expect(state.day == 2)
-        #expect(state.elapsedSecondsInDay == 0)
         // Farm income +8 gold +14 food; one archer eats 2 food.
         #expect(state.towns[0].resources[.gold] == 18)
         #expect(state.towns[0].resources[.food] == 22)

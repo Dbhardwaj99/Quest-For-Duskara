@@ -6,7 +6,7 @@ struct ReplicationBoundaryTests {
     let balance = TestFixtures.balance
 
     private func generatedState() -> GameState {
-        WorldMapSystem().makeInitialState(balance: balance)
+        WorldMapSystem().makeInitialState(balance: balance, seed: 4242)
     }
 
     @Test func worldAndMatchRoundTripLosslessly() throws {
@@ -108,7 +108,8 @@ struct LocalCommandDispatcherTests {
         let result = dispatcher.dispatch(
             makeAction(.build(townID: TestFixtures.uuid(1).uuidString, kind: "house", x: 0, y: 0), revision: 0),
             state: &state,
-            balance: balance
+            balance: balance,
+            nowMillis: 0
         )
         #expect(result.status == .accepted)
         #expect(result.revision == 1)
@@ -127,7 +128,8 @@ struct LocalCommandDispatcherTests {
         let result = dispatcher.dispatch(
             makeAction(.build(townID: TestFixtures.uuid(1).uuidString, kind: "house", x: 0, y: 0), revision: 0),
             state: &state,
-            balance: balance
+            balance: balance,
+            nowMillis: 0
         )
         #expect(result.status == .rejected)
         #expect(result.rejectionReason == "Not enough resources.")
@@ -141,7 +143,8 @@ struct LocalCommandDispatcherTests {
         let result = dispatcher.dispatch(
             makeAction(.advanceDay, revision: 3),
             state: &state,
-            balance: balance
+            balance: balance,
+            nowMillis: 0
         )
         #expect(result.status == .rejected)
         #expect(state.day == 1)
@@ -156,7 +159,8 @@ struct LocalCommandDispatcherTests {
         let result = dispatcher.dispatch(
             makeAction(.build(townID: TestFixtures.uuid(2).uuidString, kind: "house", x: 0, y: 0), revision: 0),
             state: &state,
-            balance: balance
+            balance: balance,
+            nowMillis: 0
         )
         #expect(result.status == .rejected)
         #expect(state.towns[1].buildings.isEmpty)
@@ -171,14 +175,15 @@ struct LocalCommandDispatcherTests {
         let result = dispatcher.dispatch(
             makeAction(.attack(fromTownID: TestFixtures.uuid(1).uuidString, targetTownID: TestFixtures.uuid(2).uuidString), revision: 0),
             state: &state,
-            balance: balance
+            balance: balance,
+            nowMillis: 0
         )
         #expect(result.status == .accepted)
         #expect(state.status == .victory)
         #expect(result.patch?.status == .victory)
 
         // Once decided, further commands are refused.
-        let followUp = dispatcher.dispatch(makeAction(.advanceDay, revision: 1), state: &state, balance: balance)
+        let followUp = dispatcher.dispatch(makeAction(.advanceDay, revision: 1), state: &state, balance: balance, nowMillis: 0)
         #expect(followUp.status == .rejected)
     }
 
@@ -187,7 +192,7 @@ struct LocalCommandDispatcherTests {
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1, resources: [.gold: 10], buildings: [TestFixtures.building(1, kind: .pier, x: 0, y: 2)])
         ])
-        let result = dispatcher.dispatch(makeAction(.advanceDay, revision: 0), state: &state, balance: balance)
+        let result = dispatcher.dispatch(makeAction(.advanceDay, revision: 0), state: &state, balance: balance, nowMillis: 0)
         #expect(result.status == .accepted)
         #expect(state.day == 2)
         #expect(state.towns[0].resources[.gold] == 18)

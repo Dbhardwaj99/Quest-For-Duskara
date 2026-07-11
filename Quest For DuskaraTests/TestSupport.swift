@@ -49,7 +49,6 @@ enum TestFixtures {
     ) -> GameState {
         GameState(
             day: day,
-            elapsedSecondsInDay: 0,
             towns: towns,
             worldNodes: [],
             connections: connections

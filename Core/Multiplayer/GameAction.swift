@@ -37,16 +37,18 @@ enum GameActionPayload: Equatable {
     case trainSoldier(townID: String, soldier: String)
     case transferResources(fromTownID: String, toTownID: String, amounts: [String: Int])
     case attack(fromTownID: String, targetTownID: String)
+    case acceptTrade(townID: String, offerID: String)
+    case declineTrade(townID: String, offerID: String)
     case advanceDay
 }
 
 extension GameActionPayload: Codable {
     private enum CodingKeys: String, CodingKey {
-        case type, townID, kind, x, y, buildingID, soldier, fromTownID, toTownID, amounts, targetTownID
+        case type, townID, kind, x, y, buildingID, soldier, fromTownID, toTownID, amounts, targetTownID, offerID
     }
 
     private enum Kind: String, Codable {
-        case build, upgradeBuilding, trainSoldier, transferResources, attack, advanceDay
+        case build, upgradeBuilding, trainSoldier, transferResources, attack, acceptTrade, declineTrade, advanceDay
     }
 
     init(from decoder: Decoder) throws {
@@ -80,6 +82,16 @@ extension GameActionPayload: Codable {
                 fromTownID: try container.decode(String.self, forKey: .fromTownID),
                 targetTownID: try container.decode(String.self, forKey: .targetTownID)
             )
+        case .acceptTrade:
+            self = .acceptTrade(
+                townID: try container.decode(String.self, forKey: .townID),
+                offerID: try container.decode(String.self, forKey: .offerID)
+            )
+        case .declineTrade:
+            self = .declineTrade(
+                townID: try container.decode(String.self, forKey: .townID),
+                offerID: try container.decode(String.self, forKey: .offerID)
+            )
         case .advanceDay:
             self = .advanceDay
         }
@@ -111,6 +123,14 @@ extension GameActionPayload: Codable {
             try container.encode(Kind.attack, forKey: .type)
             try container.encode(fromTownID, forKey: .fromTownID)
             try container.encode(targetTownID, forKey: .targetTownID)
+        case let .acceptTrade(townID, offerID):
+            try container.encode(Kind.acceptTrade, forKey: .type)
+            try container.encode(townID, forKey: .townID)
+            try container.encode(offerID, forKey: .offerID)
+        case let .declineTrade(townID, offerID):
+            try container.encode(Kind.declineTrade, forKey: .type)
+            try container.encode(townID, forKey: .townID)
+            try container.encode(offerID, forKey: .offerID)
         case .advanceDay:
             try container.encode(Kind.advanceDay, forKey: .type)
         }

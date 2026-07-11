@@ -1,14 +1,13 @@
 import Foundation
 import Observation
 
-/// One rolling offer from a neighboring free city, shown at the Pier.
+/// Display projection of a replicated TownTradeOffer, shown at the Pier.
 struct TradeOffer: Identifiable {
-    let id = UUID()
+    let id: String
     let cityID: UUID
     let cityName: String
     let wants: [ResourceKind: Int]
     let gives: [ResourceKind: Int]
-    let expiresAt: Date
 }
 
 @MainActor
@@ -28,8 +27,9 @@ final class GameViewModel {
     var isBuildMenuPresented = false
     var isWorldMapPresented = false
     var feedback: GameMessage?
-    var currentTradeOffer: TradeOffer?
-    private var tradeCooldownUntil = Date.distantPast
+    /// Heartbeat bumped once a second so time-derived display values
+    /// (day progress, trade countdowns) refresh; never used for gameplay.
+    private var clockTick = 0
 
     private var clockTask: Task<Void, Never>?
     private var feedbackTask: Task<Void, Never>?
@@ -37,19 +37,23 @@ final class GameViewModel {
     private let worldMapSystem = WorldMapSystem()
     private let soldierTrainingSystem = SoldierTrainingSystem()
     private let townSystem = TownSystem()
-    // Trade offers stay view-model-local until the reducer owns trade.
-    private let newsStore = NewsStore()
-    private let timeSystem = TimeSystem()
+    private let clockSystem = AuthoritativeClockSystem()
     private let placementValidationSystem = PlacementValidationSystem()
     private let saveStore = GameSaveStore()
     /// Single command route for every mutable gameplay action.
     private let dispatcher: GameCommandDispatching
     private let localParticipantID = "local-player"
 
-    init(balance: GameBalance = GameBalance.duskDefault, dispatcher: GameCommandDispatching? = nil) {
+    init(
+        balance: GameBalance = GameBalance.duskDefault,
+        dispatcher: GameCommandDispatching? = nil,
+        worldSeed: Int? = nil
+    ) {
         self.balance = balance
         self.dispatcher = dispatcher ?? LocalCommandDispatcher()
-        let state = WorldMapSystem().makeInitialState(balance: balance)
+        // The seed is minted once at match creation (by the server in
+        // multiplayer); everything downstream is deterministic.
+        let state = WorldMapSystem().makeInitialState(balance: balance, seed: worldSeed ?? Int.random(in: 0..<1_000_000))
         self.state = state
         self.activeTownID = state.towns.first(where: \.isPlayerControlled)?.id ?? state.towns[0].id
     }
@@ -63,7 +67,7 @@ final class GameViewModel {
             expectedRevision: dispatcher.revision,
             payload: payload
         )
-        let result = dispatcher.dispatch(action, state: &state, balance: balance)
+        let result = dispatcher.dispatch(action, state: &state, balance: balance, nowMillis: clockSystem.clock.nowMillis())
         if result.status == .rejected, let reason = result.rejectionReason {
             show(reason)
         }
@@ -95,7 +99,8 @@ final class GameViewModel {
     }
 
     var dayProgress: Double {
-        timeSystem.progress(elapsedSeconds: state.elapsedSecondsInDay, balance: balance)
+        _ = clockTick
+        return clockSystem.progress(in: state, balance: balance)
     }
 
     var activeArmyStrength: Int {
@@ -148,6 +153,7 @@ final class GameViewModel {
             resources.apply(bonusAllocation)
             town.resources = resources
         }
+        state.dayStartServerMillis = clockSystem.clock.nowMillis()
         phase = .town
         startClock()
         saveCurrentGame()
@@ -242,8 +248,6 @@ final class GameViewModel {
         buildingPresentation = nil
         placementBuildingKind = nil
         isWorldMapPresented = false
-        // Offers belong to the town that received them.
-        currentTradeOffer = nil
         saveCurrentGame()
     }
 
@@ -292,14 +296,27 @@ final class GameViewModel {
     }
 
     // MARK: - Harbor trade
+    //
+    // Offers are replicated state: the reducer generates one seeded offer
+    // per pier town each day. The view model only projects and dispatches.
 
-    var tradeOfferSecondsRemaining: Int {
-        guard let offer = currentTradeOffer else { return 0 }
-        return max(0, Int(offer.expiresAt.timeIntervalSinceNow.rounded()))
+    var currentTradeOffer: TradeOffer? {
+        guard let offer = state.tradeOffers.first(where: { $0.townID == activeTownID }) else { return nil }
+        guard let partner = state.town(id: offer.partnerID), partner.faction == .neutral else { return nil }
+        return TradeOffer(id: offer.id, cityID: partner.id, cityName: partner.name, wants: offer.wants, gives: offer.gives)
     }
 
+    /// Offers last until the day ends.
+    var tradeOfferSecondsRemaining: Int {
+        _ = clockTick
+        return clockSystem.secondsRemainingInDay(in: state, balance: balance)
+    }
+
+    /// The next ship arrives with the new day.
     var tradeCooldownSecondsRemaining: Int {
-        max(0, Int(tradeCooldownUntil.timeIntervalSinceNow.rounded()))
+        _ = clockTick
+        guard currentTradeOffer == nil else { return 0 }
+        return clockSystem.secondsRemainingInDay(in: state, balance: balance)
     }
 
     var hasTradePartners: Bool {
@@ -313,28 +330,19 @@ final class GameViewModel {
 
     func acceptTradeOffer() {
         guard let offer = currentTradeOffer else { return }
-        guard activeTown.resources.canAfford(offer.wants) else {
-            show("Not enough resources for this trade.")
-            return
+        let result = dispatch(.acceptTrade(townID: activeTownID.uuidString, offerID: offer.id))
+        if result.status == .accepted {
+            show("Trade completed with \(offer.cityName).")
+            saveCurrentGame()
         }
-        state.updateTown(id: activeTownID) { town in
-            _ = town.resources.spend(offer.wants)
-            for (kind, amount) in offer.gives {
-                town.resources.add(kind, amount: amount)
-            }
-        }
-        currentTradeOffer = nil
-        tradeCooldownUntil = Date().addingTimeInterval(60)
-        newsStore.record(.resourceTransfer, message: "You traded with \(offer.cityName)", state: &state)
-        show("Trade completed with \(offer.cityName).")
-        saveCurrentGame()
     }
 
     func declineTradeOffer() {
         guard let offer = currentTradeOffer else { return }
-        currentTradeOffer = nil
-        tradeCooldownUntil = Date().addingTimeInterval(60)
-        show("Declined \(offer.cityName)'s offer.")
+        let result = dispatch(.declineTrade(townID: activeTownID.uuidString, offerID: offer.id))
+        if result.status == .accepted {
+            show("Declined \(offer.cityName)'s offer.")
+        }
     }
 
     /// Free (neutral) cities connected to the active town by a sea lane.
@@ -347,43 +355,6 @@ final class GameViewModel {
             }
             .compactMap { state.town(id: $0) }
             .filter { $0.faction == .neutral }
-    }
-
-    private func updateTradeOffers() {
-        let now = Date()
-        if let offer = currentTradeOffer {
-            let partnerStillFree = state.town(id: offer.cityID)?.faction == .neutral
-            guard now >= offer.expiresAt || partnerStillFree == false else { return }
-            // An ignored offer expires; a fresh one arrives right away.
-            currentTradeOffer = nil
-        }
-        guard now >= tradeCooldownUntil else { return }
-        guard activeTown.buildings.contains(where: { $0.kind == .pier }) else { return }
-        currentTradeOffer = makeTradeOffer()
-    }
-
-    private func makeTradeOffer() -> TradeOffer? {
-        guard let partner = tradePartners.randomElement() else { return nil }
-        let tradable: [ResourceKind] = [.gold, .food, .skill]
-        let amounts: [ResourceKind: ClosedRange<Int>] = [.gold: 15...45, .food: 10...32, .skill: 8...26]
-
-        guard let wantKind = tradable.randomElement() else { return nil }
-        let giveOptions = tradable.filter { $0 != wantKind }
-        guard let giveKind = giveOptions.randomElement() else { return nil }
-
-        var gives = [giveKind: Int.random(in: amounts[giveKind] ?? 10...20)]
-        // Every fourth ship or so sweetens the deal with a second resource.
-        if Int.random(in: 0..<4) == 0, let extra = giveOptions.first(where: { $0 != giveKind }) {
-            gives[extra] = Int.random(in: 5...14)
-        }
-
-        return TradeOffer(
-            cityID: partner.id,
-            cityName: partner.name,
-            wants: [wantKind: Int.random(in: amounts[wantKind] ?? 10...20)],
-            gives: gives,
-            expiresAt: Date().addingTimeInterval(60)
-        )
     }
 
     func canTrain(_ soldier: SoldierKind) -> Bool {
@@ -441,15 +412,18 @@ final class GameViewModel {
 
     private func tickSecond() {
         guard phase == .town else { return }
-        state.elapsedSecondsInDay += 1
-        updateTradeOffers()
-        if timeSystem.shouldAdvanceDay(elapsedSeconds: state.elapsedSecondsInDay, balance: balance) {
-            let result = dispatch(.advanceDay)
-            if result.status == .accepted {
-                sanitizePresentationState()
-                reactToMatchStatus()
-                saveCurrentGame()
-            }
+        clockTick += 1
+        // Authoritative catch-up: advance as many whole days as server time
+        // says have passed (more than one after a long suspension).
+        var advancedAny = false
+        while state.status == .active, clockSystem.shouldAdvanceDay(in: state, balance: balance) {
+            guard dispatch(.advanceDay).status == .accepted else { break }
+            advancedAny = true
+        }
+        if advancedAny {
+            sanitizePresentationState()
+            reactToMatchStatus()
+            saveCurrentGame()
         }
     }
 

@@ -592,7 +592,9 @@ struct World3DTileEntity {
         applyCraftedPalette(to: building)
         playCraftedAnimations(in: building)
         if kind == .pier {
-            building.orientation = simd_quatf(angle: shorelineYaw(for: coordinate, gridSize: gridSize) + .pi, axis: SIMD3<Float>(0, 1, 0))
+            let yaw = shorelineYaw(for: coordinate, gridSize: gridSize)
+            building.orientation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+            building.position = SIMD3<Float>(sin(yaw), 0, cos(yaw)) * (tileSize * 0.5)
         }
         return building
     }
