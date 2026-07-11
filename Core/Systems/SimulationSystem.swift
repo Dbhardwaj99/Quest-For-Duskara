@@ -5,7 +5,6 @@ struct SimulationSystem {
 
     func advanceDay(state: inout GameState, balance: GameBalance) {
         state.day += 1
-        state.elapsedSecondsInDay = 0
 
         let buildingSystem = BuildingSystem()
         let resourceSystem = ResourceSystem()

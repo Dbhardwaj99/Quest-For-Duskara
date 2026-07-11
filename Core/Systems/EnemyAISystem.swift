@@ -62,10 +62,12 @@ struct EnemyAISystem {
         let valid = placementValidationSystem.validCoordinates(for: kind, in: town, balance: balance)
         guard valid.isEmpty == false else { return nil }
         let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
+        // Explicit (distance, y, x) ordering: Set iteration is unordered, so
+        // ties must break deterministically for the replicated reducer.
         return valid.min { lhs, rhs in
             let lhsDistance = abs(lhs.x - center.x) + abs(lhs.y - center.y)
             let rhsDistance = abs(rhs.x - center.x) + abs(rhs.y - center.y)
-            return lhsDistance < rhsDistance
+            return (lhsDistance, lhs.y, lhs.x) < (rhsDistance, rhs.y, rhs.x)
         }
     }
 
@@ -137,7 +139,10 @@ struct EnemyAISystem {
     private func targetPriority(_ lhs: AttackCandidate, _ rhs: AttackCandidate) -> Bool {
         if lhs.isDuskara != rhs.isDuskara { return lhs.isDuskara }
         if lhs.distanceToDuskara != rhs.distanceToDuskara { return lhs.distanceToDuskara < rhs.distanceToDuskara }
-        return lhs.defense < rhs.defense
+        if lhs.defense != rhs.defense { return lhs.defense < rhs.defense }
+        // Stable final tie-break so equal candidates sort identically on
+        // every replica.
+        return lhs.townID.uuidString < rhs.townID.uuidString
     }
 
     private func adjacentTownIDs(to townID: UUID, in state: GameState) -> [UUID] {

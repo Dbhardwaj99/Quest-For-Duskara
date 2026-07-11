@@ -8,7 +8,6 @@ struct SavedGame: Codable, Equatable {
     var dayLabel: String
     var world: WorldDefinition
     var match: MatchState
-    var elapsedSecondsInDay: TimeInterval
 }
 
 // Write-only for now: the game autosaves continuously, but every launch
@@ -28,8 +27,7 @@ struct GameSaveStore {
             schemaVersion: SchemaVersion.current,
             dayLabel: dayLabel(for: state.day),
             world: WorldDefinition(state: state),
-            match: MatchState(state: state, roomID: Self.localRoomID, revision: revision),
-            elapsedSecondsInDay: state.elapsedSecondsInDay
+            match: MatchState(state: state, roomID: Self.localRoomID, revision: revision)
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

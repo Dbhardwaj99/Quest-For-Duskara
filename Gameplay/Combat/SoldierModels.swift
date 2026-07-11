@@ -51,6 +51,82 @@ struct SoldierRoster: Codable, Equatable {
         }
     }
 
+    /// Kinds ordered by unit power, strongest first, with the declaration
+    /// order of SoldierKind as the stable tie-break.
+    static func kindsByPowerDescending(using definitions: [SoldierKind: SoldierDefinition]) -> [SoldierKind] {
+        SoldierKind.allCases.sorted {
+            (definitions[$0]?.power ?? 0) > (definitions[$1]?.power ?? 0)
+        }
+    }
+
+    /// Greedily selects whole units, strongest first, whose combined power
+    /// fits within `power`. Used for committing armies and transfers.
+    func fitting(power: Int, using definitions: [SoldierKind: SoldierDefinition]) -> SoldierRoster {
+        var remaining = power
+        var selected = SoldierRoster()
+        for kind in Self.kindsByPowerDescending(using: definitions) {
+            let unitPower = definitions[kind]?.power ?? 0
+            guard unitPower > 0 else { continue }
+            let count = min(self[kind], remaining / unitPower)
+            if count > 0 {
+                selected.add(kind, count: count)
+                remaining -= count * unitPower
+            }
+        }
+        return selected
+    }
+
+    /// Deterministically converts raw strength into whole units, strongest
+    /// first, rounding any remainder up to one extra of the weakest kind so
+    /// a non-zero garrison never dissolves.
+    static func decompose(strength: Int, using definitions: [SoldierKind: SoldierDefinition]) -> SoldierRoster {
+        var roster = SoldierRoster()
+        guard strength > 0 else { return roster }
+        var remaining = strength
+        let kinds = kindsByPowerDescending(using: definitions).filter { (definitions[$0]?.power ?? 0) > 0 }
+        for kind in kinds {
+            let unitPower = definitions[kind]!.power
+            let count = remaining / unitPower
+            if count > 0 {
+                roster.add(kind, count: count)
+                remaining -= count * unitPower
+            }
+        }
+        if remaining > 0, let weakest = kinds.last {
+            roster.add(weakest, count: 1)
+        }
+        return roster
+    }
+
+    mutating func subtract(_ other: SoldierRoster) {
+        for (kind, count) in other.counts {
+            self[kind] = self[kind] - count
+        }
+    }
+
+    mutating func merge(_ other: SoldierRoster) {
+        for (kind, count) in other.counts {
+            self[kind] = self[kind] + count
+        }
+    }
+
+    /// Removes units, weakest first, until at least `strength` power is
+    /// gone or the roster is empty. Returns the power actually removed.
+    @discardableResult
+    mutating func removeStrength(atLeast strength: Int, using definitions: [SoldierKind: SoldierDefinition]) -> Int {
+        var removed = 0
+        let weakestFirst = Self.kindsByPowerDescending(using: definitions).reversed()
+        for kind in weakestFirst {
+            let unitPower = definitions[kind]?.power ?? 0
+            guard unitPower > 0 else { continue }
+            while removed < strength, self[kind] > 0 {
+                self[kind] -= 1
+                removed += unitPower
+            }
+        }
+        return removed
+    }
+
     mutating func removeHighestUpkeepUnit(using definitions: [SoldierKind: SoldierDefinition]) -> SoldierKind? {
         let order = SoldierKind.allCases.sorted {
             (definitions[$1]?.dailyFoodUpkeep ?? 0) < (definitions[$0]?.dailyFoodUpkeep ?? 0)

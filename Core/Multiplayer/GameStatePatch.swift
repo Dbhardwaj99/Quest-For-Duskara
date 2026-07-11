@@ -18,6 +18,9 @@ struct GameStatePatch: Codable, Equatable {
     var updatedTowns: [TownState]
     /// News appended by this action, newest first.
     var appendedNews: [NewsEventDTO]
+    /// Full replacement of the (small) live offer list.
+    var tradeOffers: [TradeOfferDTO]
+    var entityCounter: Int
 }
 
 extension GameStatePatch {
@@ -28,14 +31,13 @@ extension GameStatePatch {
         actionID: String,
         revision: Int,
         before: GameState,
-        after: GameState,
-        dayStartServerMillis: Int64 = 0
+        after: GameState
     ) {
         let beforeTowns = Dictionary(uniqueKeysWithValues: before.towns.map { ($0.id, $0) })
         self.revision = revision
         self.actionID = actionID
         self.day = after.day
-        self.dayStartServerMillis = dayStartServerMillis
+        self.dayStartServerMillis = after.dayStartServerMillis
         self.status = after.status
         self.updatedTowns = after.towns
             .filter { beforeTowns[$0.id] != $0 }
@@ -43,5 +45,7 @@ extension GameStatePatch {
         self.appendedNews = after.newsEvents
             .prefix(max(0, after.newsEvents.count - before.newsEvents.count))
             .map { NewsEventDTO(id: $0.id.uuidString, day: $0.day, kind: $0.kind.rawValue, message: $0.message) }
+        self.tradeOffers = after.tradeOffers.map(TradeOfferDTO.init(offer:))
+        self.entityCounter = after.entityCounter
     }
 }

@@ -13,7 +13,9 @@ struct WorldGenerator {
     /// from ever merging (2 × max island radius, plus a water channel).
     private let minimumSeparation = 0.135
 
-    func generate(towns: [Town], seed: Int = Int.random(in: 0..<1_000_000)) -> WorldGenerationResult {
+    /// The seed is always injected by the match creator; nothing in world
+    /// generation may read entropy from anywhere else.
+    func generate(towns: [Town], seed: Int) -> WorldGenerationResult {
         let layout = MapLayout.standard
         let generation = WorldGenerationState(
             seed: seed,
@@ -27,7 +29,7 @@ struct WorldGenerator {
             generation: generation,
             layout: layout,
             terrainTiles: terrainTiles,
-            landmarks: makeLandmarks(from: terrainTiles, layout: layout)
+            landmarks: makeLandmarks(from: terrainTiles, layout: layout, seed: seed)
         )
         let connections = makeConnections(nodes: nodes, layout: layout)
 
@@ -180,7 +182,8 @@ struct WorldGenerator {
         return (dx * dx + dy * dy).squareRoot()
     }
 
-    private func makeLandmarks(from tiles: [TerrainTile], layout: MapLayout) -> [WorldLandmark] {
+    private func makeLandmarks(from tiles: [TerrainTile], layout: MapLayout, seed: Int) -> [WorldLandmark] {
+        var idRandom = DeterministicRandom(seed: seed, stream: 0x1A_0000)
         let landmarkRequests: [(String, WorldLandmarkKind, TerrainKind, ClosedRange<Double>)] = [
             ("Crownless Stones", .ancientRuin, .plains, 0.18...0.42),
             ("Wyrdwood Shrine", .forestShrine, .forest, 0.28...0.66),
@@ -195,7 +198,7 @@ struct WorldGenerator {
             }) else {
                 return nil
             }
-            return WorldLandmark(name: request.0, kind: request.1, position: tile.cell.center(in: layout))
+            return WorldLandmark(id: idRandom.uuid(), name: request.0, kind: request.1, position: tile.cell.center(in: layout))
         }
     }
 

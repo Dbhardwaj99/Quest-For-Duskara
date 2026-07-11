@@ -6,14 +6,17 @@ struct WorldMapSystem {
     private let worldGenerator = WorldGenerator()
     private let territorySystem = TerritorySystem()
 
-    func makeInitialState(balance: GameBalance) -> GameState {
-        var towns = makeTowns(balance: balance)
+    /// The seed is injected: whoever creates the match (the server in
+    /// multiplayer, the app for local campaigns) decides it, and every
+    /// persistent ID derives from it.
+    func makeInitialState(balance: GameBalance, seed: Int) -> GameState {
+        var towns = makeTowns(balance: balance, seed: seed)
         towns[0].faction = .player
         towns[0].resources = ResourceWallet(balance.baseStartingResources)
         towns[0].armyStrength = 0
 
-        let generatedWorld = worldGenerator.generate(towns: towns)
-        applyInitialDefenses(to: &towns, connections: generatedWorld.connections)
+        let generatedWorld = worldGenerator.generate(towns: towns, seed: seed)
+        applyInitialDefenses(to: &towns, connections: generatedWorld.connections, balance: balance)
         let territory = territorySystem.generateTerritory(
             towns: towns,
             nodes: generatedWorld.nodes,
@@ -22,7 +25,6 @@ struct WorldMapSystem {
 
         return GameState(
             day: 1,
-            elapsedSecondsInDay: 0,
             towns: towns,
             worldNodes: generatedWorld.nodes,
             connections: generatedWorld.connections,
@@ -69,8 +71,19 @@ struct WorldMapSystem {
         guard sourceIndex != targetIndex else { return false }
         guard state.towns.indices.contains(sourceIndex), state.towns.indices.contains(targetIndex) else { return false }
 
-        let sourceStrength = state.towns[sourceIndex].armyStrength
-        let attackStrength = min(committedStrength, sourceStrength)
+        let definitions = balance.soldierDefinitions
+        let source = state.towns[sourceIndex]
+        let sourceStrength = source.armyStrength
+
+        // Commit whole units first (roster is canonical); legacy strength
+        // without units tops the force up for old-save garrisons.
+        let requested = min(committedStrength, sourceStrength)
+        let committedRoster = source.soldierRoster.fitting(power: requested, using: definitions)
+        let committedRosterPower = committedRoster.armyStrength(using: definitions)
+        let legacyPool = max(0, sourceStrength - source.soldierRoster.armyStrength(using: definitions))
+        let legacyCommitted = min(requested - committedRosterPower, legacyPool)
+        let attackStrength = committedRosterPower + legacyCommitted
+
         let target = state.towns[targetIndex]
         let effectiveDefense = combatSystem.effectiveDefenseStrength(for: target, in: state, balance: balance)
         let survivors = combatSystem.winnerSurvivors(
@@ -79,55 +92,36 @@ struct WorldMapSystem {
             balance: balance
         )
 
+        state.towns[sourceIndex].soldierRoster.subtract(committedRoster)
+        state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
+        state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
+
         guard survivors > 0 else {
-            applyFailedAttack(
-                sourceIndex: sourceIndex,
-                targetIndex: targetIndex,
-                attackStrength: attackStrength,
-                sourceStrength: sourceStrength,
-                effectiveDefense: effectiveDefense,
-                state: &state
-            )
+            // Committed force is lost; the defender bleeds units for the
+            // strength thrown at it.
+            let defender = state.towns[targetIndex]
+            let reduction = min(attackStrength, defender.armyStrength)
+            state.towns[targetIndex].soldierRoster.removeStrength(atLeast: reduction, using: definitions)
+            let rosterStrength = state.towns[targetIndex].soldierRoster.armyStrength(using: definitions)
+            state.towns[targetIndex].armyStrength = max(rosterStrength, defender.armyStrength - reduction)
+            state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
             return false
         }
 
-        state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
-        state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
-        state.towns[sourceIndex].soldierRoster.clear()
-
         occupationSystem.applyCapturePenalties(to: &state.towns[targetIndex], balance: balance)
         state.towns[targetIndex].setFaction(attackerFaction)
-        state.towns[targetIndex].armyStrength = survivors
-        state.towns[targetIndex].resources[.soldiers] = survivors
-        state.towns[targetIndex].soldierRoster.clear()
+        // Survivors garrison the capture as whole units, remainder rounded
+        // up to one weakest unit; strength derives from the roster.
+        let garrison = SoldierRoster.decompose(strength: survivors, using: definitions)
+        state.towns[targetIndex].soldierRoster = garrison
+        state.towns[targetIndex].armyStrength = garrison.armyStrength(using: definitions)
+        state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
         territorySystem.reconcileOwnership(in: &state)
         return true
     }
 
-    private func applyFailedAttack(
-        sourceIndex: Int,
-        targetIndex: Int,
-        attackStrength: Int,
-        sourceStrength: Int,
-        effectiveDefense: Int,
-        state: inout GameState
-    ) {
-        state.towns[sourceIndex].armyStrength = max(0, sourceStrength - attackStrength)
-        state.towns[sourceIndex].resources[.soldiers] = state.towns[sourceIndex].armyStrength
-        state.towns[sourceIndex].soldierRoster.clear()
-
-        let defenderGarrison = state.towns[targetIndex].armyStrength
-        let defenderReduction = min(attackStrength, defenderGarrison)
-        state.towns[targetIndex].armyStrength = max(0, defenderGarrison - defenderReduction)
-        if state.towns[targetIndex].isPlayerControlled {
-            state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
-            state.towns[targetIndex].soldierRoster.clear()
-        } else {
-            state.towns[targetIndex].resources[.soldiers] = state.towns[targetIndex].armyStrength
-        }
-    }
-
-    private func makeTowns(balance: GameBalance) -> [Town] {
+    private func makeTowns(balance: GameBalance, seed: Int) -> [Town] {
+        var idRandom = DeterministicRandom(seed: seed, stream: 0x70_0000)
         let layouts: [TownBiomeLayout] = [
             TownBiomeLayout(sides: [.left: .forest, .right: .mountain, .top: .forest, .bottom: .mountain]),
             TownBiomeLayout(sides: [.left: .forest, .top: .forest, .right: .forest, .bottom: .mountain]),
@@ -163,9 +157,10 @@ struct WorldMapSystem {
                 faction = .neutral
             }
             return Town(
+                id: idRandom.uuid(),
                 name: name,
                 resources: resources,
-                buildings: starterBuildings(balance: balance),
+                buildings: starterBuildings(balance: balance, idRandom: &idRandom),
                 biomeLayout: layout,
                 faction: faction,
                 isDuskara: isDuskara,
@@ -174,7 +169,7 @@ struct WorldMapSystem {
         }
     }
 
-    private func applyInitialDefenses(to towns: inout [Town], connections: [TownConnection]) {
+    private func applyInitialDefenses(to towns: inout [Town], connections: [TownConnection], balance: GameBalance) {
         guard let duskaraID = towns.first(where: \.isDuskara)?.id else { return }
         let distances = CombatSystem.graphDistances(from: duskaraID, connections: connections)
         let maxDistance = max(distances.values.max() ?? 1, 1)
@@ -196,18 +191,27 @@ struct WorldMapSystem {
                     defense = 3 + min(5, variation)
                 }
             }
-            towns[index].armyStrength = towns[index].isPlayerControlled ? 0 : defense
+            if towns[index].isPlayerControlled {
+                towns[index].soldierRoster = SoldierRoster()
+                towns[index].armyStrength = 0
+            } else {
+                // The roster is canonical: initial garrisons are whole units
+                // and strength derives from them.
+                let roster = SoldierRoster.decompose(strength: defense, using: balance.soldierDefinitions)
+                towns[index].soldierRoster = roster
+                towns[index].armyStrength = roster.armyStrength(using: balance.soldierDefinitions)
+            }
             towns[index].resources[.soldiers] = towns[index].armyStrength
         }
     }
 
-    private func starterBuildings(balance: GameBalance) -> [BuildingInstance] {
+    private func starterBuildings(balance: GameBalance, idRandom: inout DeterministicRandom) -> [BuildingInstance] {
         let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
         // The pier sits on the board's bottom edge, at the shoreline.
         let shoreline = GridCoordinate(x: center.x, y: balance.gridSize.rows - 1)
         return [
-            BuildingInstance(kind: .house, coordinate: center),
-            BuildingInstance(kind: .pier, coordinate: shoreline)
+            BuildingInstance(id: idRandom.uuid(), kind: .house, coordinate: center),
+            BuildingInstance(id: idRandom.uuid(), kind: .pier, coordinate: shoreline)
         ]
     }
 }
