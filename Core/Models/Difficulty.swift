@@ -29,7 +29,7 @@ enum Difficulty: String, CaseIterable, Identifiable {
 		}
 	}
 
-	var modebalance: [ResourceKind: Int] {
+	var modeBalance: [ResourceKind: Int] {
 		switch self {
 		case .easy:
 			return [

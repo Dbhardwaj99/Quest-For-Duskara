@@ -73,15 +73,15 @@ Combat is deterministic system code, not presentation code. `CombatSystem` compu
 
 `World3DStateAdapter` converts the current town into `World3DTileSnapshot` values. `World3DRenderer` consumes those snapshots, rebuilds terrain scaffolding when the biome layout or grid changes, updates changed tile entities, applies selection state, and reports diagnostics. `World3DRenderResources` centralizes mesh, material, quality, and diagnostics helpers. `World3DTileEntity` builds tile, terrain, building, overlay, forest, and mountain entities.
 
-## Save and Load Architecture
+## Save Architecture
 
 `GameSaveStore` encodes `SavedGame` as JSON in the app documents directory. The save payload contains `GameState` and a day label. It does not contain renderer, camera, navigation, sheet, or debug state.
 
 Root navigation is intentionally simple:
 
 - Start Game creates a fresh `GameViewModel` and opens `GameView`.
-- Load Game decodes `GameState`, initializes `GameViewModel(savedState:)`, and opens `GameView`.
-- Asset Gallery opens `World3DAssetGalleryView` from the menu and is not part of gameplay flow.
+- The current menu does not expose Load Game; `GameSaveStore` is write-only.
+- `World3DAssetGalleryView` exists as a renderer/debug view but is not wired into the current menu flow.
 
 ## Presentation Design
 

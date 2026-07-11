@@ -143,7 +143,7 @@ final class GameViewModel {
     }
 
 	func adjustBonusPresets(for mode: Difficulty) {
-		bonusAllocation = mode.modebalance
+		bonusAllocation = mode.modeBalance
 	}
 
     func startGame() {
