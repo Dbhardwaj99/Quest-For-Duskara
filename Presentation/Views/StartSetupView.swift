@@ -63,7 +63,7 @@ private struct DifficultyRow: View {
                     ForEach(resourceKinds) { kind in
                         HStack(spacing: 4) {
                             ResourcePill(kind: kind, amount: nil)
-                            Text("+\(difficulty.modebalance[kind] ?? 0)")
+                            Text("+\(difficulty.modeBalance[kind] ?? 0)")
                                 .font(DuskaraTheme.Fonts.numberSmall)
                                 .foregroundStyle(.white.opacity(0.92))
                         }
