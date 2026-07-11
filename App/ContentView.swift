@@ -3,17 +3,26 @@ import SwiftUI
 struct ContentView: View {
     @State private var viewModel = GameViewModel()
     @State private var path: [GameRoute] = []
+    @State private var multiplayer = RoomLobbyViewModel()
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
 
     var body: some View {
         ZStack {
             NavigationStack(path: $path) {
-                MenuView(onStartGame: startGame)
+                MenuView(onStartGame: startGame, onMultiplayer: { path = [.multiplayer] })
                     .navigationDestination(for: GameRoute.self) { route in
                         switch route {
                         case .game:
                             GameView(viewModel: viewModel)
                                 .navigationBarBackButtonHidden()
+                        case .multiplayer:
+                            MultiplayerMenuView(viewModel: multiplayer, onJoinedRoom: { path.append(.lobby) })
+                        case .lobby:
+                            RoomLobbyView(
+                                viewModel: multiplayer,
+                                onCampaignReady: { },
+                                onLeave: { path = [.multiplayer] }
+                            )
                         }
                     }
             }
@@ -38,6 +47,8 @@ struct ContentView: View {
 
 private enum GameRoute: Hashable {
     case game
+    case multiplayer
+    case lobby
 }
 
 #Preview {
