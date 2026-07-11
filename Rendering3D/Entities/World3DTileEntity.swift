@@ -593,7 +593,10 @@ struct World3DTileEntity {
         playCraftedAnimations(in: building)
         if kind == .pier {
             let yaw = shorelineYaw(for: coordinate, gridSize: gridSize)
-            building.orientation = simd_quatf(angle: yaw, axis: SIMD3<Float>(0, 1, 0))
+            // The authored pier's deck extends along its local -z axis, the
+            // opposite of the procedural dock. Turn it around before moving
+            // its anchor to the shoreline so the whole deck projects seaward.
+            building.orientation = simd_quatf(angle: yaw + .pi, axis: SIMD3<Float>(0, 1, 0))
             building.position = SIMD3<Float>(sin(yaw), 0, cos(yaw)) * (tileSize * 0.5)
         }
         return building
