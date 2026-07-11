@@ -16,7 +16,8 @@ struct RoomLobbyView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(room.participants) { participant in
                         HStack {
-                            Image(systemName: "person.crop.circle.fill")
+                            Image(systemName: viewModel.onlineParticipantIDs.contains(participant.id) ? "circle.fill" : "circle")
+                                .foregroundStyle(viewModel.onlineParticipantIDs.contains(participant.id) ? .green : .secondary)
                             Text(participant.displayName)
                             if participant.role == .owner { Text("Owner").font(.caption).foregroundStyle(.secondary) }
                             Spacer()

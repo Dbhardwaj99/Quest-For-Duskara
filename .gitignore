@@ -1,0 +1,7 @@
+.DS_Store
+DerivedData/
+firebase/functions/lib/
+firebase/functions/node_modules/
+firebase/.firebase/
+firebase/emulator-data/
+*.xcresult
