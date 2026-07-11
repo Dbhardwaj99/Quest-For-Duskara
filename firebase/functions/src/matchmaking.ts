@@ -1,6 +1,7 @@
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {addParticipant, createRoomHandler, joinRoomHandler, requireUID, RoomSession} from "./roomService.js";
+import {setRoomClaim} from "./notifications.js";
 
 const db = getFirestore();
 
@@ -25,6 +26,7 @@ export async function joinMatchmakingHandler(request: CallableRequest): Promise<
   try {
     room = (await createRoomHandler({...request, data: {visibility: "publicMatchmaking", displayName: request.data?.displayName}} as CallableRequest)).room;
     await addParticipant(room.roomID, opponent.id, opponent.data().displayName);
+    await setRoomClaim(opponent.id, room.roomID, true);
     await Promise.all([
       ticket.set({participantID: uid, status: "assigned", roomID: room.roomID, assignedAt: FieldValue.serverTimestamp()}),
       opponent.ref.set({status: "assigned", roomID: room.roomID, assignedAt: FieldValue.serverTimestamp()}, {merge: true})

@@ -1,0 +1,24 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {"$roomID": {
+      ".read": "auth != null && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
+      "$uid": {"connections": {"$connectionID": {
+        ".write": "auth != null && auth.uid == $uid && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
+        ".validate": "!newData.exists() || (newData.hasOnly(['connectedAt']) && newData.child('connectedAt').isNumber())"
+      }}}
+    }},
+    "lobbies": {"$roomID": {
+      ".read": "auth != null && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
+      "ready": {"$uid": {
+        ".write": "auth != null && auth.uid == $uid && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
+        ".validate": "!newData.exists() || newData.val() == true"
+      }}
+    }},
+    "patches": {"$roomID": {
+      ".read": "auth != null && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
+      ".write": false
+    }}
+  }
+}

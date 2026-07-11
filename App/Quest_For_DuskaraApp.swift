@@ -2,8 +2,15 @@ import SwiftUI
 import AppKit
 import FirebaseCore
 
+final class NotificationAppDelegate: NSObject, NSApplicationDelegate {
+    func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Task { @MainActor in MultiplayerNotificationService.shared.setAPNSToken(deviceToken) }
+    }
+}
+
 @main
 struct Quest_For_DuskaraApp: App {
+	@NSApplicationDelegateAdaptor(NotificationAppDelegate.self) private var notificationDelegate
 	init() {
 		FirebaseBootstrap.configureIfNeeded()
 	}

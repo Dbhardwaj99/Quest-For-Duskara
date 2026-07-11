@@ -1,6 +1,7 @@
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getDatabase} from "firebase-admin/database";
 import {Action, makePatch, MatchState, reduce, WorldDefinition} from "./gameReducer.js";
+import {notifyUsers} from "./notifications.js";
 
 const db = getFirestore(); const rtdb = getDatabase();
 
@@ -14,6 +15,10 @@ export async function advanceRoomDay(roomID: string, nowMillis = Date.now()): Pr
     tx.set(checkpointRef, next); tx.create(room.collection("events").doc(String(next.revision).padStart(12, "0")), {revision: next.revision, actionID: action.actionID, participantID: "server", payload: action.payload, patch, acceptedAt: FieldValue.serverTimestamp()});
   });
   if (patch) await rtdb.ref(`patches/${roomID}/${String((patch as {revision: number}).revision).padStart(12, "0")}`).set(patch);
+  if (patch) {
+    const memberIDs = (await room.get()).data()?.memberIDs as string[] | undefined;
+    if (memberIDs?.length) await notifyUsers(memberIDs, "A new day begins", "Return to your shared campaign.", {kind: "dayAdvance", roomID});
+  }
   return Boolean(patch);
 }
 

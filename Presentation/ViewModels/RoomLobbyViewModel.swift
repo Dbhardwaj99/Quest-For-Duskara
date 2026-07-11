@@ -36,6 +36,7 @@ final class RoomLobbyViewModel {
         screenState = .loading
         do {
             _ = try await auth.authenticate()
+            await MultiplayerNotificationService.shared.start()
             screenState = .idle
         } catch { fail(error, offline: true) }
     }
@@ -111,6 +112,7 @@ final class RoomLobbyViewModel {
         screenState = .lobby
         isStale = false
         UserDefaults.standard.set(room.roomID, forKey: "multiplayer.lastRoomID")
+        Task { try? await auth.refreshRoomClaims() }
         listener?.remove()
         listener = rooms.observe(roomID: room.roomID) { [weak self] result in
             guard let self else { return }
