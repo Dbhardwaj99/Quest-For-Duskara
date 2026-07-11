@@ -24,6 +24,11 @@
 		003AC6E52FBB30B9007CEC60 /* screen.png in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E12FBB30B9007CEC60 /* screen.png */; };
 		00C0A3AF30016951008973B8 /* DESIGN_LANGUAGE.md in Resources */ = {isa = PBXBuildFile; fileRef = 00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */; };
 		00DE51032FDC100000307E36 /* OceanShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51012FDC100000307E36 /* OceanShaders.metal */; };
+		00DE51152FDC200000307E36 /* building_house.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51102FDC200000307E36 /* building_house.usdz */; };
+		00DE51162FDC200000307E36 /* building_pier.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51112FDC200000307E36 /* building_pier.usdz */; };
+		00DE51172FDC200000307E36 /* building_farm.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51122FDC200000307E36 /* building_farm.usdz */; };
+		00DE51182FDC200000307E36 /* building_factory.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51132FDC200000307E36 /* building_factory.usdz */; };
+		00DE51192FDC200000307E36 /* building_barracks.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51142FDC200000307E36 /* building_barracks.usdz */; };
 		00DE51042FDC100000307E36 /* World3DOcean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51022FDC100000307E36 /* World3DOcean.swift */; };
 /* End PBXBuildFile section */
 
@@ -46,15 +51,15 @@
 		005C61792FB7949100C85FA6 /* Quest For Duskara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Quest For Duskara.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DESIGN_LANGUAGE.md; sourceTree = "<group>"; };
 		00DE51012FDC100000307E36 /* OceanShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = OceanShaders.metal; sourceTree = "<group>"; };
+		00DE51102FDC200000307E36 /* building_house.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_house.usdz; sourceTree = "<group>"; };
+		00DE51112FDC200000307E36 /* building_pier.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_pier.usdz; sourceTree = "<group>"; };
+		00DE51122FDC200000307E36 /* building_farm.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_farm.usdz; sourceTree = "<group>"; };
+		00DE51132FDC200000307E36 /* building_factory.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_factory.usdz; sourceTree = "<group>"; };
+		00DE51142FDC200000307E36 /* building_barracks.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_barracks.usdz; sourceTree = "<group>"; };
 		00DE51022FDC100000307E36 /* World3DOcean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DOcean.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0001C7502FDB2363005F1F84 /* history */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = history;
-			sourceTree = "<group>";
-		};
 		0018CE222FC9672100307E36 /* Models */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Models;
@@ -236,6 +241,11 @@
 			isa = PBXGroup;
 			children = (
 				0018CDDA2FC9652B00307E36 /* Assets.xcassets */,
+				00DE51102FDC200000307E36 /* building_house.usdz */,
+				00DE51112FDC200000307E36 /* building_pier.usdz */,
+				00DE51122FDC200000307E36 /* building_farm.usdz */,
+				00DE51132FDC200000307E36 /* building_factory.usdz */,
+				00DE51142FDC200000307E36 /* building_barracks.usdz */,
 			);
 			path = Assets;
 			sourceTree = "<group>";
@@ -244,7 +254,6 @@
 			isa = PBXGroup;
 			children = (
 				00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */,
-				0001C7502FDB2363005F1F84 /* history */,
 				003AC6DF2FBB30B9007CEC60 /* agents.md */,
 				003AC6E02FBB30B9007CEC60 /* design.md */,
 				003AC6E12FBB30B9007CEC60 /* screen.png */,
@@ -290,7 +299,6 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0001C7502FDB2363005F1F84 /* history */,
 				0018CE222FC9672100307E36 /* Models */,
 				0018CE362FC9672600307E36 /* Systems */,
 				0018CE462FC9672900307E36 /* Managers */,
@@ -351,6 +359,11 @@
 				003AC6E32FBB30B9007CEC60 /* agents.md in Resources */,
 				003AC6E42FBB30B9007CEC60 /* design.md in Resources */,
 				0018CE0F2FC9652B00307E36 /* Assets.xcassets in Resources */,
+				00DE51152FDC200000307E36 /* building_house.usdz in Resources */,
+				00DE51162FDC200000307E36 /* building_pier.usdz in Resources */,
+				00DE51172FDC200000307E36 /* building_farm.usdz in Resources */,
+				00DE51182FDC200000307E36 /* building_factory.usdz in Resources */,
+				00DE51192FDC200000307E36 /* building_barracks.usdz in Resources */,
 				003AC6E52FBB30B9007CEC60 /* screen.png in Resources */,
 				00C0A3AF30016951008973B8 /* DESIGN_LANGUAGE.md in Resources */,
 			);
