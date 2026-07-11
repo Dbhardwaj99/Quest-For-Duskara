@@ -1,8 +1,13 @@
 import SwiftUI
 import AppKit
+import FirebaseCore
 
 @main
 struct Quest_For_DuskaraApp: App {
+	init() {
+		FirebaseApp.configure()
+	}
+
     var body: some Scene {
         WindowGroup {
             ContentView()
