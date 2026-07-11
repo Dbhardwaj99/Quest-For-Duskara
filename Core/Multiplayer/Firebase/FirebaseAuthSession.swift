@@ -26,6 +26,11 @@ final class FirebaseAuthSession {
         guard let user = Auth.auth().currentUser else { throw AuthSessionError.notAuthenticated }
         _ = try await user.link(with: credential)
     }
+
+    func refreshRoomClaims() async throws {
+        guard let user = Auth.auth().currentUser else { throw AuthSessionError.notAuthenticated }
+        _ = try await user.getIDTokenResult(forcingRefresh: true)
+    }
 }
 
 enum AuthSessionError: LocalizedError {

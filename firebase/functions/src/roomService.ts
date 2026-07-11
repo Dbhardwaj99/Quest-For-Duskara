@@ -4,6 +4,7 @@ import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getDatabase} from "firebase-admin/database";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {createInitialGame} from "./gameReducer.js";
+import {notifyUsers, setRoomClaim} from "./notifications.js";
 
 if (!getApps().length) initializeApp();
 const db = getFirestore();
@@ -60,6 +61,7 @@ export async function createRoomHandler(request: CallableRequest): Promise<{room
         tx.create(roomRef.collection("members").doc(uid), {...participant, active: true});
         if (codeRef) tx.create(codeRef, {roomID: roomRef.id, createdAt: FieldValue.serverTimestamp()});
       });
+      await setRoomClaim(uid, roomRef.id, true);
       return {room: session(roomRef.id, (await roomRef.get()).data()!, uid)};
     } catch (error) {
       if (!(error instanceof HttpsError) || error.code !== "already-exists") throw error;
@@ -78,6 +80,7 @@ export async function joinRoomHandler(request: CallableRequest): Promise<{room: 
   }
   if (!roomID) throw new HttpsError("not-found", "Room not found.");
   await addParticipant(roomID, uid, request.data?.displayName, request.data?.roomID != null);
+  await setRoomClaim(uid, roomID, true);
   const roomRef = db.collection("rooms").doc(roomID);
   return {room: session(roomID, (await roomRef.get()).data()!, uid)};
 }
@@ -115,6 +118,7 @@ export async function leaveRoomHandler(request: CallableRequest): Promise<{}> {
     tx.update(roomRef, {memberIDs: FieldValue.arrayRemove(uid), ownerID, status, readyParticipantIDs: FieldValue.arrayRemove(uid), "publicSession.participants": participants, "publicSession.status": status});
   });
   await rtdb.ref(`presence/${roomID}/${uid}`).remove();
+  await setRoomClaim(uid, roomID, false);
   return {};
 }
 
@@ -139,5 +143,7 @@ export async function startRoomHandler(request: CallableRequest): Promise<{room:
     tx.create(roomRef.collection("state").doc("checkpoint"), initial.state);
     tx.update(roomRef, {status: "active", "publicSession.status": "active", startedAt: FieldValue.serverTimestamp()});
   });
+  const members = (await roomRef.get()).data()!.memberIDs as string[];
+  await notifyUsers(members.filter(id => id !== uid), "Quest for Duskara", "Your cooperative campaign is ready.", {kind: "roomInvite", roomID});
   return {room: session(roomID, (await roomRef.get()).data()!, uid)};
 }

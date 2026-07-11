@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Document the implemented protocol-shaped boundary and clearly separate it from the missing network runtime.
+Document the Firebase-backed cooperative runtime and its replication boundary.
 
 ## Responsibilities
 
@@ -10,15 +10,15 @@ Document the implemented protocol-shaped boundary and clearly separate it from t
 
 ## Data flow
 
-Local play: `GameViewModel → GameAction → LocalCommandDispatcher → GameReducer → GameState`. A server integration is intended to submit the same action shape and return a result/patch, but no transport or remote dispatcher is present.
+Local play remains `GameViewModel → GameAction → LocalCommandDispatcher → GameReducer → GameState`. Multiplayer uses `GameViewModel → MultiplayerCommandGateway → callable function → TypeScript reducer → Firestore transaction`, then applies consecutive RTDB patches through `RoomReplicationService`. Revision gaps recover from the Firestore checkpoint.
 
 ## Rules and invariants
 
 - `schemaVersion` protects wire/persistence shape; `rulesVersion` protects deterministic behavior.
 - `expectedRevision` must equal the dispatcher/server revision before application.
 - Immutable world data is never part of a patch.
-- Patch application is expected to be strict and ordered by revision; the actual client patch service is absent.
-- Action IDs are intended as idempotency keys; local dispatch does not store duplicate outcomes.
+- Patch application is strict and ordered by revision; duplicates are ignored and gaps trigger recovery.
+- The server persists each action ID outcome transactionally; reconnect retries the same pending IDs.
 - All persistent IDs and random events in reducer paths derive from world seed and replicated state.
 
 ## Public APIs and models
@@ -33,7 +33,9 @@ Patches avoid sending terrain/full world data and replace only changed towns plu
 
 Add a command to the explicit payload codec, reducer switch, contract fixtures, and any server mirror. Add mutable fields to `MatchState`/`TownState`; add immutable fields to `WorldDefinition`/definition DTOs. Bump the appropriate schema version when compatibility is not preserved.
 
-## Known limitations / TODO / Requires Confirmation
+## Schema and migration safeguards
 
-- No server, socket, matchmaking, subscription, patch application, reconnect, or duplicate-action store is in this repository.
-- The reducer comment references a TypeScript mirror, but no TypeScript source is present here; mirror location requires confirmation.
+- `schemaVersion` and `rulesVersion` remain `1`; mismatches are rejected before reduction.
+- Existing `GameSaveStore` files remain local-only. The separate room cache contains only room ID, checkpoint/revision, and pending idempotent actions.
+- World definitions are immutable after room start. Ordinary actions never resend terrain or a full match state.
+- FCM sends room/day/reconnect prompts only and is never replication transport.
