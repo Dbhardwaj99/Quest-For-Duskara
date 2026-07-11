@@ -51,6 +51,13 @@ final class FirestoreRoomRepository {
         _ = try await functions.httpsCallable("cancelMatchmaking").call()
     }
 
+    func observeMatchmaking(participantID: String, onAssignment: @escaping @MainActor (String) -> Void) -> ListenerRegistration {
+        store.collection("matchmakingTickets").document(participantID).addSnapshotListener { snapshot, _ in
+            guard let roomID = snapshot?.data()?["roomID"] as? String else { return }
+            Task { @MainActor in onAssignment(roomID) }
+        }
+    }
+
     func verifyMembership(roomID: String) async throws -> RoomSession {
         try await callRoom("fetchCheckpoint", data: ["roomID": roomID], key: "room")
     }

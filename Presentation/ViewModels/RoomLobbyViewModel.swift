@@ -11,6 +11,7 @@ final class RoomLobbyViewModel {
     private(set) var screenState: ScreenState = .idle
     private(set) var session: RoomSession?
     private(set) var readyParticipantIDs: Set<String> = []
+    private(set) var onlineParticipantIDs: Set<String> = []
     private(set) var isStale = false
     var displayName = "Wayfarer"
     var inviteCode = ""
@@ -18,11 +19,13 @@ final class RoomLobbyViewModel {
 
     private let auth: FirebaseAuthSession
     private let rooms: FirestoreRoomRepository
+    private let presence: RealtimePresenceRepository
     private var listener: ListenerRegistration?
 
-    init(auth: FirebaseAuthSession? = nil, rooms: FirestoreRoomRepository? = nil) {
+    init(auth: FirebaseAuthSession? = nil, rooms: FirestoreRoomRepository? = nil, presence: RealtimePresenceRepository? = nil) {
         self.auth = auth ?? FirebaseAuthSession()
         self.rooms = rooms ?? FirestoreRoomRepository()
+        self.presence = presence ?? RealtimePresenceRepository()
     }
 
     var canRejoin: Bool { UserDefaults.standard.string(forKey: "multiplayer.lastRoomID") != nil }
@@ -55,7 +58,17 @@ final class RoomLobbyViewModel {
         do {
             _ = try await auth.authenticate()
             if let room = try await rooms.joinMatchmaking(displayName: displayName) { joined(room) }
-            else { screenState = .matchmaking }
+            else {
+                screenState = .matchmaking
+                if let participantID = auth.participantID {
+                    listener = rooms.observeMatchmaking(participantID: participantID) { [weak self] roomID in
+                        Task {
+                            guard let self else { return }
+                            await self.roomOperation { try await self.rooms.rejoin(roomID: roomID) }
+                        }
+                    }
+                }
+            }
         } catch { fail(error, offline: true) }
     }
 
@@ -80,6 +93,7 @@ final class RoomLobbyViewModel {
     func leaveRoom() async {
         guard let roomID = session?.roomID else { return }
         listener?.remove()
+        presence.disconnect()
         do { try await rooms.leave(roomID: roomID) }
         catch { errorMessage = error.localizedDescription }
         session = nil
@@ -108,6 +122,11 @@ final class RoomLobbyViewModel {
                 screenState = snapshot.isFromCache ? .offline : .lobby
             case let .failure(error): fail(error, offline: true)
             }
+        }
+        presence.observe(roomID: room.roomID) { [weak self] in self?.onlineParticipantIDs = $0 }
+        Task {
+            do { try await presence.connect(roomID: room.roomID, participantID: room.localParticipantID) }
+            catch { isStale = true }
         }
     }
 
