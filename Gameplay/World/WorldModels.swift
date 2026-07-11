@@ -127,15 +127,21 @@ struct TownConnection: Identifiable, Codable, Equatable, Hashable {
     }
 }
 
+/// Local working model assembled from the replication boundary:
+/// WorldDefinition (immutable world) + MatchState (mutable match).
+/// Presentation-only values such as the active town live in the view model,
+/// never here.
 struct GameState: Codable, Equatable {
     var day: Int
+    /// Local display clock only; replicated time is dayStartServerMillis.
     var elapsedSecondsInDay: TimeInterval
     var towns: [Town]
     var worldNodes: [WorldTownNode]
     var connections: [TownConnection]
     var world: WorldMapState
     var territory: TerritoryState
-    var activeTownID: UUID
+    /// Durable match lifecycle, owned by the rules layer.
+    var status: MatchStatus
     var newsEvents: [NewsEvent]
 
     init(
@@ -146,7 +152,7 @@ struct GameState: Codable, Equatable {
         connections: [TownConnection],
         world: WorldMapState = .empty,
         territory: TerritoryState = .empty,
-        activeTownID: UUID,
+        status: MatchStatus = .active,
         newsEvents: [NewsEvent] = []
     ) {
         self.day = day
@@ -156,7 +162,7 @@ struct GameState: Codable, Equatable {
         self.connections = connections
         self.world = world
         self.territory = territory
-        self.activeTownID = activeTownID
+        self.status = status
         self.newsEvents = newsEvents
     }
 
@@ -168,7 +174,7 @@ struct GameState: Codable, Equatable {
         case connections
         case world
         case territory
-        case activeTownID
+        case status
         case newsEvents
     }
 
@@ -181,12 +187,8 @@ struct GameState: Codable, Equatable {
         connections = try container.decode([TownConnection].self, forKey: .connections)
         world = try container.decodeIfPresent(WorldMapState.self, forKey: .world) ?? .empty
         territory = try container.decodeIfPresent(TerritoryState.self, forKey: .territory) ?? .empty
-        activeTownID = try container.decode(UUID.self, forKey: .activeTownID)
+        status = try container.decodeIfPresent(MatchStatus.self, forKey: .status) ?? .active
         newsEvents = try container.decodeIfPresent([NewsEvent].self, forKey: .newsEvents) ?? []
-    }
-
-    var activeTown: Town? {
-        towns.first { $0.id == activeTownID }
     }
 }
 

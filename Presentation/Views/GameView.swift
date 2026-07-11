@@ -143,7 +143,7 @@ struct GameView: View {
 
     private var townView3D: some View {
         World3DTownView(sourceViewModel: viewModel)
-            .id(viewModel.state.activeTownID)
+            .id(viewModel.activeTownID)
             .background(DuskaraTheme.worldBackdrop)
     }
 

@@ -96,7 +96,7 @@ private struct StateSnapshot: Codable {
 
     var day: Int
     var elapsedSecondsInDay: Double
-    var activeTownID: UUID
+    var status: String
     var connections: [String]
     var newsMessages: [String]
     var towns: [TownSnapshot]
@@ -104,7 +104,7 @@ private struct StateSnapshot: Codable {
     init(of state: GameState) {
         day = state.day
         elapsedSecondsInDay = state.elapsedSecondsInDay
-        activeTownID = state.activeTownID
+        status = state.status.rawValue
         connections = state.connections.canonicallySorted().map(\.id)
         newsMessages = state.newsEvents.map(\.message)
         towns = state.towns.map { town in

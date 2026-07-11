@@ -102,15 +102,15 @@ struct EnemyAISystemTests {
         #expect(state.towns[2].faction == .neutral)
     }
 
-    @Test func reassignsActiveTownWhenPlayerLosesIt() {
-        var state = TestFixtures.state(
-            towns: [
-                TestFixtures.town(1, faction: .neutral),
-                TestFixtures.town(2)
-            ],
-            activeTownID: TestFixtures.uuid(1)
-        )
+    @Test func neverMutatesPresentationState() {
+        // The active town moved out of replicated state; the AI turn must
+        // only touch towns and news.
+        var state = TestFixtures.state(towns: [
+            TestFixtures.town(1, faction: .neutral),
+            TestFixtures.town(2)
+        ])
+        let statusBefore = state.status
         system.takeTurn(state: &state, balance: balance)
-        #expect(state.activeTownID == TestFixtures.uuid(2))
+        #expect(state.status == statusBefore)
     }
 }

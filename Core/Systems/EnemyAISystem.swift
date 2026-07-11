@@ -25,11 +25,8 @@ struct EnemyAISystem {
             trainSoldier(in: townID, state: &state, balance: balance)
             attackBestAdjacentTarget(from: townID, state: &state, balance: balance)
         }
-
-        if state.town(id: state.activeTownID)?.isPlayerControlled != true,
-           let nextPlayerTown = state.towns.first(where: \.isPlayerControlled) {
-            state.activeTownID = nextPlayerTown.id
-        }
+        // The active town is presentation state; GameViewModel re-picks one
+        // when the player loses theirs.
     }
 
     private func developInfrastructure(in townID: UUID, state: inout GameState, balance: GameBalance) {

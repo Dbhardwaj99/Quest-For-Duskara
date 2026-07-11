@@ -50,9 +50,9 @@ struct WorldMapView: View {
                 .padding(.bottom, 16)
         }
         .onAppear {
-            selectedTownID = viewModel.state.activeTownID
+            selectedTownID = viewModel.activeTownID
         }
-        .onChange(of: viewModel.state.activeTownID) { _, activeTownID in
+        .onChange(of: viewModel.activeTownID) { _, activeTownID in
             selectedTownID = activeTownID
         }
     }
@@ -86,7 +86,7 @@ struct WorldMapView: View {
                 towns: viewModel.state.towns,
                 nodes: viewModel.state.worldNodes,
                 connections: viewModel.state.connections,
-                activeTownID: viewModel.state.activeTownID,
+                activeTownID: viewModel.activeTownID,
                 selectedTownID: selectedTownID,
                 markerScale: 1 / sqrt(zoomScale),
                 onSelectTown: { selectedTownID = $0 }
@@ -282,7 +282,7 @@ struct WorldMapView: View {
                     }
                 }
 
-                if town.isPlayerControlled && town.id != viewModel.state.activeTownID {
+                if town.isPlayerControlled && town.id != viewModel.activeTownID {
                     TransferPanel(
                         kind: $transferKind,
                         amount: $transferAmount,
