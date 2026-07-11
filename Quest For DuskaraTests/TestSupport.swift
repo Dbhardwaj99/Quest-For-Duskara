@@ -45,16 +45,14 @@ enum TestFixtures {
     static func state(
         towns: [Town],
         connections: [TownConnection] = [],
-        day: Int = 1,
-        activeTownID: UUID? = nil
+        day: Int = 1
     ) -> GameState {
         GameState(
             day: day,
             elapsedSecondsInDay: 0,
             towns: towns,
             worldNodes: [],
-            connections: connections,
-            activeTownID: activeTownID ?? towns[0].id
+            connections: connections
         )
     }
 }

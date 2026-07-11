@@ -118,6 +118,11 @@
 			path = "Quest For DuskaraTests";
 			sourceTree = "<group>";
 		};
+		AA0000000000000000000010 /* Multiplayer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Multiplayer;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +159,7 @@
 				0018CE222FC9672100307E36 /* Models */,
 				0018CE362FC9672600307E36 /* Systems */,
 				0018CE462FC9672900307E36 /* Managers */,
+				AA0000000000000000000010 /* Multiplayer */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -326,6 +332,7 @@
 				0018CE5A2FC9673800307E36 /* ViewModels */,
 				0018CE652FC9673B00307E36 /* Views */,
 				0018CE702FC9673D00307E36 /* Theme */,
+				AA0000000000000000000010 /* Multiplayer */,
 			);
 			name = "Quest For Duskara";
 			packageProductDependencies = (
@@ -353,6 +360,7 @@
 				0018CE4D2FC9672F00307E36 /* Resources */,
 				0018CE502FC9673100307E36 /* World */,
 				AA0000000000000000000002 /* Quest For DuskaraTests */,
+				AA0000000000000000000010 /* Multiplayer */,
 			);
 			name = "Quest For DuskaraTests";
 			packageProductDependencies = (

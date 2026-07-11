@@ -27,8 +27,7 @@ struct WorldMapSystem {
             worldNodes: generatedWorld.nodes,
             connections: generatedWorld.connections,
             world: generatedWorld.world,
-            territory: territory,
-            activeTownID: towns[0].id
+            territory: territory
         )
     }
 

@@ -18,6 +18,8 @@ final class GameViewModel {
 
     var phase: GamePhase = .setup
     var state: GameState
+    /// Presentation-only: which of the player's towns the UI is focused on.
+    var activeTownID: UUID
     var bonusAllocation: [ResourceKind: Int] = [:]
     var selectedCoordinate: GridCoordinate?
     var selectedBuildingID: UUID?
@@ -31,27 +33,41 @@ final class GameViewModel {
 
     private var clockTask: Task<Void, Never>?
     private var feedbackTask: Task<Void, Never>?
-    private let resourceSystem = ResourceSystem()
     private let buildingSystem = BuildingSystem()
-    private let simulationSystem = SimulationSystem()
     private let worldMapSystem = WorldMapSystem()
     private let soldierTrainingSystem = SoldierTrainingSystem()
-    private let transferSystem = TransferSystem()
     private let townSystem = TownSystem()
+    // Trade offers stay view-model-local until the reducer owns trade.
+    private let newsStore = NewsStore()
     private let timeSystem = TimeSystem()
     private let placementValidationSystem = PlacementValidationSystem()
-    private let newsStore = NewsStore()
     private let saveStore = GameSaveStore()
+    /// Single command route for every mutable gameplay action.
+    private let dispatcher: GameCommandDispatching
+    private let localParticipantID = "local-player"
 
-    init() {
-        let balance = GameBalance.duskDefault
+    init(balance: GameBalance = GameBalance.duskDefault, dispatcher: GameCommandDispatching? = nil) {
         self.balance = balance
-        self.state = WorldMapSystem().makeInitialState(balance: balance)
+        self.dispatcher = dispatcher ?? LocalCommandDispatcher()
+        let state = WorldMapSystem().makeInitialState(balance: balance)
+        self.state = state
+        self.activeTownID = state.towns.first(where: \.isPlayerControlled)?.id ?? state.towns[0].id
     }
 
-    init(balance: GameBalance) {
-        self.balance = balance
-        self.state = WorldMapSystem().makeInitialState(balance: balance)
+    /// Builds a replicated action for the shared player empire and routes it
+    /// through the dispatcher. Rejections surface as feedback.
+    @discardableResult
+    private func dispatch(_ payload: GameActionPayload) -> GameActionResult {
+        let action = GameAction(
+            participantID: localParticipantID,
+            expectedRevision: dispatcher.revision,
+            payload: payload
+        )
+        let result = dispatcher.dispatch(action, state: &state, balance: balance)
+        if result.status == .rejected, let reason = result.rejectionReason {
+            show(reason)
+        }
+        return result
     }
 
     var startingResourceKinds: [ResourceKind] {
@@ -61,7 +77,7 @@ final class GameViewModel {
 	var difficulty: [Difficulty] = Difficulty.allCases
 
     var activeTown: Town {
-        state.town(id: state.activeTownID) ?? state.towns[0]
+        state.town(id: activeTownID) ?? state.towns[0]
     }
 
     var selectedBuilding: BuildingInstance? {
@@ -110,7 +126,7 @@ final class GameViewModel {
 
     func saveCurrentGame() {
         do {
-            try saveStore.save(state: state)
+            try saveStore.save(state: state, revision: dispatcher.revision)
         } catch {
             show("Could not save game.")
         }
@@ -127,7 +143,7 @@ final class GameViewModel {
 
     func startGame() {
         guard phase == .setup else { return }
-        state.updateTown(id: state.activeTownID) { town in
+        state.updateTown(id: activeTownID) { town in
             var resources = ResourceWallet(balance.baseStartingResources)
             resources.apply(bonusAllocation)
             town.resources = resources
@@ -190,53 +206,37 @@ final class GameViewModel {
     func upgradeSelectedBuilding() {
         guard phase == .town else { return }
         guard let selectedBuildingID else { return }
-        var didUpgrade = false
-        state.updateTown(id: state.activeTownID) { town in
-            if let failure = buildingSystem.upgrade(selectedBuildingID, in: &town, balance: balance) {
-                show(failure.rawValue)
-            } else {
-                show("Building upgraded.")
-                didUpgrade = true
-            }
-        }
-        if didUpgrade {
+        let result = dispatch(.upgradeBuilding(townID: activeTownID.uuidString, buildingID: selectedBuildingID.uuidString))
+        if result.status == .accepted {
+            show("Building upgraded.")
             saveCurrentGame()
         }
     }
 
     func train(_ soldier: SoldierKind) {
         guard phase == .town else { return }
-        var didTrain = false
-        var newsMessage: String?
-        state.updateTown(id: state.activeTownID) { town in
-            if let failure = soldierTrainingSystem.train(soldier, in: &town, balance: balance) {
-                show(failure.rawValue)
-            } else {
-                show("Trained 1 \(soldier.title).")
-                newsMessage = "You trained \(soldier.title) in \(town.name)"
-                didTrain = true
-            }
-        }
-        if didTrain {
-            if let newsMessage {
-                newsStore.record(.soldierTraining, message: newsMessage, state: &state)
-            }
+        let result = dispatch(.trainSoldier(townID: activeTownID.uuidString, soldier: soldier.rawValue))
+        if result.status == .accepted {
+            show("Trained 1 \(soldier.title).")
             saveCurrentGame()
         }
     }
 
     func advanceDayManually() {
         guard phase == .town else { return }
-        simulationSystem.advanceDay(state: &state, balance: balance)
-        sanitizePresentationState()
-        saveCurrentGame()
-        show("Day \(state.day) begins.")
+        let result = dispatch(.advanceDay)
+        if result.status == .accepted {
+            sanitizePresentationState()
+            reactToMatchStatus()
+            saveCurrentGame()
+            show("Day \(state.day) begins.")
+        }
     }
 
     func switchToTown(_ townID: UUID) {
         guard phase == .town else { return }
         guard state.town(id: townID)?.isPlayerControlled == true else { return }
-        state.activeTownID = townID
+        activeTownID = townID
         selectedCoordinate = nil
         selectedBuildingID = nil
         buildingPresentation = nil
@@ -249,33 +249,30 @@ final class GameViewModel {
 
     func attackTown(_ targetID: UUID) {
         guard phase == .town else { return }
-        let targetWasDuskara = state.town(id: targetID)?.isDuskara == true
-        let targetName = state.town(id: targetID)?.name ?? "Town"
-        let won = worldMapSystem.attack(targetID: targetID, from: state.activeTownID, state: &state, balance: balance)
-        if won {
-            if targetWasDuskara {
-                phase = .victory
-                isWorldMapPresented = false
-                stopClock()
-                show("Duskara conquered. Victory is yours.")
-                newsStore.record(.duskaraAttack, message: "You conquered Duskara", state: &state)
+        let result = dispatch(.attack(fromTownID: activeTownID.uuidString, targetTownID: targetID.uuidString))
+        if result.status == .accepted {
+            if state.status == .victory {
+                reactToMatchStatus()
             } else {
                 show("Town conquered.")
             }
-            newsStore.record(.cityCapture, message: "You captured \(targetName)", state: &state)
-            saveCurrentGame()
-        } else {
-            if targetWasDuskara {
-                newsStore.record(.duskaraAttack, message: "You attacked Duskara but failed", state: &state)
-            }
-            show("Attack failed. Your committed soldiers were lost.")
             saveCurrentGame()
         }
     }
 
+    /// Mirrors the durable match status (owned by the rules layer) into
+    /// presentation state.
+    private func reactToMatchStatus() {
+        guard state.status == .victory, phase != .victory else { return }
+        phase = .victory
+        isWorldMapPresented = false
+        stopClock()
+        show("Duskara conquered. Victory is yours.")
+    }
+
     func canAttack(_ targetID: UUID) -> Bool {
         guard phase == .town else { return false }
-        return worldMapSystem.canAttack(targetID: targetID, from: state.activeTownID, in: state, balance: balance)
+        return worldMapSystem.canAttack(targetID: targetID, from: activeTownID, in: state, balance: balance)
     }
 
     func effectiveDefenseStrength(for town: Town) -> Int {
@@ -283,14 +280,13 @@ final class GameViewModel {
     }
 
     func transfer(_ kind: ResourceKind, amount: Int, to destinationID: UUID) {
-        let order = TransferOrder(fromTownID: state.activeTownID, toTownID: destinationID, amounts: [kind: amount])
-        if let failure = transferSystem.transfer(order: order, state: &state) {
-            show(failure.rawValue)
-        } else {
+        let result = dispatch(.transferResources(
+            fromTownID: activeTownID.uuidString,
+            toTownID: destinationID.uuidString,
+            amounts: [kind.rawValue: amount]
+        ))
+        if result.status == .accepted {
             show("Sent \(amount) \(kind.title).")
-            if let destination = state.town(id: destinationID) {
-                newsStore.record(.resourceTransfer, message: "You sent \(amount) \(kind.title) to \(destination.name)", state: &state)
-            }
             saveCurrentGame()
         }
     }
@@ -321,7 +317,7 @@ final class GameViewModel {
             show("Not enough resources for this trade.")
             return
         }
-        state.updateTown(id: state.activeTownID) { town in
+        state.updateTown(id: activeTownID) { town in
             _ = town.resources.spend(offer.wants)
             for (kind, amount) in offer.gives {
                 town.resources.add(kind, amount: amount)
@@ -345,8 +341,8 @@ final class GameViewModel {
     private var tradePartners: [Town] {
         state.connections
             .compactMap { connection -> UUID? in
-                if connection.from == state.activeTownID { return connection.to }
-                if connection.to == state.activeTownID { return connection.from }
+                if connection.from == activeTownID { return connection.to }
+                if connection.to == activeTownID { return connection.from }
                 return nil
             }
             .compactMap { state.town(id: $0) }
@@ -421,26 +417,14 @@ final class GameViewModel {
     }
 
     private func place(_ kind: BuildingKind, at coordinate: GridCoordinate) {
-        var didBuild = false
-        var newsMessage: String?
-        state.updateTown(id: state.activeTownID) { town in
-            if let failure = buildingSystem.build(kind, at: coordinate, in: &town, balance: balance) {
-                show(failure.rawValue)
-            } else {
-                selectedBuildingID = town.buildings.first(where: { $0.coordinate == coordinate })?.id
-                if let selectedBuildingID {
-                    buildingPresentation = .details(selectedBuildingID)
-                }
-                placementBuildingKind = nil
-                show("Built \(kind.title).")
-                newsMessage = "You built \(kind.title) in \(town.name)"
-                didBuild = true
+        let result = dispatch(.build(townID: activeTownID.uuidString, kind: kind.rawValue, x: coordinate.x, y: coordinate.y))
+        if result.status == .accepted {
+            selectedBuildingID = activeTown.buildings.first(where: { $0.coordinate == coordinate })?.id
+            if let selectedBuildingID {
+                buildingPresentation = .details(selectedBuildingID)
             }
-        }
-        if didBuild {
-            if let newsMessage {
-                newsStore.record(.buildingConstruction, message: newsMessage, state: &state)
-            }
+            placementBuildingKind = nil
+            show("Built \(kind.title).")
             saveCurrentGame()
         }
     }
@@ -460,16 +444,19 @@ final class GameViewModel {
         state.elapsedSecondsInDay += 1
         updateTradeOffers()
         if timeSystem.shouldAdvanceDay(elapsedSeconds: state.elapsedSecondsInDay, balance: balance) {
-            simulationSystem.advanceDay(state: &state, balance: balance)
-            sanitizePresentationState()
-            saveCurrentGame()
+            let result = dispatch(.advanceDay)
+            if result.status == .accepted {
+                sanitizePresentationState()
+                reactToMatchStatus()
+                saveCurrentGame()
+            }
         }
     }
 
     private func sanitizeActiveTownSelection() {
-        if state.town(id: state.activeTownID)?.isPlayerControlled != true,
+        if state.town(id: activeTownID)?.isPlayerControlled != true,
            let nextPlayerTown = state.towns.first(where: \.isPlayerControlled) {
-            state.activeTownID = nextPlayerTown.id
+            activeTownID = nextPlayerTown.id
         }
     }
 

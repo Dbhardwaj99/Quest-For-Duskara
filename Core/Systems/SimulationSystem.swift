@@ -20,4 +20,16 @@ struct SimulationSystem {
             enemyAI.takeTurn(state: &state, balance: balance)
         }
     }
+
+    /// Durable match outcome, derived from town ownership. The rules layer
+    /// owns this; presentation reacts to it but never decides it.
+    func evaluateStatus(state: GameState) -> MatchStatus {
+        if state.towns.first(where: \.isDuskara)?.faction == .player {
+            return .victory
+        }
+        if state.towns.contains(where: \.isPlayerControlled) == false {
+            return .defeat
+        }
+        return state.status
+    }
 }
