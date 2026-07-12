@@ -83,8 +83,9 @@ struct CombatSystemTests {
         #expect(state.towns[1].resources[.food] == 30)
         // Attacker commits everything; survivors garrison the capture.
         #expect(state.towns[0].armyStrength == 0)
-        // 100 vs 10+4=14 defense: raw 86, casualties round(86*0.25)=22 -> 64.
-        #expect(state.towns[1].armyStrength == 64)
+        // The 64 survivor strength is represented by whole units, rounded
+        // up to 3 knights and 1 archer (70 canonical roster strength).
+        #expect(state.towns[1].armyStrength == 70)
     }
 
     @Test func failedAttackDestroysCommittedForcesAndBleedsDefender() {

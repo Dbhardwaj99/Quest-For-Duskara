@@ -59,6 +59,18 @@ The game autosaves `GameState` continuously, but the menu currently exposes only
 2. Select the `Quest For Duskara` app scheme.
 3. Build and run the native macOS app.
 
+## Multiplayer Emulator Verification
+
+The multiplayer backend is under `firebase/` and runs without a production deployment. Install Node.js 22+, Firebase CLI, and Java 21, then run:
+
+```sh
+cd firebase
+npm --prefix functions install
+firebase emulators:exec --project quest-for-duskara-test --config firebase.json --only auth,firestore,database 'npm --prefix functions test'
+```
+
+Run the shared `Quest For Duskara` Xcode scheme tests for Swift reducer, patch-ordering, cache, and fixture coverage. App Check enforcement is disabled only by the Emulator Suite; production callable functions require it.
+
 ## Screenshots
 
 Current reference screenshot:

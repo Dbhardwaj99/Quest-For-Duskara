@@ -44,6 +44,7 @@
 		008DD8D030025FF400D2E392 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 008DD8C9300257B100D2E392 /* FirebaseFunctions */; };
 		008DD8D13002610000D2E392 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 008DD8D33002610000D2E392 /* FirebaseAppCheck */; };
 		008DD8D23002610000D2E392 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 008DD8D33002610000D2E392 /* FirebaseAppCheck */; };
+		008DD8D43002610000D2E392 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 008DD8C3300257B100D2E392 /* FirebaseMessaging */; };
 		00C0A3AF30016951008973B8 /* DESIGN_LANGUAGE.md in Resources */ = {isa = PBXBuildFile; fileRef = 00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */; };
 		00DE51032FDC100000307E36 /* OceanShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51012FDC100000307E36 /* OceanShaders.metal */; };
 		00DE51042FDC100000307E36 /* World3DOcean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51022FDC100000307E36 /* World3DOcean.swift */; };
@@ -177,6 +178,7 @@
 				008DD8CD30025FF400D2E392 /* FirebaseAuth in Frameworks */,
 				008DD8D030025FF400D2E392 /* FirebaseFunctions in Frameworks */,
 				008DD8D23002610000D2E392 /* FirebaseAppCheck in Frameworks */,
+				008DD8D43002610000D2E392 /* FirebaseMessaging in Frameworks */,
 				008DD8CA30025FF400D2E392 /* (null) in Frameworks */,
 				008DD8CB30025FF400D2E392 /* (null) in Frameworks */,
 				008DD8CC30025FF400D2E392 /* (null) in Frameworks */,
@@ -426,6 +428,7 @@
 				008DD8C1300257B100D2E392 /* FirebaseFirestore */,
 				008DD8C9300257B100D2E392 /* FirebaseFunctions */,
 				008DD8D33002610000D2E392 /* FirebaseAppCheck */,
+				008DD8C3300257B100D2E392 /* FirebaseMessaging */,
 			);
 			productName = "Quest For DuskaraTests";
 			productReference = AA000000000000000000000D /* Quest For DuskaraTests.xctest */;

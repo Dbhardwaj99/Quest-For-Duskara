@@ -112,7 +112,6 @@ final class RoomLobbyViewModel {
         screenState = .lobby
         isStale = false
         UserDefaults.standard.set(room.roomID, forKey: "multiplayer.lastRoomID")
-        Task { try? await auth.refreshRoomClaims() }
         listener?.remove()
         listener = rooms.observe(roomID: room.roomID) { [weak self] result in
             guard let self else { return }
@@ -125,9 +124,12 @@ final class RoomLobbyViewModel {
             case let .failure(error): fail(error, offline: true)
             }
         }
-        presence.observe(roomID: room.roomID) { [weak self] in self?.onlineParticipantIDs = $0 }
         Task {
-            do { try await presence.connect(roomID: room.roomID, participantID: room.localParticipantID) }
+            do {
+                try await auth.refreshRoomClaims()
+                presence.observe(roomID: room.roomID) { [weak self] in self?.onlineParticipantIDs = $0 }
+                try await presence.connect(roomID: room.roomID, participantID: room.localParticipantID)
+            }
             catch { isStale = true }
         }
     }

@@ -1,9 +1,9 @@
 import {getAuth} from "firebase-admin/auth";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {FieldValue} from "firebase-admin/firestore";
 import {getMessaging} from "firebase-admin/messaging";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 
-const db = getFirestore();
+import {db} from "./admin.js";
 
 export async function setRoomClaim(uid: string, roomID: string, allowed: boolean): Promise<void> {
   const user = await getAuth().getUser(uid), rooms = {...(user.customClaims?.rooms as Record<string, boolean> | undefined)};

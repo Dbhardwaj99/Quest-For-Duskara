@@ -8,7 +8,7 @@ import {reconnectPrompt, registerNotificationTokenHandler} from "./notifications
 import {onValueDeleted} from "firebase-functions/v2/database";
 
 const options = {region: "asia-south1", enforceAppCheck: process.env.FUNCTIONS_EMULATOR !== "true"};
-export const createRoom = onCall(options, createRoomHandler);
+export const createRoom = onCall(options, request => createRoomHandler(request));
 export const joinRoom = onCall(options, joinRoomHandler);
 export const leaveRoom = onCall(options, leaveRoomHandler);
 export const setLobbyReady = onCall(options, setReadyHandler);

@@ -54,7 +54,8 @@
         "soldiers" : 0
       },
       "roster" : {
-
+        "archer" : 0,
+        "knight" : 0
       }
     },
     {
@@ -77,7 +78,7 @@
       }
     },
     {
-      "armyStrength" : 22,
+      "armyStrength" : 30,
       "buildings" : [
 
       ],
@@ -89,10 +90,11 @@
         "food" : 12,
         "gold" : 40,
         "skill" : 20,
-        "soldiers" : 22
+        "soldiers" : 30
       },
       "roster" : {
-
+        "archer" : 1,
+        "knight" : 1
       }
     }
   ]
