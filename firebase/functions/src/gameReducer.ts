@@ -1,6 +1,5 @@
 import {createHash, randomInt} from "node:crypto";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
-import {getDatabase} from "firebase-admin/database";
+import {FieldValue} from "firebase-admin/firestore";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {requireUID} from "./roomService.js";
 
@@ -15,7 +14,7 @@ export type Action = {actionID: string; participantID: string; expectedRevision:
 export type Patch = {revision: number; actionID: string; day: number; dayStartServerMillis: number; status: string; updatedTowns: Town[]; appendedNews: News[]; tradeOffers: TradeOffer[]; entityCounter: number};
 export type ActionResult = {actionID: string; status: "accepted" | "rejected" | "duplicate"; revision: number; rejectionReason?: string; patch?: Patch};
 
-const db = getFirestore(); const rtdb = getDatabase();
+import {db, rtdb} from "./admin.js";
 const building = {
   house: {cost: {gold: 25, skill: 10}, production: {}, workers: 0, people: 4, capacity: 8, edge: false},
   pier: {cost: {gold: 35, skill: 20}, production: {gold: 8}, workers: 2, people: 0, capacity: 0, edge: true},

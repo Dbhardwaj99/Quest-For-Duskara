@@ -1,9 +1,8 @@
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
-import {getDatabase} from "firebase-admin/database";
+import {FieldValue} from "firebase-admin/firestore";
 import {Action, makePatch, MatchState, reduce, WorldDefinition} from "./gameReducer.js";
 import {notifyUsers} from "./notifications.js";
 
-const db = getFirestore(); const rtdb = getDatabase();
+import {db, rtdb} from "./admin.js";
 
 export async function advanceRoomDay(roomID: string, nowMillis = Date.now()): Promise<boolean> {
   const room = db.collection("rooms").doc(roomID), checkpointRef = room.collection("state").doc("checkpoint"); let patch;

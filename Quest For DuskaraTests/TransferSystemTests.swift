@@ -67,9 +67,7 @@ struct TransferSystemTests {
         #expect(state.towns[0].resources[.gold] == 100)
     }
 
-    @Test func soldierTransferMovesStrengthAndClearsRosters() {
-        // Characterizes current behavior: moving soldiers wipes both rosters
-        // and moves raw strength numbers.
+    @Test func soldierTransferMovesWholeRosterUnits() {
         var roster = SoldierRoster()
         roster.add(.archer, count: 3)
         var state = TestFixtures.state(towns: [
@@ -86,8 +84,8 @@ struct TransferSystemTests {
         #expect(state.towns[1].armyStrength == 10)
         #expect(state.towns[0].resources[.soldiers] == 20)
         #expect(state.towns[1].resources[.soldiers] == 10)
-        #expect(state.towns[0].soldierRoster.counts.isEmpty)
-        #expect(state.towns[1].soldierRoster.counts.isEmpty)
+        #expect(state.towns[0].soldierRoster[.archer] == 2)
+        #expect(state.towns[1].soldierRoster[.archer] == 1)
     }
 
     @Test func soldierTransferRejectsMoreThanGarrison() {

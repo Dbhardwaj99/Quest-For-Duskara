@@ -1,14 +1,10 @@
 import {createHash, randomInt} from "node:crypto";
-import {getApps, initializeApp} from "firebase-admin/app";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
-import {getDatabase} from "firebase-admin/database";
+import {FieldValue} from "firebase-admin/firestore";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {createInitialGame} from "./gameReducer.js";
 import {notifyUsers, setRoomClaim} from "./notifications.js";
 
-if (!getApps().length) initializeApp();
-const db = getFirestore();
-const rtdb = getDatabase();
+import {db, rtdb} from "./admin.js";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const now = () => Date.now();
 
@@ -44,14 +40,14 @@ function session(roomID: string, data: FirebaseFirestore.DocumentData, uid: stri
   return {...data.publicSession, roomID, localParticipantID: uid};
 }
 
-export async function createRoomHandler(request: CallableRequest): Promise<{room: RoomSession}> {
+export async function createRoomHandler(request: CallableRequest, codeFactory: () => string = generateCode): Promise<{room: RoomSession}> {
   const uid = requireUID(request);
   const visibility = request.data?.visibility === "publicMatchmaking" ? "publicMatchmaking" : "privateCode";
   const roomRef = db.collection("rooms").doc();
   const participant: Participant = {id: uid, displayName: displayName(request.data?.displayName), role: "owner", joinedAtMillis: now()};
 
   for (let attempt = 0; attempt < 12; attempt++) {
-    const code = visibility === "privateCode" ? generateCode() : undefined;
+    const code = visibility === "privateCode" ? codeFactory() : undefined;
     const codeRef = code ? db.collection("inviteCodes").doc(hashCode(code)) : undefined;
     try {
       await db.runTransaction(async tx => {

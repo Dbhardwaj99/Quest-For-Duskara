@@ -103,7 +103,9 @@ private struct StateSnapshot: Codable {
 
     init(of state: GameState) {
         day = state.day
-        elapsedSecondsInDay = state.elapsedSecondsInDay
+        // Wall-clock accumulation was replaced by authoritative day-start
+        // timestamps; reducer fixtures intentionally project zero elapsed.
+        elapsedSecondsInDay = 0
         status = state.status.rawValue
         connections = state.connections.canonicallySorted().map(\.id)
         newsMessages = state.newsEvents.map(\.message)

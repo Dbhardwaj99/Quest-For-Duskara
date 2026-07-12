@@ -10,6 +10,10 @@ struct TransferSystem {
         var id: String { rawValue }
     }
 
+    func transfer(order: TransferOrder, state: inout GameState) -> TransferFailure? {
+        transfer(order: order, state: &state, balance: .duskDefault)
+    }
+
     func transfer(order: TransferOrder, state: inout GameState, balance: GameBalance) -> TransferFailure? {
         guard order.fromTownID != order.toTownID else { return .sameTown }
         guard let fromIndex = state.towns.firstIndex(where: { $0.id == order.fromTownID }) else { return .sourceNotOwned }

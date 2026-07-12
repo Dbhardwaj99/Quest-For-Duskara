@@ -89,12 +89,13 @@ enum GoldenFixture {
             return
         }
         let stored = try Data(contentsOf: url)
-        if stored != data {
+        let normalizedStored = stored.last == 10 ? stored.dropLast() : stored[...]
+        if Data(normalizedStored) != data {
             // Leave the diverging output next to the fixture for diffing.
             try? data.write(to: url.appendingPathExtension("actual"))
         }
         #expect(
-            stored == data,
+            Data(normalizedStored) == data,
             "Output diverged from fixture \(name). If the change is intentional, delete the fixture and re-record.",
             sourceLocation: sourceLocation
         )

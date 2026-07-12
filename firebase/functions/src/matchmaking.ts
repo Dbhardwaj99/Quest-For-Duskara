@@ -1,9 +1,9 @@
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {FieldValue} from "firebase-admin/firestore";
 import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {addParticipant, createRoomHandler, joinRoomHandler, requireUID, RoomSession} from "./roomService.js";
 import {setRoomClaim} from "./notifications.js";
 
-const db = getFirestore();
+import {db} from "./admin.js";
 
 export async function joinMatchmakingHandler(request: CallableRequest): Promise<{room?: RoomSession}> {
   const uid = requireUID(request); const ticket = db.collection("matchmakingTickets").doc(uid);
@@ -19,8 +19,11 @@ export async function joinMatchmakingHandler(request: CallableRequest): Promise<
 
   let room: RoomSession | undefined;
   await db.runTransaction(async tx => {
-    const opponentSnap = await tx.get(opponent.ref);
-    if (opponentSnap.data()?.status !== "waiting") throw new HttpsError("aborted", "Matchmaking race; retry.");
+    const [ownSnap, opponentSnap] = await Promise.all([tx.get(ticket), tx.get(opponent.ref)]);
+    if ((ownSnap.exists && ownSnap.data()?.status !== "waiting") || opponentSnap.data()?.status !== "waiting") {
+      throw new HttpsError("aborted", "Matchmaking race; retry.");
+    }
+    tx.set(ticket, {participantID: uid, displayName: String(request.data?.displayName ?? "Wayfarer").slice(0, 32), status: "matching", createdAt: FieldValue.serverTimestamp()}, {merge: true});
     tx.update(opponent.ref, {status: "matching"});
   });
   try {

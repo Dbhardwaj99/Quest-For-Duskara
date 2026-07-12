@@ -6,7 +6,7 @@
       ".read": "auth != null && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
       "$uid": {"connections": {"$connectionID": {
         ".write": "auth != null && auth.uid == $uid && auth.token.rooms != null && auth.token.rooms[$roomID] == true",
-        ".validate": "!newData.exists() || (newData.hasOnly(['connectedAt']) && newData.child('connectedAt').isNumber())"
+        ".validate": "!newData.exists() || (newData.hasChildren(['connectedAt']) && newData.child('connectedAt').isNumber())"
       }}}
     }},
     "lobbies": {"$roomID": {

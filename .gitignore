@@ -4,4 +4,5 @@ firebase/functions/lib/
 firebase/functions/node_modules/
 firebase/.firebase/
 firebase/emulator-data/
+firebase/*-debug.log
 *.xcresult
