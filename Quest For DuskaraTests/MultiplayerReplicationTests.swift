@@ -6,9 +6,10 @@ import Testing
 struct MultiplayerReplicationTests {
     private func match(revision: Int = 0) -> MatchState {
         MatchState(
-            roomID: "room-1", revision: revision, schemaVersion: 1, rulesVersion: 1,
-            status: .active, day: 1, dayStartServerMillis: 1000,
-            towns: [TownState(id: TestFixtures.uuid(1).uuidString, faction: "player", armyStrength: 0, resources: ["gold": 100], soldiers: [:], buildings: [])],
+            roomID: "room-1", revision: revision, schemaVersion: SchemaVersion.current, rulesVersion: SchemaVersion.rules,
+            status: .active, humanPlayerIDs: [TestFixtures.humanPlayer], winnerPlayerID: nil,
+            day: 1, dayStartServerMillis: 1000,
+            towns: [TownState(id: TestFixtures.uuid(1).uuidString, ownerID: TestFixtures.humanPlayer, armyStrength: 0, resources: ["gold": 100], soldiers: [:], buildings: [])],
             news: [], tradeOffers: [], entityCounter: 0
         )
     }
@@ -16,8 +17,8 @@ struct MultiplayerReplicationTests {
     private func patch(revision: Int, gold: Int = 90) -> GameStatePatch {
         GameStatePatch(
             revision: revision, actionID: "action-\(revision)", day: 1,
-            dayStartServerMillis: 1000, status: .active,
-            updatedTowns: [TownState(id: TestFixtures.uuid(1).uuidString, faction: "player", armyStrength: 0, resources: ["gold": gold], soldiers: [:], buildings: [])],
+            dayStartServerMillis: 1000, status: .active, winnerPlayerID: nil,
+            updatedTowns: [TownState(id: TestFixtures.uuid(1).uuidString, ownerID: TestFixtures.humanPlayer, armyStrength: 0, resources: ["gold": gold], soldiers: [:], buildings: [])],
             appendedNews: [], tradeOffers: [], entityCounter: revision
         )
     }

@@ -17,26 +17,31 @@ struct GameReducer {
     private let simulationSystem = SimulationSystem()
     private let newsStore = NewsStore()
 
-    /// Applies a payload. On failure the state is untouched and a
-    /// user-facing message is returned.
+    /// Applies a payload on behalf of `participantID` (the acting player).
+    /// On failure the state is untouched and a user-facing message is
+    /// returned.
     func reduce(
         _ payload: GameActionPayload,
+        participantID: String,
         state: inout GameState,
         balance: GameBalance,
         nowMillis: Int64
     ) -> String? {
         let before = state
-        if let failure = apply(payload, to: &state, balance: balance, nowMillis: nowMillis) {
+        if let failure = apply(payload, participantID: participantID, to: &state, balance: balance, nowMillis: nowMillis) {
             state = before
             return failure
         }
         normalizeMintedIDs(before: before, state: &state)
-        state.status = simulationSystem.evaluateStatus(state: state)
+        let outcome = simulationSystem.evaluateOutcome(state: state)
+        state.status = outcome.status
+        state.winnerPlayerID = outcome.winnerPlayerID
         return nil
     }
 
     private func apply(
         _ payload: GameActionPayload,
+        participantID: String,
         to state: inout GameState,
         balance: GameBalance,
         nowMillis: Int64
@@ -46,7 +51,7 @@ struct GameReducer {
             guard let townID = UUID(uuidString: townIDString), let kind = BuildingKind(rawValue: kindString) else {
                 return "Malformed command."
             }
-            guard let index = state.towns.firstIndex(where: { $0.id == townID }), state.towns[index].isPlayerControlled else {
+            guard let index = state.towns.firstIndex(where: { $0.id == townID }), state.towns[index].isOwned(by: participantID) else {
                 return "That town is not under your control."
             }
             if let failure = buildingSystem.build(kind, at: GridCoordinate(x: x, y: y), in: &state.towns[index], balance: balance) {
@@ -59,7 +64,7 @@ struct GameReducer {
             guard let townID = UUID(uuidString: townIDString), let buildingID = UUID(uuidString: buildingIDString) else {
                 return "Malformed command."
             }
-            guard let index = state.towns.firstIndex(where: { $0.id == townID }), state.towns[index].isPlayerControlled else {
+            guard let index = state.towns.firstIndex(where: { $0.id == townID }), state.towns[index].isOwned(by: participantID) else {
                 return "That town is not under your control."
             }
             if let failure = buildingSystem.upgrade(buildingID, in: &state.towns[index], balance: balance) {
@@ -71,7 +76,7 @@ struct GameReducer {
             guard let townID = UUID(uuidString: townIDString), let soldier = SoldierKind(rawValue: soldierString) else {
                 return "Malformed command."
             }
-            guard let index = state.towns.firstIndex(where: { $0.id == townID }), state.towns[index].isPlayerControlled else {
+            guard let index = state.towns.firstIndex(where: { $0.id == townID }), state.towns[index].isOwned(by: participantID) else {
                 return "That town is not under your control."
             }
             if let failure = soldierTrainingSystem.train(soldier, in: &state.towns[index], balance: balance) {
@@ -90,7 +95,7 @@ struct GameReducer {
                 amounts[kind] = amount
             }
             let order = TransferOrder(fromTownID: fromID, toTownID: toID, amounts: amounts)
-            if let failure = transferSystem.transfer(order: order, state: &state, balance: balance) {
+            if let failure = transferSystem.transfer(order: order, state: &state, balance: balance, actingPlayerID: participantID) {
                 return failure.rawValue
             }
             if let destination = state.town(id: toID) {
@@ -106,7 +111,7 @@ struct GameReducer {
             }
             let targetWasDuskara = state.town(id: targetID)?.isDuskara == true
             let targetName = state.town(id: targetID)?.name ?? "Town"
-            guard worldMapSystem.attack(targetID: targetID, from: fromID, state: &state, balance: balance) else {
+            guard worldMapSystem.attack(targetID: targetID, from: fromID, state: &state, balance: balance, actingPlayerID: participantID) else {
                 return "Attack failed. Your committed soldiers were lost."
             }
             if targetWasDuskara {
@@ -117,7 +122,7 @@ struct GameReducer {
 
         case let .acceptTrade(townIDString, offerID):
             guard let townID = UUID(uuidString: townIDString) else { return "Malformed command." }
-            guard let townIndex = state.towns.firstIndex(where: { $0.id == townID }), state.towns[townIndex].isPlayerControlled else {
+            guard let townIndex = state.towns.firstIndex(where: { $0.id == townID }), state.towns[townIndex].isOwned(by: participantID) else {
                 return "That town is not under your control."
             }
             guard let offerIndex = state.tradeOffers.firstIndex(where: { $0.id == offerID && $0.townID == townID }) else {
@@ -130,12 +135,15 @@ struct GameReducer {
             _ = state.towns[townIndex].resources.spend(offer.wants)
             state.towns[townIndex].resources.apply(offer.gives)
             state.tradeOffers.remove(at: offerIndex)
-            let partnerName = state.town(id: offer.partnerID)?.name ?? "a free city"
+            let partnerName = state.towns(ownedBy: offer.partnerPlayerID).first?.name ?? "a free city"
             newsStore.record(.resourceTransfer, message: "You traded with \(partnerName)", state: &state)
             return nil
 
         case let .declineTrade(townIDString, offerID):
             guard let townID = UUID(uuidString: townIDString) else { return "Malformed command." }
+            guard state.towns.first(where: { $0.id == townID })?.isOwned(by: participantID) == true else {
+                return "That town is not under your control."
+            }
             guard let offerIndex = state.tradeOffers.firstIndex(where: { $0.id == offerID && $0.townID == townID }) else {
                 return "That trade ship has already sailed."
             }
@@ -156,14 +164,15 @@ struct GameReducer {
 
     // MARK: - Seeded daily trade events
 
-    /// One offer per player town with a pier, seeded by (world seed, day,
-    /// town), valid until the next day. Declined or accepted offers do not
-    /// return until the next ship arrives with the new day.
+    /// One offer per human-owned town with a pier, seeded by (world seed,
+    /// day, town), valid until the next day. Partners are the AI players
+    /// ruling connected islands; the offer references their server-assigned
+    /// player ID, never a locally fabricated identity.
     func regenerateTradeOffers(state: inout GameState, balance: GameBalance) {
         state.tradeOffers.removeAll { $0.expiresOnDay <= state.day }
 
         let pierTowns = state.towns
-            .filter { $0.isPlayerControlled && $0.buildings.contains { $0.kind == .pier } }
+            .filter { state.isHumanOwned($0) && $0.buildings.contains { $0.kind == .pier } }
             .sorted { $0.id.uuidString < $1.id.uuidString }
 
         for town in pierTowns where state.tradeOffers.contains(where: { $0.townID == town.id }) == false {
@@ -174,7 +183,7 @@ struct GameReducer {
                     return nil
                 }
                 .compactMap { state.town(id: $0) }
-                .filter { $0.faction == .neutral }
+                .filter { state.isHumanOwned($0) == false }
                 .sorted { $0.id.uuidString < $1.id.uuidString }
 
             var rng = DeterministicRandom(
@@ -198,7 +207,7 @@ struct GameReducer {
             state.tradeOffers.append(TownTradeOffer(
                 id: "trade-\(state.day)-\(town.id.uuidString)",
                 townID: town.id,
-                partnerID: partner.id,
+                partnerPlayerID: partner.ownerID,
                 wants: [wantKind: rng.int(in: ranges[wantKind] ?? 10...20)],
                 gives: gives,
                 expiresOnDay: state.day + 1

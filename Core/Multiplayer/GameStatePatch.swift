@@ -14,6 +14,8 @@ struct GameStatePatch: Codable, Equatable {
     var day: Int
     var dayStartServerMillis: Int64
     var status: MatchStatus
+    /// Set when this patch finishes the match.
+    var winnerPlayerID: String?
     /// Complete replacement state for every town the action touched.
     var updatedTowns: [TownState]
     /// News appended by this action, newest first.
@@ -45,6 +47,7 @@ extension GameStatePatch {
         state.day = day
         state.dayStartServerMillis = dayStartServerMillis
         state.status = status
+        state.winnerPlayerID = winnerPlayerID
         state.news.insert(contentsOf: appendedNews, at: 0)
         if state.news.count > 40 { state.news.removeLast(state.news.count - 40) }
         state.tradeOffers = tradeOffers
@@ -66,6 +69,7 @@ extension GameStatePatch {
         self.day = after.day
         self.dayStartServerMillis = after.dayStartServerMillis
         self.status = after.status
+        self.winnerPlayerID = after.winnerPlayerID
         self.updatedTowns = after.towns
             .filter { beforeTowns[$0.id] != $0 }
             .map(TownState.init(town:))

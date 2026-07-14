@@ -191,10 +191,12 @@ struct GameView: View {
     }
 
     private var bottomBar: some View {
-        BottomBarView(
+        // Manual day advance exists only where this device is the authority.
+        let nextDay: (() -> Void)? = viewModel.isLocalAuthority ? { viewModel.advanceDayManually() } : nil
+        return BottomBarView(
             onBuild: { viewModel.isBuildMenuPresented = true },
             onWorld: { viewModel.isWorldMapPresented = true },
-            onNextDay: viewModel.advanceDayManually
+            onNextDay: nextDay
         )
     }
 

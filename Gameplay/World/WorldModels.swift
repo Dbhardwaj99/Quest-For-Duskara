@@ -1,19 +1,14 @@
 import Foundation
 
-enum TownFaction: String, Codable, Equatable {
-    case player
-    case neutral
-    case enemy
-    case duskara
-}
-
 struct Town: Identifiable, Codable, Equatable {
     var id: UUID
     var name: String
     var resources: ResourceWallet
     var buildings: [BuildingInstance]
     var biomeLayout: TownBiomeLayout
-    var faction: TownFaction
+    /// Opaque server-assigned player ID (human or AI) that owns this island.
+    /// There are no factions: every rule is an ownership comparison.
+    var ownerID: String
     var isDuskara: Bool
     var armyStrength: Int
     var soldierRoster: SoldierRoster
@@ -24,7 +19,7 @@ struct Town: Identifiable, Codable, Equatable {
         resources: ResourceWallet = ResourceWallet(),
         buildings: [BuildingInstance] = [],
         biomeLayout: TownBiomeLayout,
-        faction: TownFaction = .neutral,
+        ownerID: String,
         isDuskara: Bool = false,
         armyStrength: Int = 0,
         soldierRoster: SoldierRoster = SoldierRoster()
@@ -34,60 +29,10 @@ struct Town: Identifiable, Codable, Equatable {
         self.resources = resources
         self.buildings = buildings
         self.biomeLayout = biomeLayout
-        self.faction = faction
+        self.ownerID = ownerID
         self.isDuskara = isDuskara
         self.armyStrength = armyStrength
         self.soldierRoster = soldierRoster
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case resources
-        case buildings
-        case biomeLayout
-        case faction
-        case isDuskara
-        case armyStrength
-        case soldierRoster
-        case isPlayerControlled
-        case enemyArmyStrength
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
-        resources = try container.decode(ResourceWallet.self, forKey: .resources)
-        buildings = try container.decode([BuildingInstance].self, forKey: .buildings)
-        biomeLayout = try container.decode(TownBiomeLayout.self, forKey: .biomeLayout)
-        isDuskara = try container.decodeIfPresent(Bool.self, forKey: .isDuskara) ?? false
-        soldierRoster = try container.decodeIfPresent(SoldierRoster.self, forKey: .soldierRoster) ?? SoldierRoster()
-
-        if let decodedFaction = try container.decodeIfPresent(TownFaction.self, forKey: .faction) {
-            faction = decodedFaction
-        } else if try container.decodeIfPresent(Bool.self, forKey: .isPlayerControlled) == true {
-            faction = .player
-        } else {
-            faction = .neutral
-        }
-
-        let legacyEnemyStrength = try container.decodeIfPresent(Int.self, forKey: .enemyArmyStrength) ?? 0
-        armyStrength = try container.decodeIfPresent(Int.self, forKey: .armyStrength)
-            ?? (faction == .player ? resources[.soldiers] : legacyEnemyStrength)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(name, forKey: .name)
-        try container.encode(resources, forKey: .resources)
-        try container.encode(buildings, forKey: .buildings)
-        try container.encode(biomeLayout, forKey: .biomeLayout)
-        try container.encode(faction, forKey: .faction)
-        try container.encode(isDuskara, forKey: .isDuskara)
-        try container.encode(armyStrength, forKey: .armyStrength)
-        try container.encode(soldierRoster, forKey: .soldierRoster)
     }
 
     var forestSideCount: Int {
@@ -137,7 +82,9 @@ struct TownTradeOffer: Codable, Equatable, Identifiable {
     /// Deterministic: "trade-<day>-<townID>".
     var id: String
     var townID: UUID
-    var partnerID: UUID
+    /// Server-assigned player ID of the trading partner. Clients never
+    /// fabricate partners; they target IDs the authority handed out.
+    var partnerPlayerID: String
     var wants: [ResourceKind: Int]
     var gives: [ResourceKind: Int]
     /// The offer disappears when the day reaches this value.
@@ -157,6 +104,12 @@ struct GameState: Codable, Equatable {
     var territory: TerritoryState
     /// Durable match lifecycle, owned by the rules layer.
     var status: MatchStatus
+    /// Server-assigned IDs of the human players, in join order. Every other
+    /// owner ID in `towns` belongs to a server-owned AI player.
+    var humanPlayerIDs: [String]
+    /// Set when status becomes .finished. Nil on a finished match means no
+    /// human won (single-player defeat).
+    var winnerPlayerID: String?
     var newsEvents: [NewsEvent]
     /// Live seeded trade offers, one at most per town.
     var tradeOffers: [TownTradeOffer]
@@ -172,6 +125,8 @@ struct GameState: Codable, Equatable {
         world: WorldMapState = .empty,
         territory: TerritoryState = .empty,
         status: MatchStatus = .active,
+        humanPlayerIDs: [String],
+        winnerPlayerID: String? = nil,
         newsEvents: [NewsEvent] = [],
         tradeOffers: [TownTradeOffer] = [],
         entityCounter: Int = 0
@@ -184,38 +139,11 @@ struct GameState: Codable, Equatable {
         self.world = world
         self.territory = territory
         self.status = status
+        self.humanPlayerIDs = humanPlayerIDs
+        self.winnerPlayerID = winnerPlayerID
         self.newsEvents = newsEvents
         self.tradeOffers = tradeOffers
         self.entityCounter = entityCounter
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case day
-        case dayStartServerMillis
-        case towns
-        case worldNodes
-        case connections
-        case world
-        case territory
-        case status
-        case newsEvents
-        case tradeOffers
-        case entityCounter
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        day = try container.decode(Int.self, forKey: .day)
-        dayStartServerMillis = try container.decodeIfPresent(Int64.self, forKey: .dayStartServerMillis) ?? 0
-        towns = try container.decode([Town].self, forKey: .towns)
-        worldNodes = try container.decode([WorldTownNode].self, forKey: .worldNodes)
-        connections = try container.decode([TownConnection].self, forKey: .connections)
-        world = try container.decodeIfPresent(WorldMapState.self, forKey: .world) ?? .empty
-        territory = try container.decodeIfPresent(TerritoryState.self, forKey: .territory) ?? .empty
-        status = try container.decodeIfPresent(MatchStatus.self, forKey: .status) ?? .active
-        newsEvents = try container.decodeIfPresent([NewsEvent].self, forKey: .newsEvents) ?? []
-        tradeOffers = try container.decodeIfPresent([TownTradeOffer].self, forKey: .tradeOffers) ?? []
-        entityCounter = try container.decodeIfPresent(Int.self, forKey: .entityCounter) ?? 0
     }
 }
 

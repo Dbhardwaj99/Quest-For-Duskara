@@ -5,6 +5,11 @@ import Testing
 enum TestFixtures {
     static let balance = GameBalance.duskDefault
 
+    /// Stable stand-ins for server-assigned player IDs.
+    static let humanPlayer = "player-1"
+    static let rivalPlayer = "player-2"
+    static let aiPlayer = "ai-1"
+
     static func uuid(_ value: Int) -> UUID {
         UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", value))!
     }
@@ -16,7 +21,7 @@ enum TestFixtures {
     static func town(
         _ number: Int,
         name: String? = nil,
-        faction: TownFaction = .player,
+        ownerID: String = TestFixtures.humanPlayer,
         resources: [ResourceKind: Int] = [.gold: 500, .skill: 300, .food: 100, .people: 10],
         buildings: [BuildingInstance] = [],
         armyStrength: Int = 0,
@@ -29,7 +34,7 @@ enum TestFixtures {
             resources: ResourceWallet(resources),
             buildings: buildings,
             biomeLayout: defaultLayout,
-            faction: faction,
+            ownerID: ownerID,
             isDuskara: isDuskara,
             armyStrength: armyStrength,
             soldierRoster: soldierRoster
@@ -45,13 +50,15 @@ enum TestFixtures {
     static func state(
         towns: [Town],
         connections: [TownConnection] = [],
-        day: Int = 1
+        day: Int = 1,
+        humanPlayerIDs: [String] = [TestFixtures.humanPlayer]
     ) -> GameState {
         GameState(
             day: day,
             towns: towns,
             worldNodes: [],
-            connections: connections
+            connections: connections,
+            humanPlayerIDs: humanPlayerIDs
         )
     }
 }

@@ -42,28 +42,46 @@ final class GameViewModel {
     private let saveStore = GameSaveStore()
     /// Single command route for every mutable gameplay action.
     private let dispatcher: GameCommandDispatching
-    private let localParticipantID = "local-player"
+    /// Opaque player ID of the person at this device, assigned by the match
+    /// authority (the server in multiplayer, the app for local campaigns).
+    let localPlayerID: String
 
     init(
         balance: GameBalance = GameBalance.duskDefault,
         dispatcher: GameCommandDispatching? = nil,
-        worldSeed: Int? = nil
+        matchConfig: MatchConfig? = nil,
+        localPlayerID: String? = nil
     ) {
         self.balance = balance
         self.dispatcher = dispatcher ?? LocalCommandDispatcher()
-        // The seed is minted once at match creation (by the server in
-        // multiplayer); everything downstream is deterministic.
-        let state = WorldMapSystem().makeInitialState(balance: balance, seed: worldSeed ?? Int.random(in: 0..<1_000_000))
+        // World content is deterministic from the config's seed; identity
+        // comes from the config's server-assigned player IDs. Multiplayer
+        // passes which of them sits at this device; a local campaign has
+        // exactly one human.
+        let config = matchConfig ?? .localSinglePlayer(seed: Int.random(in: 0..<1_000_000))
+        let localPlayerID = localPlayerID ?? config.humanPlayerIDs[0]
+        self.localPlayerID = localPlayerID
+        let state = WorldMapSystem().makeInitialState(balance: balance, config: config)
         self.state = state
-        self.activeTownID = state.towns.first(where: \.isPlayerControlled)?.id ?? state.towns[0].id
+        self.activeTownID = state.towns.first(where: { $0.isOwned(by: localPlayerID) })?.id ?? state.towns[0].id
     }
 
-    /// Builds a replicated action for the shared player empire and routes it
+    /// True when this device runs the simulation itself (local campaign).
+    /// In multiplayer the server owns time and the whole tick pipeline.
+    var isLocalAuthority: Bool {
+        dispatcher.isLocalAuthority
+    }
+
+    func isLocallyOwned(_ town: Town) -> Bool {
+        town.isOwned(by: localPlayerID)
+    }
+
+    /// Builds a replicated action for the local player and routes it
     /// through the dispatcher. Rejections surface as feedback.
     @discardableResult
     private func dispatch(_ payload: GameActionPayload) -> GameActionResult {
         let action = GameAction(
-            participantID: localParticipantID,
+            participantID: localPlayerID,
             expectedRevision: dispatcher.revision,
             payload: payload
         )
@@ -108,8 +126,7 @@ final class GameViewModel {
     }
 
     var empireArmyStrength: Int {
-        state.towns
-            .filter(\.isPlayerControlled)
+        state.towns(ownedBy: localPlayerID)
             .reduce(0) { $0 + $1.armyStrength }
     }
 
@@ -228,8 +245,10 @@ final class GameViewModel {
         }
     }
 
+    /// Debug shortcut for local campaigns only. In multiplayer the server
+    /// is the sole source of ticks; clients never advance time.
     func advanceDayManually() {
-        guard phase == .town else { return }
+        guard phase == .town, isLocalAuthority else { return }
         let result = dispatch(.advanceDay)
         if result.status == .accepted {
             sanitizePresentationState()
@@ -241,7 +260,7 @@ final class GameViewModel {
 
     func switchToTown(_ townID: UUID) {
         guard phase == .town else { return }
-        guard state.town(id: townID)?.isPlayerControlled == true else { return }
+        guard let town = state.town(id: townID), isLocallyOwned(town) else { return }
         activeTownID = townID
         selectedCoordinate = nil
         selectedBuildingID = nil
@@ -255,7 +274,7 @@ final class GameViewModel {
         guard phase == .town else { return }
         let result = dispatch(.attack(fromTownID: activeTownID.uuidString, targetTownID: targetID.uuidString))
         if result.status == .accepted {
-            if state.status == .victory {
+            if state.status == .finished {
                 reactToMatchStatus()
             } else {
                 show("Town conquered.")
@@ -265,18 +284,23 @@ final class GameViewModel {
     }
 
     /// Mirrors the durable match status (owned by the rules layer) into
-    /// presentation state.
+    /// presentation state. Outcome is perspective-free in state; here it
+    /// becomes this player's victory or defeat.
     private func reactToMatchStatus() {
-        guard state.status == .victory, phase != .victory else { return }
-        phase = .victory
+        guard state.status == .finished, phase != .victory else { return }
         isWorldMapPresented = false
         stopClock()
-        show("Duskara conquered. Victory is yours.")
+        if state.winnerPlayerID == localPlayerID {
+            phase = .victory
+            show("Victory is yours.")
+        } else {
+            show("Your last island has fallen. The campaign is lost.")
+        }
     }
 
     func canAttack(_ targetID: UUID) -> Bool {
         guard phase == .town else { return false }
-        return worldMapSystem.canAttack(targetID: targetID, from: activeTownID, in: state, balance: balance)
+        return worldMapSystem.canAttack(targetID: targetID, from: activeTownID, in: state, balance: balance, actingPlayerID: localPlayerID)
     }
 
     func effectiveDefenseStrength(for town: Town) -> Int {
@@ -302,7 +326,8 @@ final class GameViewModel {
 
     var currentTradeOffer: TradeOffer? {
         guard let offer = state.tradeOffers.first(where: { $0.townID == activeTownID }) else { return nil }
-        guard let partner = state.town(id: offer.partnerID), partner.faction == .neutral else { return nil }
+        // The partner is a server-assigned AI player; show its capital.
+        guard let partner = state.towns(ownedBy: offer.partnerPlayerID).first else { return nil }
         return TradeOffer(id: offer.id, cityID: partner.id, cityName: partner.name, wants: offer.wants, gives: offer.gives)
     }
 
@@ -345,7 +370,7 @@ final class GameViewModel {
         }
     }
 
-    /// Free (neutral) cities connected to the active town by a sea lane.
+    /// AI-ruled cities connected to the active town by a sea lane.
     private var tradePartners: [Town] {
         state.connections
             .compactMap { connection -> UUID? in
@@ -354,7 +379,7 @@ final class GameViewModel {
                 return nil
             }
             .compactMap { state.town(id: $0) }
-            .filter { $0.faction == .neutral }
+            .filter { state.isHumanOwned($0) == false }
     }
 
     func canTrain(_ soldier: SoldierKind) -> Bool {
@@ -413,6 +438,9 @@ final class GameViewModel {
     private func tickSecond() {
         guard phase == .town else { return }
         clockTick += 1
+        // Only the local authority advances time; a multiplayer client just
+        // renders progress and waits for the server's tick to replicate.
+        guard isLocalAuthority else { return }
         // Authoritative catch-up: advance as many whole days as server time
         // says have passed (more than one after a long suspension).
         var advancedAny = false
@@ -428,9 +456,9 @@ final class GameViewModel {
     }
 
     private func sanitizeActiveTownSelection() {
-        if state.town(id: activeTownID)?.isPlayerControlled != true,
-           let nextPlayerTown = state.towns.first(where: \.isPlayerControlled) {
-            activeTownID = nextPlayerTown.id
+        if state.town(id: activeTownID).map(isLocallyOwned) != true,
+           let nextOwnedTown = state.towns.first(where: isLocallyOwned) {
+            activeTownID = nextOwnedTown.id
         }
     }
 

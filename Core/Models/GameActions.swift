@@ -17,6 +17,11 @@ protocol GameCommandDispatching: AnyObject {
     /// their expectedRevision.
     var revision: Int { get }
 
+    /// True when this client is the simulation authority (local
+    /// single-player). Only the authority may initiate ticks: when false,
+    /// the client never dispatches advanceDay — the server owns time.
+    var isLocalAuthority: Bool { get }
+
     /// `nowMillis` is authoritative time: the server injects its own clock;
     /// local play passes the ServerClock reading.
     func dispatch(_ action: GameAction, state: inout GameState, balance: GameBalance, nowMillis: Int64) -> GameActionResult
@@ -28,6 +33,8 @@ protocol GameCommandDispatching: AnyObject {
 @MainActor
 final class LocalCommandDispatcher: GameCommandDispatching {
     private(set) var revision = 0
+
+    let isLocalAuthority = true
 
     private let reducer = GameReducer()
 
@@ -43,7 +50,7 @@ final class LocalCommandDispatcher: GameCommandDispatching {
         }
 
         let before = state
-        if let failure = reducer.reduce(action.payload, state: &state, balance: balance, nowMillis: nowMillis) {
+        if let failure = reducer.reduce(action.payload, participantID: action.participantID, state: &state, balance: balance, nowMillis: nowMillis) {
             return rejected(action, failure)
         }
 

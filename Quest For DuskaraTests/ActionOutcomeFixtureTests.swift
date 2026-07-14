@@ -20,8 +20,8 @@ struct ActionOutcomeFixtureTests {
                     TestFixtures.building(1, kind: .house, x: 1, y: 1),
                     TestFixtures.building(2, kind: .pier, x: 1, y: 2)
                 ]),
-                TestFixtures.town(2, name: "Oakmere", faction: .player, resources: [.gold: 40, .food: 20, .people: 4]),
-                TestFixtures.town(3, name: "Mosswatch", faction: .neutral, resources: [.gold: 80, .skill: 40, .food: 30], armyStrength: 8)
+                TestFixtures.town(2, name: "Oakmere", resources: [.gold: 40, .food: 20, .people: 4]),
+                TestFixtures.town(3, name: "Mosswatch", ownerID: TestFixtures.aiPlayer, resources: [.gold: 80, .skill: 40, .food: 30], armyStrength: 8)
             ],
             connections: [
                 TownConnection(from: TestFixtures.uuid(1), to: TestFixtures.uuid(2)),
@@ -47,11 +47,13 @@ struct ActionOutcomeFixtureTests {
         // Ship supplies to the second town.
         _ = transferSystem.transfer(
             order: TransferOrder(fromTownID: TestFixtures.uuid(1), toTownID: TestFixtures.uuid(2), amounts: [.gold: 50, .food: 20]),
-            state: &state
+            state: &state,
+            balance: balance,
+            actingPlayerID: TestFixtures.humanPlayer
         )
 
-        // Take the neutral island.
-        _ = worldMapSystem.attack(targetID: TestFixtures.uuid(3), from: TestFixtures.uuid(1), state: &state, balance: balance)
+        // Take the AI island.
+        _ = worldMapSystem.attack(targetID: TestFixtures.uuid(3), from: TestFixtures.uuid(1), state: &state, balance: balance, actingPlayerID: TestFixtures.humanPlayer)
 
         // Let three days of production, upkeep and income pass.
         for _ in 0..<3 {
@@ -86,7 +88,7 @@ private struct StateSnapshot: Codable {
     struct TownSnapshot: Codable {
         var id: UUID
         var name: String
-        var faction: String
+        var ownerID: String
         var isDuskara: Bool
         var armyStrength: Int
         var resources: [String: Int]
@@ -113,7 +115,7 @@ private struct StateSnapshot: Codable {
             TownSnapshot(
                 id: town.id,
                 name: town.name,
-                faction: town.faction.rawValue,
+                ownerID: town.ownerID,
                 isDuskara: town.isDuskara,
                 armyStrength: town.armyStrength,
                 resources: Dictionary(uniqueKeysWithValues: town.resources.amounts.map { ($0.key.rawValue, $0.value) }),

@@ -1,9 +1,32 @@
 import SwiftUI
 
+/// Presentation-only reading of an island's owner from the local player's
+/// perspective. Never part of game state: rules only compare owner IDs.
+enum TownRole {
+    case localPlayer
+    case rivalPlayer
+    case ai
+    case duskara
+
+    init(town: Town, localPlayerID: String, humanPlayerIDs: [String]) {
+        if town.ownerID == localPlayerID {
+            self = .localPlayer
+        } else if humanPlayerIDs.contains(town.ownerID) {
+            self = .rivalPlayer
+        } else if town.isDuskara {
+            self = .duskara
+        } else {
+            self = .ai
+        }
+    }
+}
+
 struct TerritoryRenderer: View {
     let world: WorldMapState
     let territory: TerritoryState
     let towns: [Town]
+    let localPlayerID: String
+    let humanPlayerIDs: [String]
     let nodes: [WorldTownNode]
     let connections: [TownConnection]
     let activeTownID: UUID
@@ -17,8 +40,16 @@ struct TerritoryRenderer: View {
         Dictionary(uniqueKeysWithValues: towns.map { ($0.id, $0) })
     }
 
-    // Every sea lane, tagged with whether it is a live trade route (player
-    // pier town <-> neutral free city) and whether a ship sails it.
+    private func role(of town: Town) -> TownRole {
+        TownRole(town: town, localPlayerID: localPlayerID, humanPlayerIDs: humanPlayerIDs)
+    }
+
+    private var roleByTownID: [UUID: TownRole] {
+        Dictionary(uniqueKeysWithValues: towns.map { ($0.id, role(of: $0)) })
+    }
+
+    // Every sea lane, tagged with whether it is a live trade route (local
+    // pier town <-> AI-ruled free city) and whether a ship sails it.
     private var seaRoutes: [SeaRoute] {
         let byID = townByID
         let nodeByTown = Dictionary(uniqueKeysWithValues: nodes.map { ($0.townID, MapPoint(x: $0.x, y: $0.y)) })
@@ -27,7 +58,7 @@ struct TerritoryRenderer: View {
                   let to = nodeByTown[connection.to],
                   let townA = byID[connection.from],
                   let townB = byID[connection.to] else { return nil }
-            let isTrade = SeaRoute.isTradeRoute(townA, townB) || SeaRoute.isTradeRoute(townB, townA)
+            let isTrade = isTradeRoute(townA, townB) || isTradeRoute(townB, townA)
             let seed = SeaRoute.stableHash(connection.id)
             return SeaRoute(
                 id: connection.id,
@@ -40,6 +71,12 @@ struct TerritoryRenderer: View {
         }
     }
 
+    private func isTradeRoute(_ pierTown: Town, _ partner: Town) -> Bool {
+        pierTown.isOwned(by: localPlayerID)
+            && pierTown.buildings.contains { $0.kind == .pier }
+            && humanPlayerIDs.contains(partner.ownerID) == false
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let projection = WorldMapProjection(size: proxy.size)
@@ -49,6 +86,7 @@ struct TerritoryRenderer: View {
                 TerritoryRegionLayer(
                     world: world,
                     territory: territory,
+                    roleByTownID: roleByTownID,
                     selectedTownID: selectedTownID,
                     activeTownID: activeTownID
                 )
@@ -93,6 +131,7 @@ struct TerritoryRenderer: View {
                 if let town = townByID[node.townID] {
                     WorldTownMarkerView(
                         town: town,
+                        role: role(of: town),
                         isActive: node.townID == activeTownID,
                         isSelected: node.townID == selectedTownID
                     )
@@ -117,11 +156,6 @@ private struct SeaRoute: Identifiable {
     let hasShip: Bool
     let seed: Int
 
-    static func isTradeRoute(_ pierTown: Town, _ partner: Town) -> Bool {
-        pierTown.isPlayerControlled
-            && pierTown.buildings.contains { $0.kind == .pier }
-            && partner.faction == .neutral
-    }
 
     // Hasher's per-launch seed would reshuffle ships every run; this stays
     // stable so each lane keeps its curve, pace, and phase.
@@ -316,8 +350,13 @@ private struct WorldTerrainLayer: View {
 private struct TerritoryRegionLayer: View {
     let world: WorldMapState
     let territory: TerritoryState
+    let roleByTownID: [UUID: TownRole]
     let selectedTownID: UUID?
     let activeTownID: UUID
+
+    private func color(for region: TerritoryRegion) -> Color {
+        (roleByTownID[region.townID] ?? .ai).mapColor
+    }
 
     private var regionByTownID: [UUID: TerritoryRegion] {
         Dictionary(uniqueKeysWithValues: territory.regions.map { ($0.townID, $0) })
@@ -348,7 +387,7 @@ private struct TerritoryRegionLayer: View {
             for cell in region.cells {
                 regionPath.addRect(projection.rect(for: cell, layout: world.layout))
             }
-            context.fill(regionPath, with: .color(region.ownerFaction.mapColor.opacity(opacity)))
+            context.fill(regionPath, with: .color(color(for: region).opacity(opacity)))
         }
     }
 
@@ -406,9 +445,9 @@ private struct TerritoryRegionLayer: View {
         context: inout GraphicsContext,
         projection: WorldMapProjection
     ) {
-        let isEmpireBorder = neighbor?.ownerFaction != region.ownerFaction
+        let isEmpireBorder = neighbor?.ownerID != region.ownerID
         let path = projection.path(for: edge, of: cell, layout: world.layout)
-        let color = isEmpireBorder ? region.ownerFaction.mapColor.opacity(0.95) : .white.opacity(0.14)
+        let color = isEmpireBorder ? color(for: region).opacity(0.95) : .white.opacity(0.14)
         let lineWidth = isEmpireBorder ? 2.0 : 0.7
         context.stroke(path, with: .color(color), lineWidth: lineWidth)
     }
@@ -433,6 +472,7 @@ private enum TerritoryBorderEdge {
 
 private struct WorldTownMarkerView: View {
     let town: Town
+    let role: TownRole
     let isActive: Bool
     let isSelected: Bool
 
@@ -442,12 +482,12 @@ private struct WorldTownMarkerView: View {
         VStack(spacing: 2) {
             ZStack {
                 if isActive {
-                    PulsingRing(color: town.faction.mapColor)
+                    PulsingRing(color: role.mapColor)
                 }
                 Circle()
-                    .fill(town.faction.mapColor.gradient)
+                    .fill(role.mapColor.gradient)
                     .frame(width: nodeSize, height: nodeSize)
-                    .shadow(color: town.faction.mapColor.opacity(0.55), radius: isSelected ? 8 : 3)
+                    .shadow(color: role.mapColor.opacity(0.55), radius: isSelected ? 8 : 3)
                 Circle()
                     .stroke(.white.opacity(isSelected ? 0.95 : 0.45), lineWidth: isSelected ? 2.2 : 1)
                     .frame(width: nodeSize + 5, height: nodeSize + 5)
@@ -473,16 +513,19 @@ private struct WorldTownMarkerView: View {
     }
 
     private var helpText: String {
-        if town.isPlayerControlled { return "\(town.name) — your city. Click to inspect, Visit to rule it." }
-        if town.isDuskara { return "\(town.name) — the stronghold. Defeat its \(town.armyStrength) soldiers to win." }
-        return "\(town.name) — garrison of \(town.armyStrength). Click to inspect or attack."
+        switch role {
+        case .localPlayer: return "\(town.name) — your city. Click to inspect, Visit to rule it."
+        case .rivalPlayer: return "\(town.name) — a rival player's city. Garrison of \(town.armyStrength)."
+        case .duskara: return "\(town.name) — the stronghold. Defeat its \(town.armyStrength) soldiers to win."
+        case .ai: return "\(town.name) — garrison of \(town.armyStrength). Click to inspect or attack."
+        }
     }
 
-    // Friendly cities show their stockpile; everyone else reveals only
+    // Your own cities show their stockpile; everyone else reveals only
     // soldier count.
     private var infoBadge: some View {
         Group {
-            if town.isPlayerControlled {
+            if role == .localPlayer {
                 Text("G \(town.resources[.gold]) · F \(town.resources[.food]) · S \(town.resources[.skill])")
             } else {
                 Label("\(town.armyStrength)", systemImage: "shield.fill")
@@ -497,10 +540,12 @@ private struct WorldTownMarkerView: View {
     }
 
     private var nodeIcon: String {
-        if town.isPlayerControlled { return "house.fill" }
-        if town.isDuskara { return "crown.fill" }
-        if town.faction == .enemy { return "shield.fill" }
-        return "circle.hexagonpath.fill"
+        switch role {
+        case .localPlayer: return "house.fill"
+        case .duskara: return "crown.fill"
+        case .rivalPlayer: return "shield.fill"
+        case .ai: return "circle.hexagonpath.fill"
+        }
     }
 
     private var nodeSize: CGFloat {
@@ -620,12 +665,12 @@ private extension TerrainKind {
 }
 
 // Shared with WorldMapView's legend.
-extension TownFaction {
+extension TownRole {
     var mapColor: Color {
         switch self {
-        case .player: return Color(red: 0.28, green: 0.72, blue: 0.38)
-        case .neutral: return Color(red: 0.74, green: 0.67, blue: 0.50)
-        case .enemy: return Color(red: 0.80, green: 0.24, blue: 0.20)
+        case .localPlayer: return Color(red: 0.28, green: 0.72, blue: 0.38)
+        case .ai: return Color(red: 0.74, green: 0.67, blue: 0.50)
+        case .rivalPlayer: return Color(red: 0.80, green: 0.24, blue: 0.20)
         case .duskara: return Color(red: 0.44, green: 0.34, blue: 0.72)
         }
     }

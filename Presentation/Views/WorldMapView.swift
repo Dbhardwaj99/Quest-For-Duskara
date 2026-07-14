@@ -84,6 +84,8 @@ struct WorldMapView: View {
                 world: viewModel.state.world,
                 territory: viewModel.state.territory,
                 towns: viewModel.state.towns,
+                localPlayerID: viewModel.localPlayerID,
+                humanPlayerIDs: viewModel.state.humanPlayerIDs,
                 nodes: viewModel.state.worldNodes,
                 connections: viewModel.state.connections,
                 activeTownID: viewModel.activeTownID,
@@ -214,10 +216,10 @@ struct WorldMapView: View {
                 .font(DuskaraTheme.Fonts.caption)
                 .foregroundStyle(DuskaraTheme.ink)
             HStack(spacing: 8) {
-                LegendSwatch(color: TownFaction.player.mapColor, title: "You")
-                LegendSwatch(color: TownFaction.neutral.mapColor, title: "Neutral")
-                LegendSwatch(color: TownFaction.enemy.mapColor, title: "Enemy")
-                LegendSwatch(color: TownFaction.duskara.mapColor, title: "Duskara")
+                LegendSwatch(color: TownRole.localPlayer.mapColor, title: "You")
+                LegendSwatch(color: TownRole.ai.mapColor, title: "Free City")
+                LegendSwatch(color: TownRole.rivalPlayer.mapColor, title: "Rival")
+                LegendSwatch(color: TownRole.duskara.mapColor, title: "Duskara")
             }
             HStack(spacing: 4) {
                 HStack(spacing: 2) {
@@ -250,14 +252,14 @@ struct WorldMapView: View {
                         Text(statusText(for: town))
                             .font(DuskaraTheme.Fonts.caption)
                             .foregroundStyle(DuskaraTheme.mutedInk)
-                        if town.isPlayerControlled {
+                        if viewModel.isLocallyOwned(town) {
                             Text(town.specializationSummary)
                                 .font(DuskaraTheme.Fonts.label)
                                 .foregroundStyle(specializationColor(for: town))
                         }
                     }
                     Spacer()
-                    if town.isPlayerControlled {
+                    if viewModel.isLocallyOwned(town) {
                         Button("Visit") { viewModel.switchToTown(town.id) }
                             .buttonStyle(DuskaraButtonStyle(prominent: true))
                             .frame(width: 96)
@@ -270,9 +272,9 @@ struct WorldMapView: View {
                     }
                 }
 
-                // Friendly towns show their stockpile; enemy towns reveal
+                // Your towns show their stockpile; everyone else reveals
                 // only their soldier count (already in the status line).
-                if town.isPlayerControlled {
+                if viewModel.isLocallyOwned(town) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(ResourceKind.allCases) { kind in
@@ -282,7 +284,7 @@ struct WorldMapView: View {
                     }
                 }
 
-                if town.isPlayerControlled && town.id != viewModel.activeTownID {
+                if viewModel.isLocallyOwned(town) && town.id != viewModel.activeTownID {
                     TransferPanel(
                         kind: $transferKind,
                         amount: $transferAmount,
@@ -300,10 +302,10 @@ struct WorldMapView: View {
     }
 
     private func statusText(for town: Town) -> String {
-        if town.isPlayerControlled { return "Controlled town · Army \(town.armyStrength)" }
+        if viewModel.isLocallyOwned(town) { return "Controlled town · Army \(town.armyStrength)" }
         if town.isDuskara { return "Duskara stronghold · Soldiers \(town.armyStrength)" }
-        if town.faction == .enemy { return "Enemy town · Soldiers \(town.armyStrength)" }
-        return "Neutral town · Soldiers \(town.armyStrength)"
+        if viewModel.state.isHumanOwned(town) { return "Rival player's town · Soldiers \(town.armyStrength)" }
+        return "Free city · Soldiers \(town.armyStrength)"
     }
 
     private func availableTransferAmount(for kind: ResourceKind) -> Int {

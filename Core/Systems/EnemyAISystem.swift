@@ -16,11 +16,11 @@ struct EnemyAISystem {
     }
 
     func takeTurn(state: inout GameState, balance: GameBalance) {
-        let enemyTownIDs = state.towns
-            .filter { $0.faction == .enemy }
+        let aiTownIDs = state.towns
+            .filter { state.isHumanOwned($0) == false }
             .map(\.id)
 
-        for townID in enemyTownIDs {
+        for townID in aiTownIDs {
             developInfrastructure(in: townID, state: &state, balance: balance)
             trainSoldier(in: townID, state: &state, balance: balance)
             attackBestAdjacentTarget(from: townID, state: &state, balance: balance)
@@ -46,7 +46,7 @@ struct EnemyAISystem {
             if buildingSystem.build(kind, at: coordinate, in: &state.towns[townIndex], balance: balance) == nil {
                 newsStore.record(
                     .buildingConstruction,
-                    message: "Red Kingdom built \(kind.title) in \(state.towns[townIndex].name)",
+                    message: "\(state.towns[townIndex].name) built a \(kind.title)",
                     state: &state
                 )
                 return
@@ -80,7 +80,7 @@ struct EnemyAISystem {
             if soldierTrainingSystem.train(soldier, in: &state.towns[townIndex], balance: balance) == nil {
                 newsStore.record(
                     .soldierTraining,
-                    message: "Red Kingdom trained \(soldier.title) in \(state.towns[townIndex].name)",
+                    message: "\(state.towns[townIndex].name) trained a \(soldier.title)",
                     state: &state
                 )
                 return
@@ -102,7 +102,7 @@ struct EnemyAISystem {
         }
 
         let targets = adjacentIDs.compactMap { targetID -> AttackCandidate? in
-            guard let target = state.town(id: targetID), target.faction != .enemy else { return nil }
+            guard let target = state.town(id: targetID), target.ownerID != sourceTown.ownerID else { return nil }
             let defense = worldMapSystem.effectiveDefenseStrength(for: target, in: state, balance: balance)
             guard sourceStrength > defense + balance.aiReserveThreshold else { return nil }
             return AttackCandidate(
@@ -123,15 +123,15 @@ struct EnemyAISystem {
         let didCapture = worldMapSystem.resolveAttack(
             sourceIndex: sourceIndex,
             targetIndex: targetIndex,
-            attackerFaction: .enemy,
+            attackerID: sourceTown.ownerID,
             committedStrength: committedStrength,
             state: &state,
             balance: balance
         )
         if didCapture {
-            newsStore.record(.cityCapture, message: "Red Kingdom captured \(targetName) from \(sourceName)", state: &state)
+            newsStore.record(.cityCapture, message: "\(sourceName) captured \(targetName)", state: &state)
             if targetIsDuskara {
-                newsStore.record(.duskaraAttack, message: "Red Kingdom breached Duskara", state: &state)
+                newsStore.record(.duskaraAttack, message: "\(sourceName) breached Duskara", state: &state)
             }
         }
     }

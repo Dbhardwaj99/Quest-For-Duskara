@@ -61,7 +61,7 @@ struct LandmarkDTO: Codable, Equatable {
 }
 
 /// Territory cells are generated once; ownership is derived from town
-/// factions in MatchState, so it is deliberately absent here.
+/// owner IDs in MatchState, so it is deliberately absent here.
 struct TerritoryDefinition: Codable, Equatable {
     var townID: String
     var anchorX: Double
@@ -184,7 +184,7 @@ extension WorldDefinition {
 
     /// Territory with ownership filled in from the given towns.
     func territoryState(towns: [Town]) throws -> TerritoryState {
-        let factionByID = Dictionary(uniqueKeysWithValues: towns.map { ($0.id, $0.faction) })
+        let ownerByID = Dictionary(uniqueKeysWithValues: towns.map { ($0.id, $0.ownerID) })
         let regions: [TerritoryRegion] = try territories.map { definition in
             guard let townID = UUID(uuidString: definition.townID) else {
                 throw ReplicationCodecError.invalidUUID(definition.townID)
@@ -198,7 +198,7 @@ extension WorldDefinition {
             }
             return TerritoryRegion(
                 townID: townID,
-                ownerFaction: factionByID[townID] ?? .neutral,
+                ownerID: ownerByID[townID] ?? "",
                 anchor: MapPoint(x: definition.anchorX, y: definition.anchorY),
                 cells: definition.cells.map { MapCell(column: $0.column, row: $0.row) },
                 terrainMix: mix

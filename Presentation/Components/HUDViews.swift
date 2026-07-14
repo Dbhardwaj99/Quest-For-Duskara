@@ -87,7 +87,9 @@ private struct HUDMetric: View {
 struct BottomBarView: View {
     let onBuild: () -> Void
     let onWorld: () -> Void
-    let onNextDay: () -> Void
+    /// Local-authority debug shortcut; nil in multiplayer, where only the
+    /// server may advance time.
+    let onNextDay: (() -> Void)?
 
     // Compact floating panel: the buttons hug their labels instead of
     // stretching across the window.
@@ -98,10 +100,12 @@ struct BottomBarView: View {
             }
             .buttonStyle(DuskaraButtonStyle())
 
-            Button(action: onNextDay) {
-                Label("Next", systemImage: "forward.end.fill")
+            if let onNextDay {
+                Button(action: onNextDay) {
+                    Label("Next", systemImage: "forward.end.fill")
+                }
+                .buttonStyle(DuskaraButtonStyle())
             }
-            .buttonStyle(DuskaraButtonStyle())
 
             Button(action: onWorld) {
                 Label("World", systemImage: "map.fill")

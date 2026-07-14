@@ -6,7 +6,10 @@ struct ReplicationBoundaryTests {
     let balance = TestFixtures.balance
 
     private func generatedState() -> GameState {
-        WorldMapSystem().makeInitialState(balance: balance, seed: 4242)
+        WorldMapSystem().makeInitialState(
+            balance: balance,
+            config: MatchConfig(seed: 4242, humanPlayerIDs: [TestFixtures.humanPlayer], ownerAssignments: nil)
+        )
     }
 
     @Test func worldAndMatchRoundTripLosslessly() throws {
@@ -36,17 +39,17 @@ struct ReplicationBoundaryTests {
         var state = generatedState()
         let world = WorldDefinition(state: state)
 
-        // Capture a neutral town, then reassemble from the same immutable
-        // world data: ownership must follow the new faction.
-        guard let neutralIndex = state.towns.firstIndex(where: { $0.faction == .neutral }) else {
-            Issue.record("expected a neutral town")
+        // Capture an AI town, then reassemble from the same immutable
+        // world data: ownership must follow the new owner.
+        guard let aiIndex = state.towns.firstIndex(where: { state.isHumanOwned($0) == false }) else {
+            Issue.record("expected an AI-owned town")
             return
         }
-        state.towns[neutralIndex].faction = .player
+        state.towns[aiIndex].ownerID = TestFixtures.humanPlayer
         let match = MatchState(state: state, roomID: "room-1", revision: 1)
         let rebuilt = try GameState(world: world, match: match)
-        let region = rebuilt.territory.region(for: state.towns[neutralIndex].id)
-        #expect(region?.ownerFaction == .player)
+        let region = rebuilt.territory.region(for: state.towns[aiIndex].id)
+        #expect(region?.ownerID == TestFixtures.humanPlayer)
     }
 
     @Test func wireFormsContainNoEnumKeyedDictionaries() throws {
@@ -99,7 +102,7 @@ struct LocalCommandDispatcherTests {
     let balance = TestFixtures.balance
 
     private func makeAction(_ payload: GameActionPayload, revision: Int) -> GameAction {
-        GameAction(actionID: "test-\(revision)", participantID: "p1", expectedRevision: revision, payload: payload)
+        GameAction(actionID: "test-\(revision)", participantID: TestFixtures.humanPlayer, expectedRevision: revision, payload: payload)
     }
 
     @Test func acceptedActionIncrementsRevisionAndEmitsPatch() {
@@ -154,7 +157,7 @@ struct LocalCommandDispatcherTests {
         let dispatcher = LocalCommandDispatcher()
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1),
-            TestFixtures.town(2, faction: .neutral)
+            TestFixtures.town(2, ownerID: TestFixtures.aiPlayer)
         ])
         let result = dispatcher.dispatch(
             makeAction(.build(townID: TestFixtures.uuid(2).uuidString, kind: "house", x: 0, y: 0), revision: 0),
@@ -170,7 +173,7 @@ struct LocalCommandDispatcherTests {
         let dispatcher = LocalCommandDispatcher()
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1, armyStrength: 500),
-            TestFixtures.town(2, faction: .duskara, armyStrength: 10, isDuskara: true)
+            TestFixtures.town(2, ownerID: TestFixtures.aiPlayer, armyStrength: 10, isDuskara: true)
         ])
         let result = dispatcher.dispatch(
             makeAction(.attack(fromTownID: TestFixtures.uuid(1).uuidString, targetTownID: TestFixtures.uuid(2).uuidString), revision: 0),
@@ -179,8 +182,10 @@ struct LocalCommandDispatcherTests {
             nowMillis: 0
         )
         #expect(result.status == .accepted)
-        #expect(state.status == .victory)
-        #expect(result.patch?.status == .victory)
+        #expect(state.status == .finished)
+        #expect(state.winnerPlayerID == TestFixtures.humanPlayer)
+        #expect(result.patch?.status == .finished)
+        #expect(result.patch?.winnerPlayerID == TestFixtures.humanPlayer)
 
         // Once decided, further commands are refused.
         let followUp = dispatcher.dispatch(makeAction(.advanceDay, revision: 1), state: &state, balance: balance, nowMillis: 0)
