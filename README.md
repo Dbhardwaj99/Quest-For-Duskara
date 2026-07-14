@@ -2,8 +2,6 @@
 
 Quest for Duskara is a native macOS strategy game about founding island towns, managing resources, training soldiers, and sailing against rival cities before dusk overtakes the realm. The world is an archipelago: every city sits on its own procedurally generated island, and the campaign is won by conquering Duskara. The primary game experience is a RealityKit-rendered town board wrapped by SwiftUI HUD, menus, sheets, and world-map controls.
 
-For AI development, start with [`.skills/skills.md`](.skills/skills.md). It is the canonical index for architecture, features, workflows, invariants, technical debt, and persistent agent memory.
-
 ## Technology Stack
 
 - Swift and SwiftUI for app flow, HUD, menus, and gameplay sheets.
@@ -58,18 +56,6 @@ The game autosaves `GameState` continuously, but the menu currently exposes only
 1. Open `Quest For Duskara.xcodeproj` in Xcode.
 2. Select the `Quest For Duskara` app scheme.
 3. Build and run the native macOS app.
-
-## Multiplayer Emulator Verification
-
-The multiplayer backend is under `firebase/` and runs without a production deployment. Install Node.js 22+, Firebase CLI, and Java 21, then run:
-
-```sh
-cd firebase
-npm --prefix functions install
-firebase emulators:exec --project quest-for-duskara-test --config firebase.json --only auth,firestore,database 'npm --prefix functions test'
-```
-
-Run the shared `Quest For Duskara` Xcode scheme tests for Swift reducer, patch-ordering, cache, and fixture coverage. App Check enforcement is disabled only by the Emulator Suite; production callable functions require it.
 
 ## Screenshots
 

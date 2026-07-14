@@ -42,48 +42,26 @@ final class GameViewModel {
     private let saveStore = GameSaveStore()
     /// Single command route for every mutable gameplay action.
     private let dispatcher: GameCommandDispatching
-    private let replication: RoomReplicationService?
     private let localParticipantID = "local-player"
 
     init(
         balance: GameBalance = GameBalance.duskDefault,
         dispatcher: GameCommandDispatching? = nil,
-        worldSeed: Int? = nil,
-        replication: RoomReplicationService? = nil
+        worldSeed: Int? = nil
     ) {
         self.balance = balance
         self.dispatcher = dispatcher ?? LocalCommandDispatcher()
-        self.replication = replication
         // The seed is minted once at match creation (by the server in
         // multiplayer); everything downstream is deterministic.
-        let state = replication?.state ?? WorldMapSystem().makeInitialState(balance: balance, seed: worldSeed ?? Int.random(in: 0..<1_000_000))
+        let state = WorldMapSystem().makeInitialState(balance: balance, seed: worldSeed ?? Int.random(in: 0..<1_000_000))
         self.state = state
         self.activeTownID = state.towns.first(where: \.isPlayerControlled)?.id ?? state.towns[0].id
-        if replication != nil {
-            phase = .town
-            startClock()
-        }
     }
 
     /// Builds a replicated action for the shared player empire and routes it
     /// through the dispatcher. Rejections surface as feedback.
     @discardableResult
     private func dispatch(_ payload: GameActionPayload) -> GameActionResult {
-        if let replication {
-            Task { [weak self] in
-                let result = await replication.submit(payload)
-                guard let self else { return }
-                if result.status == .accepted, let authoritative = replication.state {
-                    state = authoritative
-                    sanitizePresentationState()
-                    reactToMatchStatus()
-                    show("Campaign updated.")
-                } else if let reason = result.rejectionReason {
-                    show(reason)
-                }
-            }
-            return GameActionResult(actionID: UUID().uuidString, status: .rejected, revision: replication.revision, rejectionReason: nil, patch: nil)
-        }
         let action = GameAction(
             participantID: localParticipantID,
             expectedRevision: dispatcher.revision,
@@ -152,7 +130,6 @@ final class GameViewModel {
     }
 
     func saveCurrentGame() {
-        guard replication == nil else { return }
         do {
             try saveStore.save(state: state, revision: dispatcher.revision)
         } catch {
@@ -436,12 +413,6 @@ final class GameViewModel {
     private func tickSecond() {
         guard phase == .town else { return }
         clockTick += 1
-        if let authoritative = replication?.state {
-            state = authoritative
-            sanitizePresentationState()
-            reactToMatchStatus()
-            return
-        }
         // Authoritative catch-up: advance as many whole days as server time
         // says have passed (more than one after a long suspension).
         var advancedAny = false

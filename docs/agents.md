@@ -2,8 +2,6 @@
 
 This file gives future coding agents the minimum context needed to work safely on Quest for Duskara.
 
-The canonical AI-first documentation is now [`.skills/skills.md`](../.skills/skills.md). Read it first; this file remains a compact human-facing handoff and should stay consistent with it.
-
 ## Current State
 
 Quest for Duskara is a SwiftUI and RealityKit macOS strategy game. The production gameplay path is RealityKit-first: menu actions open `GameView`, which embeds the 3D town renderer through `World3DTownView` and `World3DTownViewController`.
@@ -81,7 +79,7 @@ Clock-driven day advancement follows the same path through `SimulationSystem` an
 
 Save data must remain presentation-agnostic. Do not encode camera position, ARView state, SwiftUI route state, sheet state, or developer-gallery state into `SavedGame`.
 
-When save loading is implemented, it should initialize `GameViewModel(savedState:)`, set the phase to town play, start the clock, and present `GameView`. The current app writes saves but does not load them.
+Loading a save should initialize `GameViewModel(savedState:)`, set the phase to town play, start the clock, and present `GameView`.
 
 ## Performance Constraints
 
