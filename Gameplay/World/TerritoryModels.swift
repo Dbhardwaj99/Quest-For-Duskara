@@ -18,7 +18,8 @@ struct TerritoryState: Codable, Equatable {
 
 struct TerritoryRegion: Identifiable, Codable, Equatable {
     var townID: UUID
-    var ownerFaction: TownFaction
+    /// Player ID of the town's current ruler, mirrored from Town.ownerID.
+    var ownerID: String
     var anchor: MapPoint
     var cells: [MapCell]
     var terrainMix: [TerrainKind: Int]

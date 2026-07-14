@@ -31,7 +31,7 @@ struct TownSystem {
         return militaryManpower(in: town, balance: balance) + peopleRequired <= capacity
     }
 
-    func ownedTowns(in state: GameState) -> [Town] {
-        state.towns.filter(\.isPlayerControlled)
+    func ownedTowns(in state: GameState, by playerID: String) -> [Town] {
+        state.towns(ownedBy: playerID)
     }
 }

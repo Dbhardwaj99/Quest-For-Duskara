@@ -10,7 +10,6 @@ struct GameBalance {
     var captureResourceLossRates: [ResourceKind: Double]
     var combatWinnerCasualtyRate: Double
     var garrisonDefenseBonusRate: Double
-    var importantCityDefenseBonus: Int
     var duskaraDefenseBonus: Int
     var defenseBonusPerStepFromDuskara: Int
     var buildingDefinitions: [BuildingKind: BuildingDefinition]
@@ -35,7 +34,6 @@ struct GameBalance {
         ],
         combatWinnerCasualtyRate: 0.25,
         garrisonDefenseBonusRate: 0.35,
-        importantCityDefenseBonus: 18,
         duskaraDefenseBonus: 55,
         defenseBonusPerStepFromDuskara: 4,
         buildingDefinitions: [

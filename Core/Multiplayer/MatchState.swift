@@ -1,12 +1,13 @@
 import Foundation
 
 /// Durable lifecycle of a match. Stored server-side; presentation state like
-/// GamePhase.setup never appears here.
+/// GamePhase.setup never appears here. Outcome is perspective-free: a
+/// finished match names its winner in winnerPlayerID, and each client
+/// decides victory or defeat by comparing against its own player ID.
 enum MatchStatus: String, Codable, Equatable {
     case lobby
     case active
-    case victory
-    case defeat
+    case finished
     case abandoned
 }
 
@@ -22,6 +23,10 @@ struct MatchState: Codable, Equatable {
     var schemaVersion: Int
     var rulesVersion: Int
     var status: MatchStatus
+    /// Server-assigned human player IDs, in join order.
+    var humanPlayerIDs: [String]
+    /// Set once status is .finished; nil there means no human won.
+    var winnerPlayerID: String?
     var day: Int
     /// Server timestamp (ms since epoch) of the moment the current day
     /// started. Clients render day progress from this plus ServerClock.
@@ -36,7 +41,8 @@ struct MatchState: Codable, Equatable {
 struct TradeOfferDTO: Codable, Equatable {
     var id: String
     var townID: String
-    var partnerID: String
+    /// Server-assigned player ID of the trading partner.
+    var partnerPlayerID: String
     /// resource rawValue -> amount
     var wants: [String: Int]
     var gives: [String: Int]
@@ -46,7 +52,8 @@ struct TradeOfferDTO: Codable, Equatable {
 /// Mutable per-town state, keyed to a TownDefinition by id.
 struct TownState: Codable, Equatable {
     var id: String
-    var faction: String
+    /// Opaque player ID (human or AI) ruling this island.
+    var ownerID: String
     var armyStrength: Int
     /// resource rawValue -> amount
     var resources: [String: Int]
@@ -83,6 +90,8 @@ extension MatchState {
         self.schemaVersion = SchemaVersion.current
         self.rulesVersion = SchemaVersion.rules
         self.status = state.status
+        self.humanPlayerIDs = state.humanPlayerIDs
+        self.winnerPlayerID = state.winnerPlayerID
         self.day = state.day
         self.dayStartServerMillis = state.dayStartServerMillis
         self.towns = state.towns.map(TownState.init(town:))
@@ -98,15 +107,15 @@ extension TradeOfferDTO {
     init(offer: TownTradeOffer) {
         id = offer.id
         townID = offer.townID.uuidString
-        partnerID = offer.partnerID.uuidString
+        partnerPlayerID = offer.partnerPlayerID
         wants = Dictionary(uniqueKeysWithValues: offer.wants.map { ($0.key.rawValue, $0.value) })
         gives = Dictionary(uniqueKeysWithValues: offer.gives.map { ($0.key.rawValue, $0.value) })
         expiresOnDay = offer.expiresOnDay
     }
 
     func offer() throws -> TownTradeOffer {
-        guard let town = UUID(uuidString: townID), let partner = UUID(uuidString: partnerID) else {
-            throw ReplicationCodecError.invalidUUID("\(townID)/\(partnerID)")
+        guard let town = UUID(uuidString: townID) else {
+            throw ReplicationCodecError.invalidUUID(townID)
         }
         var wantAmounts: [ResourceKind: Int] = [:]
         for (raw, amount) in wants {
@@ -118,14 +127,14 @@ extension TradeOfferDTO {
             guard let kind = ResourceKind(rawValue: raw) else { throw ReplicationCodecError.unknownRawValue(raw) }
             giveAmounts[kind] = amount
         }
-        return TownTradeOffer(id: id, townID: town, partnerID: partner, wants: wantAmounts, gives: giveAmounts, expiresOnDay: expiresOnDay)
+        return TownTradeOffer(id: id, townID: town, partnerPlayerID: partnerPlayerID, wants: wantAmounts, gives: giveAmounts, expiresOnDay: expiresOnDay)
     }
 }
 
 extension TownState {
     init(town: Town) {
         id = town.id.uuidString
-        faction = town.faction.rawValue
+        ownerID = town.ownerID
         armyStrength = town.armyStrength
         resources = Dictionary(uniqueKeysWithValues: town.resources.amounts.map { ($0.key.rawValue, $0.value) })
         soldiers = Dictionary(uniqueKeysWithValues: town.soldierRoster.counts.map { ($0.key.rawValue, $0.value) })
@@ -145,9 +154,6 @@ extension GameState {
             }
             guard let id = UUID(uuidString: townState.id) else {
                 throw ReplicationCodecError.invalidUUID(townState.id)
-            }
-            guard let faction = TownFaction(rawValue: townState.faction) else {
-                throw ReplicationCodecError.unknownRawValue(townState.faction)
             }
             var wallet = ResourceWallet()
             for (raw, amount) in townState.resources {
@@ -183,7 +189,7 @@ extension GameState {
                 resources: wallet,
                 buildings: buildings,
                 biomeLayout: try world.biomeLayout(for: definition),
-                faction: faction,
+                ownerID: townState.ownerID,
                 isDuskara: definition.isDuskara,
                 armyStrength: townState.armyStrength,
                 soldierRoster: roster
@@ -207,6 +213,8 @@ extension GameState {
             world: try world.worldMapState(),
             territory: try world.territoryState(towns: towns),
             status: match.status,
+            humanPlayerIDs: match.humanPlayerIDs,
+            winnerPlayerID: match.winnerPlayerID,
             newsEvents: newsEvents,
             tradeOffers: try match.tradeOffers.map { try $0.offer() },
             entityCounter: match.entityCounter

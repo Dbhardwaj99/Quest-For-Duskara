@@ -10,9 +10,9 @@ struct CombatSystemTests {
     private func chainState() -> GameState {
         TestFixtures.state(
             towns: [
-                TestFixtures.town(1, faction: .duskara, armyStrength: 100, isDuskara: true),
-                TestFixtures.town(2, faction: .neutral, armyStrength: 20),
-                TestFixtures.town(3, faction: .neutral, armyStrength: 20)
+                TestFixtures.town(1, ownerID: TestFixtures.aiPlayer, armyStrength: 100, isDuskara: true),
+                TestFixtures.town(2, ownerID: TestFixtures.aiPlayer, armyStrength: 20),
+                TestFixtures.town(3, ownerID: TestFixtures.aiPlayer, armyStrength: 20)
             ],
             connections: [
                 TownConnection(from: TestFixtures.uuid(1), to: TestFixtures.uuid(2)),
@@ -46,14 +46,6 @@ struct CombatSystemTests {
         #expect(system.effectiveDefenseStrength(for: duskara, in: state, balance: balance) == 198)
     }
 
-    @Test func enemyCitiesGetImportantCityBonus() {
-        var state = chainState()
-        state.towns[2].faction = .enemy
-        let enemyTown = state.towns[2]
-        // 20 + 7 garrison bonus + 18 important-city bonus.
-        #expect(system.effectiveDefenseStrength(for: enemyTown, in: state, balance: balance) == 45)
-    }
-
     @Test func winnerSurvivorsAppliesCasualtyRate() {
         // Raw margin 10, casualties round(10 * 0.25) = 3 -> 7 survive.
         #expect(system.winnerSurvivors(attackStrength: 20, effectiveDefense: 10, balance: balance) == 7)
@@ -67,16 +59,17 @@ struct CombatSystemTests {
         let worldMapSystem = WorldMapSystem()
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1, resources: [.gold: 100], armyStrength: 100),
-            TestFixtures.town(2, faction: .neutral, resources: [.gold: 100, .skill: 50, .food: 30], armyStrength: 10)
+            TestFixtures.town(2, ownerID: TestFixtures.aiPlayer, resources: [.gold: 100, .skill: 50, .food: 30], armyStrength: 10)
         ])
         let won = worldMapSystem.attack(
             targetID: TestFixtures.uuid(2),
             from: TestFixtures.uuid(1),
             state: &state,
-            balance: balance
+            balance: balance,
+            actingPlayerID: TestFixtures.humanPlayer
         )
         #expect(won)
-        #expect(state.towns[1].faction == .player)
+        #expect(state.towns[1].ownerID == TestFixtures.humanPlayer)
         // Capture halves gold and skill; food is untouched.
         #expect(state.towns[1].resources[.gold] == 50)
         #expect(state.towns[1].resources[.skill] == 25)
@@ -92,20 +85,20 @@ struct CombatSystemTests {
         let worldMapSystem = WorldMapSystem()
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1, armyStrength: 100),
-            TestFixtures.town(2, faction: .neutral, armyStrength: 90)
+            TestFixtures.town(2, ownerID: TestFixtures.aiPlayer, armyStrength: 90)
         ])
         // canAttack requires strength > defense, so call resolveAttack directly.
         let won = worldMapSystem.resolveAttack(
             sourceIndex: 0,
             targetIndex: 1,
-            attackerFaction: .player,
+            attackerID: TestFixtures.humanPlayer,
             committedStrength: 50,
             state: &state,
             balance: balance
         )
         #expect(won == false)
         #expect(state.towns[0].armyStrength == 50)
-        #expect(state.towns[1].faction == .neutral)
+        #expect(state.towns[1].ownerID == TestFixtures.aiPlayer)
         // Defender loses garrison equal to the committed attack.
         #expect(state.towns[1].armyStrength == 40)
     }
@@ -115,10 +108,10 @@ struct CombatSystemTests {
         let state = TestFixtures.state(towns: [
             TestFixtures.town(1, armyStrength: 100),
             TestFixtures.town(2, armyStrength: 5),
-            TestFixtures.town(3, faction: .neutral, armyStrength: 5)
+            TestFixtures.town(3, ownerID: TestFixtures.aiPlayer, armyStrength: 5)
         ])
-        #expect(worldMapSystem.canAttack(targetID: TestFixtures.uuid(2), from: TestFixtures.uuid(1), in: state, balance: balance) == false)
-        #expect(worldMapSystem.canAttack(targetID: TestFixtures.uuid(3), from: TestFixtures.uuid(3), in: state, balance: balance) == false)
-        #expect(worldMapSystem.canAttack(targetID: TestFixtures.uuid(3), from: TestFixtures.uuid(1), in: state, balance: balance))
+        #expect(worldMapSystem.canAttack(targetID: TestFixtures.uuid(2), from: TestFixtures.uuid(1), in: state, balance: balance, actingPlayerID: TestFixtures.humanPlayer) == false)
+        #expect(worldMapSystem.canAttack(targetID: TestFixtures.uuid(3), from: TestFixtures.uuid(3), in: state, balance: balance, actingPlayerID: TestFixtures.humanPlayer) == false)
+        #expect(worldMapSystem.canAttack(targetID: TestFixtures.uuid(3), from: TestFixtures.uuid(1), in: state, balance: balance, actingPlayerID: TestFixtures.humanPlayer))
     }
 }

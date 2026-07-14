@@ -40,7 +40,7 @@ struct TerritoryGenerator {
             }
             return TerritoryRegion(
                 townID: entry.town.id,
-                ownerFaction: entry.town.faction,
+                ownerID: entry.town.ownerID,
                 anchor: MapPoint(x: entry.node.x, y: entry.node.y),
                 cells: cells,
                 terrainMix: terrainMix

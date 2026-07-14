@@ -53,7 +53,7 @@ struct SimulationSystemTests {
             TestFixtures.state(
                 towns: [
                     TestFixtures.town(1),
-                    TestFixtures.town(2, faction: .enemy, resources: [.gold: 500, .skill: 300, .food: 100, .people: 10])
+                    TestFixtures.town(2, ownerID: TestFixtures.aiPlayer, resources: [.gold: 500, .skill: 300, .food: 100, .people: 10])
                 ],
                 day: day
             )

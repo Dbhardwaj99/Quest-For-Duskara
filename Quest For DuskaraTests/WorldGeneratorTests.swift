@@ -7,7 +7,7 @@ struct WorldGeneratorTests {
 
     private func fixtureTowns(count: Int = 8) -> [Town] {
         (1...count).map { index in
-            TestFixtures.town(index, faction: index == count ? .duskara : .neutral, isDuskara: index == count)
+            TestFixtures.town(index, ownerID: TestFixtures.aiPlayer, isDuskara: index == count)
         }
     }
 

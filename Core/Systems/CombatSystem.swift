@@ -11,8 +11,6 @@ struct CombatSystem {
 
         if town.isDuskara {
             bonus += balance.duskaraDefenseBonus
-        } else if isImportantCity(town) {
-            bonus += balance.importantCityDefenseBonus
         }
 
         if let duskaraID = state.towns.first(where: \.isDuskara)?.id {
@@ -57,9 +55,5 @@ struct CombatSystem {
             }
         }
         return distances
-    }
-
-    private func isImportantCity(_ town: Town) -> Bool {
-        town.isDuskara || town.faction == .enemy
     }
 }

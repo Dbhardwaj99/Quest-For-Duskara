@@ -42,10 +42,10 @@
           "y" : 2
         }
       ],
-      "faction" : "player",
       "id" : "00000000-0000-0000-0000-000000000001",
       "isDuskara" : false,
       "name" : "Hearthglen",
+      "ownerID" : "player-1",
       "resources" : {
         "food" : 97,
         "gold" : 318,
@@ -63,10 +63,10 @@
       "buildings" : [
 
       ],
-      "faction" : "player",
       "id" : "00000000-0000-0000-0000-000000000002",
       "isDuskara" : false,
       "name" : "Oakmere",
+      "ownerID" : "player-1",
       "resources" : {
         "food" : 40,
         "gold" : 90,
@@ -82,10 +82,10 @@
       "buildings" : [
 
       ],
-      "faction" : "player",
       "id" : "00000000-0000-0000-0000-000000000003",
       "isDuskara" : false,
       "name" : "Mosswatch",
+      "ownerID" : "player-1",
       "resources" : {
         "food" : 12,
         "gold" : 40,

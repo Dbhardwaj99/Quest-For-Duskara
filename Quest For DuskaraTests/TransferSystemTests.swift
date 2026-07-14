@@ -19,7 +19,7 @@ struct TransferSystemTests {
             toTownID: TestFixtures.uuid(2),
             amounts: [.gold: 40, .food: 10]
         )
-        #expect(system.transfer(order: order, state: &state) == nil)
+        #expect(system.transfer(order: order, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == nil)
         #expect(state.towns[0].resources[.gold] == 60)
         #expect(state.towns[0].resources[.food] == 40)
         #expect(state.towns[1].resources[.gold] == 50)
@@ -33,27 +33,27 @@ struct TransferSystemTests {
             toTownID: TestFixtures.uuid(1),
             amounts: [.gold: 1]
         )
-        #expect(system.transfer(order: order, state: &state) == .sameTown)
+        #expect(system.transfer(order: order, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == .sameTown)
     }
 
     @Test func transferRejectsUncontrolledTowns() {
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1),
-            TestFixtures.town(2, faction: .neutral)
+            TestFixtures.town(2, ownerID: TestFixtures.aiPlayer)
         ])
         let order = TransferOrder(
             fromTownID: TestFixtures.uuid(1),
             toTownID: TestFixtures.uuid(2),
             amounts: [.gold: 1]
         )
-        #expect(system.transfer(order: order, state: &state) == .destinationNotOwned)
+        #expect(system.transfer(order: order, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == .destinationNotOwned)
 
         let reverse = TransferOrder(
             fromTownID: TestFixtures.uuid(2),
             toTownID: TestFixtures.uuid(1),
             amounts: [.gold: 1]
         )
-        #expect(system.transfer(order: reverse, state: &state) == .sourceNotOwned)
+        #expect(system.transfer(order: reverse, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == .sourceNotOwned)
     }
 
     @Test func transferRejectsOverdraft() {
@@ -63,7 +63,7 @@ struct TransferSystemTests {
             toTownID: TestFixtures.uuid(2),
             amounts: [.gold: 1000]
         )
-        #expect(system.transfer(order: order, state: &state) == .insufficientResources)
+        #expect(system.transfer(order: order, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == .insufficientResources)
         #expect(state.towns[0].resources[.gold] == 100)
     }
 
@@ -79,7 +79,7 @@ struct TransferSystemTests {
             toTownID: TestFixtures.uuid(2),
             amounts: [.soldiers: 10]
         )
-        #expect(system.transfer(order: order, state: &state) == nil)
+        #expect(system.transfer(order: order, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == nil)
         #expect(state.towns[0].armyStrength == 20)
         #expect(state.towns[1].armyStrength == 10)
         #expect(state.towns[0].resources[.soldiers] == 20)
@@ -98,6 +98,6 @@ struct TransferSystemTests {
             toTownID: TestFixtures.uuid(2),
             amounts: [.soldiers: 10]
         )
-        #expect(system.transfer(order: order, state: &state) == .insufficientResources)
+        #expect(system.transfer(order: order, state: &state, balance: TestFixtures.balance, actingPlayerID: TestFixtures.humanPlayer) == .insufficientResources)
     }
 }

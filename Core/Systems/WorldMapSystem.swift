@@ -6,17 +6,35 @@ struct WorldMapSystem {
     private let worldGenerator = WorldGenerator()
     private let territorySystem = TerritorySystem()
 
-    /// The seed is injected: whoever creates the match (the server in
-    /// multiplayer, the app for local campaigns) decides it, and every
-    /// persistent ID derives from it.
-    func makeInitialState(balance: GameBalance, seed: Int) -> GameState {
-        var towns = makeTowns(balance: balance, seed: seed)
-        towns[0].faction = .player
-        towns[0].resources = ResourceWallet(balance.baseStartingResources)
-        towns[0].armyStrength = 0
+    /// Builds the match from a MatchConfig. World content is deterministic
+    /// from config.seed — every client and the server generate identical
+    /// islands — while ownership comes from the config's server-assigned
+    /// player IDs, never derived from the seed.
+    func makeInitialState(balance: GameBalance, config: MatchConfig) -> GameState {
+        var towns = makeTowns(balance: balance, seed: config.seed)
 
-        let generatedWorld = worldGenerator.generate(towns: towns, seed: seed)
-        applyInitialDefenses(to: &towns, connections: generatedWorld.connections, balance: balance)
+        if let assignments = config.ownerAssignments {
+            for index in towns.indices {
+                towns[index].ownerID = assignments[towns[index].id.uuidString] ?? MatchConfig.mintAIPlayerID()
+            }
+        } else {
+            // Local match: the app is the authority, so it mints the AI
+            // player IDs here. IDs are identity, not world content — they
+            // come from fresh entropy, never from the seed.
+            for index in towns.indices {
+                towns[index].ownerID = config.humanPlayerIDs.indices.contains(index)
+                    ? config.humanPlayerIDs[index]
+                    : MatchConfig.mintAIPlayerID()
+            }
+        }
+
+        for index in towns.indices where config.humanPlayerIDs.contains(towns[index].ownerID) {
+            towns[index].resources = ResourceWallet(balance.baseStartingResources)
+            towns[index].armyStrength = 0
+        }
+
+        let generatedWorld = worldGenerator.generate(towns: towns, seed: config.seed)
+        applyInitialDefenses(to: &towns, connections: generatedWorld.connections, balance: balance, humanPlayerIDs: config.humanPlayerIDs)
         let territory = territorySystem.generateTerritory(
             towns: towns,
             nodes: generatedWorld.nodes,
@@ -29,7 +47,8 @@ struct WorldMapSystem {
             worldNodes: generatedWorld.nodes,
             connections: generatedWorld.connections,
             world: generatedWorld.world,
-            territory: territory
+            territory: territory,
+            humanPlayerIDs: config.humanPlayerIDs
         )
     }
 
@@ -37,23 +56,23 @@ struct WorldMapSystem {
         combatSystem.effectiveDefenseStrength(for: town, in: state, balance: balance)
     }
 
-    // Every city is an island: the player's armies travel by sea, so any
-    // city in the world is a valid target.
-    func canAttack(targetID: UUID, from sourceID: UUID, in state: GameState, balance: GameBalance) -> Bool {
-        guard let source = state.towns.first(where: { $0.id == sourceID }), source.isPlayerControlled else { return false }
-        guard let target = state.towns.first(where: { $0.id == targetID }), target.isPlayerControlled == false else { return false }
+    // Every city is an island: armies travel by sea, so any city in the
+    // world is a valid target as long as the attacker doesn't own it.
+    func canAttack(targetID: UUID, from sourceID: UUID, in state: GameState, balance: GameBalance, actingPlayerID: String) -> Bool {
+        guard let source = state.towns.first(where: { $0.id == sourceID }), source.isOwned(by: actingPlayerID) else { return false }
+        guard let target = state.towns.first(where: { $0.id == targetID }), target.isOwned(by: actingPlayerID) == false else { return false }
         let defense = effectiveDefenseStrength(for: target, in: state, balance: balance)
         return source.armyStrength > defense
     }
 
-    func attack(targetID: UUID, from sourceID: UUID, state: inout GameState, balance: GameBalance) -> Bool {
-        guard canAttack(targetID: targetID, from: sourceID, in: state, balance: balance) else { return false }
+    func attack(targetID: UUID, from sourceID: UUID, state: inout GameState, balance: GameBalance, actingPlayerID: String) -> Bool {
+        guard canAttack(targetID: targetID, from: sourceID, in: state, balance: balance, actingPlayerID: actingPlayerID) else { return false }
         guard let sourceIndex = state.towns.firstIndex(where: { $0.id == sourceID }) else { return false }
         guard let targetIndex = state.towns.firstIndex(where: { $0.id == targetID }) else { return false }
         return resolveAttack(
             sourceIndex: sourceIndex,
             targetIndex: targetIndex,
-            attackerFaction: .player,
+            attackerID: actingPlayerID,
             committedStrength: state.towns[sourceIndex].armyStrength,
             state: &state,
             balance: balance
@@ -63,7 +82,7 @@ struct WorldMapSystem {
     func resolveAttack(
         sourceIndex: Int,
         targetIndex: Int,
-        attackerFaction: TownFaction,
+        attackerID: String,
         committedStrength: Int,
         state: inout GameState,
         balance: GameBalance
@@ -109,7 +128,7 @@ struct WorldMapSystem {
         }
 
         occupationSystem.applyCapturePenalties(to: &state.towns[targetIndex], balance: balance)
-        state.towns[targetIndex].setFaction(attackerFaction)
+        state.towns[targetIndex].ownerID = attackerID
         // Survivors garrison the capture as whole units, remainder rounded
         // up to one weakest unit; strength derives from the roster.
         let garrison = SoldierRoster.decompose(strength: survivors, using: definitions)
@@ -136,7 +155,6 @@ struct WorldMapSystem {
             "Westmere", "Northbarrow", "Dawnfield", "Elderwick", "Foxgrove", "Highmere", "Willowdeep", "Amberfall", "Ravenford", "Thornwatch",
             "Glasswater", "Kingsford", "Mistvale", "Barrowmere", "Emberwick", "Wolfscar", "Blackfen", "Grimhaven", "Redspire", "Duskara"
         ]
-        let enemyTownNames: Set<String> = ["Wolfscar", "Blackfen", "Grimhaven", "Redspire"]
 
         return names.enumerated().map { index, name in
             let layout = layouts[index % layouts.count]
@@ -147,29 +165,22 @@ struct WorldMapSystem {
                 .people: 4,
                 .soldiers: 0
             ])
-            let isDuskara = name == "Duskara"
-            let faction: TownFaction
-            if isDuskara {
-                faction = .duskara
-            } else if enemyTownNames.contains(name) {
-                faction = .enemy
-            } else {
-                faction = .neutral
-            }
             return Town(
                 id: idRandom.uuid(),
                 name: name,
                 resources: resources,
                 buildings: starterBuildings(balance: balance, idRandom: &idRandom),
                 biomeLayout: layout,
-                faction: faction,
-                isDuskara: isDuskara,
+                // Owner is assigned by the caller from the MatchConfig; the
+                // placeholder never survives makeInitialState.
+                ownerID: "",
+                isDuskara: name == "Duskara",
                 armyStrength: 0
             )
         }
     }
 
-    private func applyInitialDefenses(to towns: inout [Town], connections: [TownConnection], balance: GameBalance) {
+    private func applyInitialDefenses(to towns: inout [Town], connections: [TownConnection], balance: GameBalance, humanPlayerIDs: [String]) {
         guard let duskaraID = towns.first(where: \.isDuskara)?.id else { return }
         let distances = CombatSystem.graphDistances(from: duskaraID, connections: connections)
         let maxDistance = max(distances.values.max() ?? 1, 1)
@@ -191,7 +202,7 @@ struct WorldMapSystem {
                     defense = 3 + min(5, variation)
                 }
             }
-            if towns[index].isPlayerControlled {
+            if humanPlayerIDs.contains(towns[index].ownerID) {
                 towns[index].soldierRoster = SoldierRoster()
                 towns[index].armyStrength = 0
             } else {

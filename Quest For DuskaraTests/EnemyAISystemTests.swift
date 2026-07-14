@@ -16,7 +16,7 @@ struct EnemyAISystemTests {
     @Test func buildsMissingInfrastructureInPriorityOrder() {
         var state = TestFixtures.state(towns: [
             TestFixtures.town(1),
-            TestFixtures.town(2, faction: .enemy, resources: [.gold: 500, .skill: 300, .food: 100, .people: 10])
+            TestFixtures.town(2, ownerID: TestFixtures.aiPlayer, resources: [.gold: 500, .skill: 300, .food: 100, .people: 10])
         ])
         system.takeTurn(state: &state, balance: balance)
         // House is first in the priority list and the town has none.
@@ -31,7 +31,7 @@ struct EnemyAISystemTests {
             TestFixtures.town(1),
             TestFixtures.town(
                 2,
-                faction: .enemy,
+                ownerID: TestFixtures.aiPlayer,
                 // 20 people: the five buildings commit 11 workers, leaving free hands to train.
                 resources: [.gold: 500, .skill: 300, .food: 100, .people: 20],
                 buildings: [
@@ -56,7 +56,7 @@ struct EnemyAISystemTests {
                 TestFixtures.town(1),
                 TestFixtures.town(
                     2,
-                    faction: .enemy,
+                    ownerID: TestFixtures.aiPlayer,
                     resources: [.gold: 500, .skill: 300, .food: 100, .people: 10],
                     buildings: [
                         TestFixtures.building(1, kind: .house, x: 1, y: 1),
@@ -68,14 +68,14 @@ struct EnemyAISystemTests {
                     armyStrength: 50,
                     soldierRoster: roster
                 ),
-                TestFixtures.town(3, faction: .neutral, armyStrength: 5)
+                TestFixtures.town(3, ownerID: "ai-2", armyStrength: 5)
             ],
             connections: [
                 TownConnection(from: TestFixtures.uuid(2), to: TestFixtures.uuid(3))
             ]
         )
         system.takeTurn(state: &state, balance: balance)
-        #expect(state.towns[2].faction == .enemy)
+        #expect(state.towns[2].ownerID == TestFixtures.aiPlayer)
     }
 
     @Test func holdsPositionWithoutStableEconomy() {
@@ -87,26 +87,26 @@ struct EnemyAISystemTests {
                 TestFixtures.town(1),
                 TestFixtures.town(
                     2,
-                    faction: .enemy,
+                    ownerID: TestFixtures.aiPlayer,
                     resources: [.gold: 500, .skill: 300, .food: 100, .people: 10],
                     armyStrength: 50,
                     soldierRoster: roster
                 ),
-                TestFixtures.town(3, faction: .neutral, armyStrength: 5)
+                TestFixtures.town(3, ownerID: "ai-2", armyStrength: 5)
             ],
             connections: [
                 TownConnection(from: TestFixtures.uuid(2), to: TestFixtures.uuid(3))
             ]
         )
         system.takeTurn(state: &state, balance: balance)
-        #expect(state.towns[2].faction == .neutral)
+        #expect(state.towns[2].ownerID == "ai-2")
     }
 
     @Test func neverMutatesPresentationState() {
         // The active town moved out of replicated state; the AI turn must
         // only touch towns and news.
         var state = TestFixtures.state(towns: [
-            TestFixtures.town(1, faction: .neutral),
+            TestFixtures.town(1, ownerID: TestFixtures.aiPlayer),
             TestFixtures.town(2)
         ])
         let statusBefore = state.status

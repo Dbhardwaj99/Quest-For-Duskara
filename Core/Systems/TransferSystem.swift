@@ -10,16 +10,12 @@ struct TransferSystem {
         var id: String { rawValue }
     }
 
-    func transfer(order: TransferOrder, state: inout GameState) -> TransferFailure? {
-        transfer(order: order, state: &state, balance: .duskDefault)
-    }
-
-    func transfer(order: TransferOrder, state: inout GameState, balance: GameBalance) -> TransferFailure? {
+    func transfer(order: TransferOrder, state: inout GameState, balance: GameBalance, actingPlayerID: String) -> TransferFailure? {
         guard order.fromTownID != order.toTownID else { return .sameTown }
         guard let fromIndex = state.towns.firstIndex(where: { $0.id == order.fromTownID }) else { return .sourceNotOwned }
         guard let toIndex = state.towns.firstIndex(where: { $0.id == order.toTownID }) else { return .destinationNotOwned }
-        guard state.towns[fromIndex].isPlayerControlled else { return .sourceNotOwned }
-        guard state.towns[toIndex].isPlayerControlled else { return .destinationNotOwned }
+        guard state.towns[fromIndex].isOwned(by: actingPlayerID) else { return .sourceNotOwned }
+        guard state.towns[toIndex].isOwned(by: actingPlayerID) else { return .destinationNotOwned }
         if let soldiers = order.amounts[.soldiers], soldiers > 0 {
             return transferSoldiers(soldiers, fromIndex: fromIndex, toIndex: toIndex, state: &state, balance: balance)
         }
