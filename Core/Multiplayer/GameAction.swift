@@ -31,6 +31,12 @@ struct GameAction: Codable, Equatable {
     }
 }
 
+/// Seam for submitting actions to an authoritative game server.
+@MainActor
+protocol RemoteGameCommandDispatching: AnyObject {
+    func submit(_ action: GameAction, roomID: String) async throws -> GameActionResult
+}
+
 enum GameActionPayload: Equatable {
     case build(townID: String, kind: String, x: Int, y: Int)
     case upgradeBuilding(townID: String, buildingID: String)
