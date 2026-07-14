@@ -1,5 +1,6 @@
 import RealityKit
 import AppKit
+import Combine
 
 struct World3DCameraBounds {
     let halfWidth: Float
@@ -35,6 +36,11 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private var pinchStartDistance: Float = World3DCameraController.defaultDistance
     private var activeGestureIDs: Set<ObjectIdentifier> = []
     private var inertiaTimer: Timer?
+    private var orbitSubscription: Cancellable?
+    private var orbitSpeed: Float = 0
+    // Slow cinematic showcase: one full revolution in ~75 seconds.
+    private let orbitTargetSpeed: Float = 2 * .pi / 75
+    private(set) var isOrbiting = false
     private var yawVelocity: Float = 0
     private var pitchVelocity: Float = 0
     private var distanceVelocity: Float = 0
@@ -51,6 +57,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     deinit {
         inertiaTimer?.invalidate()
+        orbitSubscription?.cancel()
     }
 
     func install(in arView: ARView, bounds _: World3DCameraBounds, parent: Entity) {
@@ -107,6 +114,36 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     func gestureRecognizer(_ gestureRecognizer: NSGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer) -> Bool {
         true
+    }
+
+    /// Debug-only cinematic orbit around the island. Keeps the current pitch
+    /// and distance, only advancing yaw, driven by the RealityKit frame loop.
+    func setOrbiting(_ enabled: Bool) {
+        guard enabled != isOrbiting else { return }
+        isOrbiting = enabled
+        orbitSpeed = 0
+        if enabled, let arView = view as? ARView {
+            orbitSubscription = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
+                let dt = Float(event.deltaTime)
+                MainActor.assumeIsolated {
+                    self?.stepOrbit(deltaTime: dt)
+                }
+            }
+        } else {
+            orbitSubscription?.cancel()
+            orbitSubscription = nil
+            isOrbiting = false
+        }
+    }
+
+    private func stepOrbit(deltaTime dt: Float) {
+        // User gestures (and their inertia) win; orbit resumes from wherever
+        // the camera lands.
+        guard isInteracting == false, dt > 0, dt < 1 else { return }
+        // Ease angular speed up from rest so the orbit starts without a jump.
+        orbitSpeed += (orbitTargetSpeed - orbitSpeed) * min(1, dt * 1.2)
+        yaw += orbitSpeed * dt
+        updateCamera()
     }
 
     private func updateCamera() {

@@ -3,6 +3,7 @@ import SwiftUI
 struct GameView: View {
     @Bindable var viewModel: GameViewModel
     @State private var isNewsPresented = false
+    @State private var isCameraOrbiting = false
 
     var body: some View {
         Group {
@@ -115,6 +116,10 @@ struct GameView: View {
             .accessibilityLabel("World news")
 
             themeCycleButton
+
+            #if DEBUG
+            debugOrbitButton
+            #endif
         }
         .padding(.leading, DuskaraTheme.spacingM)
         .padding(.top, 10)
@@ -141,8 +146,31 @@ struct GameView: View {
         .accessibilityLabel("Cycle world theme")
     }
 
+    #if DEBUG
+    private var debugOrbitButton: some View {
+        Button {
+            isCameraOrbiting.toggle()
+        } label: {
+            VStack(spacing: 1) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 13, weight: .bold))
+                Text("Orbit")
+                    .font(DuskaraTheme.Fonts.label)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(.white.opacity(isCameraOrbiting ? 1 : 0.94))
+            .frame(width: 44, height: 38)
+            .background(isCameraOrbiting ? DuskaraTheme.warmGold.opacity(0.4) : DuskaraTheme.hudFill, in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isCameraOrbiting ? "Stop camera orbit" : "Start camera orbit")
+    }
+    #endif
+
     private var townView3D: some View {
-        World3DTownView(sourceViewModel: viewModel)
+        World3DTownView(sourceViewModel: viewModel, isCameraOrbiting: isCameraOrbiting)
             .id(viewModel.state.activeTownID)
             .background(DuskaraTheme.worldBackdrop)
     }
