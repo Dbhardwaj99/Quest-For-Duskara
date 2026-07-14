@@ -171,7 +171,7 @@ struct GameView: View {
 
     private var townView3D: some View {
         World3DTownView(sourceViewModel: viewModel, isCameraOrbiting: isCameraOrbiting)
-            .id(viewModel.state.activeTownID)
+            .id(viewModel.activeTownID)
     }
 
     private var worldVignette: some View {
