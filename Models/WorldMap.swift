@@ -27,7 +27,7 @@ struct MapLayout: Codable, Equatable {
     var aspectRatio: Double
     var playableInset: Double
 
-    static let standard = MapLayout(columns: 58, rows: 40, aspectRatio: 1.45, playableInset: 0.055)
+    static let standard = MapLayout(columns: 58, rows: 40, aspectRatio: 1.45, playableInset: 0.09)
     static let legacy = MapLayout(columns: 28, rows: 20, aspectRatio: 1.35, playableInset: 0.065)
 
     var cellWidth: Double {

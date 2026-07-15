@@ -10,10 +10,9 @@ func makeNewGame(balance: GameBalance) -> GameState {
         TownBiomeLayout(sides: [.left: .forest, .right: .mountain, .top: .mountain, .bottom: .mountain])
     ]
     let names = [
-        "Hearthglen", "Green Hollow", "Ironridge", "Mosswatch", "Ashbarrow", "Pinefall", "Stonewake", "Rivergate", "Brindle Keep", "Oakmere",
-        "Frostford", "Briarwall", "Duskwatch", "Sunreach", "Valehold", "Cinder Pass", "Deepwood", "Crownhill", "Greyfen", "Moonford",
-        "Westmere", "Northbarrow", "Dawnfield", "Elderwick", "Foxgrove", "Highmere", "Willowdeep", "Amberfall", "Ravenford", "Thornwatch",
-        "Glasswater", "Kingsford", "Mistvale", "Barrowmere", "Emberwick", "Wolfscar", "Blackfen", "Grimhaven", "Redspire", "Duskara"
+        "Hearthglen", "Green Hollow", "Ironridge", "Mosswatch", "Ashbarrow",
+        "Pinefall", "Stonewake", "Rivergate", "Brindle Keep", "Oakmere",
+        "Wolfscar", "Blackfen", "Grimhaven", "Redspire", "Duskara"
     ]
     let enemies: Set<String> = ["Wolfscar", "Blackfen", "Grimhaven", "Redspire"]
     let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)

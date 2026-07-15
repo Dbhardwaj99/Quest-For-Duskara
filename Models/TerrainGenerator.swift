@@ -1,10 +1,9 @@
 import Foundation
 
 struct TerrainGenerator {
-    // Base island radius in aspect-corrected map units. Max wobbled radius
-    // (×1.22) doubled stays under WorldGenerator.minimumSeparation (0.135),
-    // so even tightly clustered islands always keep open water between them.
-    private let islandRadius = 0.050
+    // Large enough to read as an island rather than a map pin. The v2 world
+    // generator spaces centers far enough apart to preserve water channels.
+    private let islandRadius = 0.072
     // Fraction of the radius that is interior terrain; the rest is shoreline.
     private let coastFraction = 0.70
 

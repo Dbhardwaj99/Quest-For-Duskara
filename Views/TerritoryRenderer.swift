@@ -12,6 +12,8 @@ struct TerritoryRenderer: View {
     /// ballooning while the terrain zooms.
     var markerScale: CGFloat = 1
     let onSelectTown: (UUID) -> Void
+    let canActOnTown: (UUID) -> Bool
+    let onActOnTown: (UUID) -> Void
 
     var townByID: [UUID: Town] {
         Dictionary(uniqueKeysWithValues: towns.map { ($0.id, $0) })
@@ -45,7 +47,7 @@ struct TerritoryRenderer: View {
             let projection = WorldMapProjection(size: proxy.size)
 
             ZStack {
-                WorldTerrainLayer(world: world)
+                WorldTerrainLayer(world: world, nodes: nodes)
                 TerritoryRegionLayer(
                     world: world,
                     territory: territory,
@@ -94,7 +96,9 @@ struct TerritoryRenderer: View {
                     WorldTownMarkerView(
                         town: town,
                         isActive: node.townID == activeTownID,
-                        isSelected: node.townID == selectedTownID
+                        isSelected: node.townID == selectedTownID,
+                        canAct: canActOnTown(node.townID),
+                        onAction: { onActOnTown(node.townID) }
                     )
                     .scaleEffect(markerScale)
                     .position(projection.point(for: MapPoint(x: node.x, y: node.y)))

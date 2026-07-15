@@ -4,37 +4,44 @@ struct WorldTownMarkerView: View {
     let town: Town
     let isActive: Bool
     let isSelected: Bool
+    let canAct: Bool
+    let onAction: () -> Void
 
     @State var isHovered = false
 
     var body: some View {
-        VStack(spacing: 2) {
-            ZStack {
-                if isActive {
-                    PulsingRing(color: town.faction.mapColor)
-                }
-                Circle()
-                    .fill(town.faction.mapColor.gradient)
-                    .frame(width: nodeSize, height: nodeSize)
-                    .shadow(color: town.faction.mapColor.opacity(0.55), radius: isSelected ? 8 : 3)
-                Circle()
-                    .stroke(.white.opacity(isSelected ? 0.95 : 0.45), lineWidth: isSelected ? 2.2 : 1)
-                    .frame(width: nodeSize + 5, height: nodeSize + 5)
-                Image(systemName: nodeIcon)
-                    .font(.system(size: isActive ? 12 : 10, weight: .black))
-                    .foregroundStyle(.white)
-            }
+        VStack(spacing: 3) {
+            ClayTownGlyph(
+                color: town.faction.mapColor,
+                isActive: isActive,
+                isDuskara: town.isDuskara
+            )
             Text(town.name)
-                .font(.system(size: isSelected ? 8.5 : 7.5, weight: .heavy, design: .serif))
-                .foregroundStyle(.white.opacity(isSelected ? 0.96 : 0.82))
+                .font(isSelected ? DuskaraTheme.Fonts.caption : DuskaraTheme.Fonts.label)
+                .foregroundStyle(.white.opacity(isSelected ? 1 : 0.88))
                 .shadow(color: .black.opacity(0.75), radius: 2, x: 0, y: 1)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-                .frame(width: 58)
+                .frame(width: 72)
             infoBadge
+            if isSelected {
+                Button(town.isPlayerControlled ? "Visit" : "Attack", action: onAction)
+                    .buttonStyle(.plain)
+                    .font(DuskaraTheme.Fonts.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(DuskaraTheme.accent, in: Capsule())
+                    .disabled(!canAct)
+                    .opacity(canAct ? 1 : 0.45)
+            }
         }
-        .padding(4)
-        .background(isSelected ? .black.opacity(0.30) : .clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .padding(5)
+        .background(isSelected ? DuskaraTheme.hudFill.opacity(0.82) : .clear, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .stroke(.white.opacity(isSelected ? 0.28 : 0), lineWidth: 1)
+        )
         .scaleEffect(isHovered ? 1.12 : 1)
         .animation(.smooth(duration: 0.16), value: isHovered)
         .onHover { isHovered = $0 }
@@ -47,35 +54,61 @@ struct WorldTownMarkerView: View {
         return "\(town.name) — garrison of \(town.armyStrength). Click to inspect or attack."
     }
 
-    // Friendly cities show their stockpile; everyone else reveals only
-    // soldier count.
     var infoBadge: some View {
-        Group {
-            if town.isPlayerControlled {
-                Text("G \(town.resources[.gold]) · F \(town.resources[.food]) · S \(town.resources[.skill])")
-            } else {
-                Label("\(town.armyStrength)", systemImage: "shield.fill")
-                    .labelStyle(.titleAndIcon)
-            }
-        }
-        .font(.system(size: 7, weight: .heavy))
+        Label("\(town.armyStrength)", systemImage: town.isDuskara ? "crown.fill" : "shield.fill")
+        .labelStyle(.titleAndIcon)
+        .font(DuskaraTheme.Fonts.label)
         .foregroundStyle(.white.opacity(0.92))
-        .padding(.horizontal, 5)
+        .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(.black.opacity(0.45), in: Capsule())
     }
+}
 
-    var nodeIcon: String {
-        if town.isPlayerControlled { return "house.fill" }
-        if town.isDuskara { return "crown.fill" }
-        if town.faction == .enemy { return "shield.fill" }
-        return "circle.hexagonpath.fill"
+private struct ClayTownGlyph: View {
+    let color: Color
+    let isActive: Bool
+    let isDuskara: Bool
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            if isActive {
+                PulsingRing(color: color)
+                    .offset(y: -1)
+            }
+
+            Ellipse()
+                .fill(.black.opacity(0.30))
+                .frame(width: 42, height: 15)
+                .blur(radius: 3)
+
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(LinearGradient(colors: [color, color.opacity(0.66)], startPoint: .top, endPoint: .bottom))
+                .frame(width: 42, height: 29)
+                .rotation3DEffect(.degrees(58), axis: (x: 1, y: 0, z: 0))
+                .shadow(color: .black.opacity(0.34), radius: 4, y: 4)
+                .offset(y: -3)
+
+            HStack(alignment: .bottom, spacing: 2) {
+                clayBuilding(height: 13)
+                clayBuilding(height: isDuskara ? 25 : 20)
+                clayBuilding(height: 15)
+            }
+            .offset(y: -8)
+        }
+        .frame(width: 52, height: 42)
     }
 
-    var nodeSize: CGFloat {
-        if isActive { return 27 }
-        if town.isDuskara { return 29 }
-        return isSelected ? 25 : 20
+    private func clayBuilding(height: CGFloat) -> some View {
+        VStack(spacing: -1) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(color)
+                .frame(width: 11, height: 4)
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(Color(red: 0.92, green: 0.84, blue: 0.69))
+                .frame(width: 9, height: height)
+        }
+        .shadow(color: .black.opacity(0.30), radius: 2, x: 1, y: 2)
     }
 }
 
@@ -88,7 +121,7 @@ struct PulsingRing: View {
     var body: some View {
         Circle()
             .stroke(color.opacity(expanded ? 0 : 0.75), lineWidth: 2)
-            .frame(width: 30, height: 30)
+            .frame(width: 38, height: 38)
             .scaleEffect(expanded ? 1.8 : 0.85)
             .onAppear {
                 withAnimation(.easeOut(duration: 2.0).repeatForever(autoreverses: false)) {
@@ -149,25 +182,6 @@ struct WorldMapProjection {
         )
     }
 
-    func path(for edge: TerritoryBorderEdge, of cell: MapCell, layout: MapLayout) -> Path {
-        let rect = rect(for: cell, layout: layout)
-        return Path { path in
-            switch edge {
-            case .left:
-                path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-                path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-            case .right:
-                path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-                path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            case .top:
-                path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-                path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-            case .bottom:
-                path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
-                path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            }
-        }
-    }
 }
 
 // Same colors the 3D town uses (WorldPalette.village): tileGround plains,

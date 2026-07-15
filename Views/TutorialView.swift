@@ -145,7 +145,7 @@ private struct TutorialPage {
     static let all: [TutorialPage] = [
         TutorialPage(
             title: "Welcome to Duskara",
-            body: "Quest for Duskara is a strategy game set across an archipelago of island cities. You rule one island. Thirty-nine more wait beyond the water — including Duskara, the dark stronghold itself.",
+            body: "Quest for Duskara is a strategy game set across an archipelago of island cities. You rule one island. Fourteen more wait beyond the water — including Duskara, the dark stronghold itself.",
             systemImage: "map.fill"
         ),
         TutorialPage(

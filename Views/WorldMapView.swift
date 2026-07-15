@@ -1,21 +1,19 @@
 import SwiftUI
 
 /// Full-screen world map. The map itself fills the window and pans under
-/// fixed floating overlays (header, legend, selected-town panel).
+/// fixed floating overlays (header, legend, compass, and zoom controls).
 struct WorldMapView: View {
     @Bindable var viewModel: GameViewModel
     @State var selectedTownID: UUID?
-    @State var transferKind: ResourceKind = .gold
-    @State var transferAmount = 10
     @State var panOffset: CGSize = .zero
     @State var dragStartOffset: CGSize?
     @State var zoomScale: CGFloat = 1
     @State var magnifyStartScale: CGFloat?
 
     /// How much larger than the window the terrain renders, so there is room to pan.
-    let mapOverscan: CGFloat = 1.3
+    let mapOverscan: CGFloat = 1.15
     /// Open ocean around the terrain, so edge islands never touch the map border.
-    let oceanPadding: CGFloat = 110
+    let oceanPadding: CGFloat = 80
     let maxZoom: CGFloat = 2.6
 
     var body: some View {
@@ -42,18 +40,11 @@ struct WorldMapView: View {
             CompassRose()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(18)
-            zoomControls
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .padding(14)
-            selectedTownPanel
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                .padding(.bottom, 16)
-        }
-        .onAppear {
-            selectedTownID = viewModel.state.activeTownID
-        }
-        .onChange(of: viewModel.state.activeTownID) { _, activeTownID in
-            selectedTownID = activeTownID
+            GeometryReader { proxy in
+                zoomControls(minZoom: minimumZoom(in: proxy.size))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(14)
+            }
         }
     }
 
@@ -77,6 +68,10 @@ struct WorldMapView: View {
     func mapViewport(container: CGSize) -> some View {
         let terrain = terrainSize(in: container)
         let outer = CGSize(width: terrain.width + oceanPadding * 2, height: terrain.height + oceanPadding * 2)
+        let minZoom = mapFitScale(
+            container: container,
+            map: outer
+        )
         let scaled = CGSize(width: outer.width * zoomScale, height: outer.height * zoomScale)
         return ZStack {
             SeaWavesLayer()
@@ -89,7 +84,17 @@ struct WorldMapView: View {
                 activeTownID: viewModel.state.activeTownID,
                 selectedTownID: selectedTownID,
                 markerScale: 1 / sqrt(zoomScale),
-                onSelectTown: { selectedTownID = $0 }
+                onSelectTown: { selectedTownID = $0 },
+                canActOnTown: { townID in
+                    viewModel.state.town(id: townID)?.isPlayerControlled == true || viewModel.canAttack(townID)
+                },
+                onActOnTown: { townID in
+                    if viewModel.state.town(id: townID)?.isPlayerControlled == true {
+                        viewModel.switchToTown(townID)
+                    } else {
+                        viewModel.attackTown(townID)
+                    }
+                }
             )
             .frame(width: terrain.width, height: terrain.height)
         }
@@ -100,7 +105,7 @@ struct WorldMapView: View {
         .clipped()
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            stepZoom(zoomScale >= maxZoom - 0.05 ? 1 : min(maxZoom, zoomScale * 1.6))
+            stepZoom(zoomScale >= maxZoom - 0.05 ? minZoom : min(maxZoom, zoomScale * 1.6))
         }
         .gesture(
             DragGesture()
@@ -120,7 +125,7 @@ struct WorldMapView: View {
                 .onChanged { value in
                     let start = magnifyStartScale ?? zoomScale
                     magnifyStartScale = start
-                    zoomScale = min(maxZoom, max(1, start * value.magnification))
+                    zoomScale = min(maxZoom, max(minZoom, start * value.magnification))
                 }
                 .onEnded { _ in
                     magnifyStartScale = nil
@@ -129,7 +134,7 @@ struct WorldMapView: View {
         )
     }
 
-    var zoomControls: some View {
+    func zoomControls(minZoom: CGFloat) -> some View {
         VStack(spacing: 0) {
             zoomButton(systemImage: "plus", disabled: zoomScale >= maxZoom - 0.01) {
                 stepZoom(min(maxZoom, zoomScale * 1.35))
@@ -137,8 +142,8 @@ struct WorldMapView: View {
             Divider()
                 .overlay(DuskaraTheme.glassStroke)
                 .frame(width: 24)
-            zoomButton(systemImage: "minus", disabled: zoomScale <= 1.01) {
-                stepZoom(max(1, zoomScale / 1.35))
+            zoomButton(systemImage: "minus", disabled: zoomScale <= minZoom + 0.01) {
+                stepZoom(max(minZoom, zoomScale / 1.35))
             }
         }
         .background(DuskaraTheme.hudFill, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
@@ -171,6 +176,14 @@ struct WorldMapView: View {
         return CGSize(width: width, height: width / aspect)
     }
 
+    func minimumZoom(in container: CGSize) -> CGFloat {
+        let terrain = terrainSize(in: container)
+        return mapFitScale(
+            container: container,
+            map: CGSize(width: terrain.width + oceanPadding * 2, height: terrain.height + oceanPadding * 2)
+        )
+    }
+
     func clampedOffset(_ offset: CGSize, mapSize: CGSize, container: CGSize) -> CGSize {
         let maxX = max(0, (mapSize.width - container.width) / 2)
         let maxY = max(0, (mapSize.height - container.height) / 2)
@@ -181,4 +194,8 @@ struct WorldMapView: View {
     }
 
     // MARK: - Floating overlays
+}
+
+func mapFitScale(container: CGSize, map: CGSize) -> CGFloat {
+    min(1, min(container.width / map.width, container.height / map.height))
 }

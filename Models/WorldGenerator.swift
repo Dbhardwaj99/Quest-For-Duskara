@@ -9,16 +9,16 @@ struct WorldGenerationResult {
 struct WorldGenerator {
     private let terrainGenerator = TerrainGenerator()
 
-    /// Aspect-corrected center separation that keeps two max-wobble islands
-    /// from ever merging (2 × max island radius, plus a water channel).
-    private let minimumSeparation = 0.135
+    /// Aspect-corrected separation for the larger v2 islands, including a
+    /// narrow open-water channel between their maximum wobbled coastlines.
+    private let minimumSeparation = 0.19
 
     func generate(towns: [Town], seed: Int = Int.random(in: 0..<1_000_000)) -> WorldGenerationResult {
         let layout = MapLayout.standard
         let generation = WorldGenerationState(
             seed: seed,
-            algorithmVersion: 3,
-            templateID: "archipelago-v1"
+            algorithmVersion: 5,
+            templateID: "archipelago-v3"
         )
         // Nodes come first: every island is grown around its town's node.
         let nodes = makeNodes(towns: towns, layout: layout, seed: seed)
@@ -43,7 +43,7 @@ struct WorldGenerator {
         let inset = layout.playableInset
         let span = 1.0 - inset * 2.0
 
-        let clusterCount = 4
+        let clusterCount = 3
         let clusters: [MapPoint] = (0..<clusterCount).map { index in
             MapPoint(
                 x: inset + WorldNoise.value(seed: seed, column: index, row: 3, salt: 401) * span,
@@ -51,8 +51,19 @@ struct WorldGenerator {
             )
         }
 
-        var placed: [MapPoint] = []
-        for index in towns.indices {
+        var points = Array<MapPoint?>(repeating: nil, count: towns.count)
+        let playerIndex = towns.firstIndex(where: \.isPlayerControlled) ?? towns.startIndex
+        let playerCorner = MapPoint(x: inset, y: 1.0 - inset)
+        points[playerIndex] = playerCorner
+        var placed = [playerCorner]
+
+        if let duskaraIndex = towns.firstIndex(where: \.isDuskara), duskaraIndex != playerIndex {
+            let duskaraCorner = MapPoint(x: 1.0 - inset, y: inset)
+            points[duskaraIndex] = duskaraCorner
+            placed.append(duskaraCorner)
+        }
+
+        for index in towns.indices where points[index] == nil {
             var best: MapPoint?
             var bestClearance = -Double.infinity
 
@@ -78,11 +89,15 @@ struct WorldGenerator {
                 }
             }
 
-            placed.append(best ?? MapPoint(x: 0.5, y: 0.5))
+            let point = best ?? MapPoint(x: 0.5, y: 0.5)
+            points[index] = point
+            placed.append(point)
         }
 
-        return zip(towns, placed).map { town, point in
-            WorldTownNode(townID: town.id, x: point.x, y: point.y)
+        return towns.indices.map { index in
+            let town = towns[index]
+            let point = points[index] ?? MapPoint(x: 0.5, y: 0.5)
+            return WorldTownNode(townID: town.id, x: point.x, y: point.y)
         }
     }
 
