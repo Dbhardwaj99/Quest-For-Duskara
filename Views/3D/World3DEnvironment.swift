@@ -4,17 +4,15 @@ import AppKit
 
 extension World3DRenderer {
     func configureView() {
-        // Overcast-afternoon lighting: a softened warm sun with real (gentle)
-        // shadows so geometry creates the depth textures never will, plus a
-        // cool fill from the opposite side to keep contrast low.
-        sun.light.intensity = 2800
+        // Soft neutral lighting with enough contrast to keep the clay forms readable.
+        sun.light.intensity = 1000
         // ponytail: shadows double draw calls; drop maximumDistance or gate
         // on visual quality if low-end FPS ever suffers.
         sun.shadow = DirectionalLightComponent.Shadow(maximumDistance: 6, depthBias: 4)
         sun.orientation = simd_quatf(angle: -.pi / 4.8, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(sun)
 
-        fillLight.light.intensity = 1800
+        fillLight.light.intensity = 300
         fillLight.light.color = NSColor(red: 0.80, green: 0.86, blue: 0.93, alpha: 1)
         fillLight.orientation = simd_quatf(angle: -.pi / 3.6, axis: SIMD3<Float>(1, 0, 0)) * simd_quatf(angle: .pi + .pi / 5.8, axis: SIMD3<Float>(0, 1, 0))
         anchor.addChild(fillLight)
