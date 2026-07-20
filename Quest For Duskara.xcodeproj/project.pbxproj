@@ -6,108 +6,40 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		0018CE062FC9652B00307E36 /* World3DAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD22FC9652B00307E36 /* World3DAdapter.swift */; };
-		0018CE072FC9652B00307E36 /* World3DCameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD32FC9652B00307E36 /* World3DCameraController.swift */; };
-		0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD42FC9652B00307E36 /* World3DRenderer.swift */; };
-		0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */; };
-		0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */; };
-		0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */; };
-		0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDDB2FC9652B00307E36 /* ContentView.swift */; };
-		0018CE0E2FC9652B00307E36 /* Quest_For_DuskaraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CDDC2FC9652B00307E36 /* Quest_For_DuskaraApp.swift */; };
-		0018CE0F2FC9652B00307E36 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0018CDDA2FC9652B00307E36 /* Assets.xcassets */; };
-		0018CE282FC9672100307E36 /* SoldierModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CE212FC9672100307E36 /* SoldierModels.swift */; };
-		0018CE3A2FC9672600307E36 /* GameSaveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CE2C2FC9672600307E36 /* GameSaveStore.swift */; };
-		0018CEA02FC9700000307E36 /* World3DTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0018CEA12FC9700000307E36 /* World3DTheme.swift */; };
-		003AC6E32FBB30B9007CEC60 /* agents.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6DF2FBB30B9007CEC60 /* agents.md */; };
-		003AC6E42FBB30B9007CEC60 /* design.md in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E02FBB30B9007CEC60 /* design.md */; };
-		003AC6E52FBB30B9007CEC60 /* screen.png in Resources */ = {isa = PBXBuildFile; fileRef = 003AC6E12FBB30B9007CEC60 /* screen.png */; };
-		00C0A3AF30016951008973B8 /* DESIGN_LANGUAGE.md in Resources */ = {isa = PBXBuildFile; fileRef = 00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */; };
-		00DE51032FDC100000307E36 /* OceanShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51012FDC100000307E36 /* OceanShaders.metal */; };
-		00DE51152FDC200000307E36 /* building_house.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51102FDC200000307E36 /* building_house.usdz */; };
-		00DE51162FDC200000307E36 /* building_pier.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51112FDC200000307E36 /* building_pier.usdz */; };
-		00DE51172FDC200000307E36 /* building_farm.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51122FDC200000307E36 /* building_farm.usdz */; };
-		00DE51182FDC200000307E36 /* building_factory.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51132FDC200000307E36 /* building_factory.usdz */; };
-		00DE51192FDC200000307E36 /* building_barracks.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 00DE51142FDC200000307E36 /* building_barracks.usdz */; };
-		00DE51042FDC100000307E36 /* World3DOcean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00DE51022FDC100000307E36 /* World3DOcean.swift */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
-		0018CDD22FC9652B00307E36 /* World3DAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DAdapter.swift; sourceTree = "<group>"; };
-		0018CDD32FC9652B00307E36 /* World3DCameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DCameraController.swift; sourceTree = "<group>"; };
-		0018CDD42FC9652B00307E36 /* World3DRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DRenderer.swift; sourceTree = "<group>"; };
-		0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DRenderResources.swift; sourceTree = "<group>"; };
-		0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTileEntity.swift; sourceTree = "<group>"; };
-		0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTownViewController.swift; sourceTree = "<group>"; };
-		0018CDDA2FC9652B00307E36 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		0018CDDB2FC9652B00307E36 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		0018CDDC2FC9652B00307E36 /* Quest_For_DuskaraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Quest_For_DuskaraApp.swift; sourceTree = "<group>"; };
-		0018CE212FC9672100307E36 /* SoldierModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoldierModels.swift; sourceTree = "<group>"; };
-		0018CE2C2FC9672600307E36 /* GameSaveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameSaveStore.swift; sourceTree = "<group>"; };
-		0018CEA12FC9700000307E36 /* World3DTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DTheme.swift; sourceTree = "<group>"; };
-		003AC6DF2FBB30B9007CEC60 /* agents.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = agents.md; sourceTree = "<group>"; };
-		003AC6E02FBB30B9007CEC60 /* design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = design.md; sourceTree = "<group>"; };
-		003AC6E12FBB30B9007CEC60 /* screen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = screen.png; sourceTree = "<group>"; };
 		005C61792FB7949100C85FA6 /* Quest For Duskara.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Quest For Duskara.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DESIGN_LANGUAGE.md; sourceTree = "<group>"; };
-		00DE51012FDC100000307E36 /* OceanShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = OceanShaders.metal; sourceTree = "<group>"; };
-		00DE51102FDC200000307E36 /* building_house.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_house.usdz; sourceTree = "<group>"; };
-		00DE51112FDC200000307E36 /* building_pier.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_pier.usdz; sourceTree = "<group>"; };
-		00DE51122FDC200000307E36 /* building_farm.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_farm.usdz; sourceTree = "<group>"; };
-		00DE51132FDC200000307E36 /* building_factory.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_factory.usdz; sourceTree = "<group>"; };
-		00DE51142FDC200000307E36 /* building_barracks.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = building_barracks.usdz; sourceTree = "<group>"; };
-		00DE51022FDC100000307E36 /* World3DOcean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World3DOcean.swift; sourceTree = "<group>"; };
+		AA000000000000000000000D /* Quest For DuskaraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Quest For DuskaraTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0018CE222FC9672100307E36 /* Models */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Models;
-			sourceTree = "<group>";
-		};
-		0018CE362FC9672600307E36 /* Systems */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Systems;
-			sourceTree = "<group>";
-		};
-		0018CE462FC9672900307E36 /* Managers */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Managers;
-			sourceTree = "<group>";
-		};
-		0018CE4A2FC9672D00307E36 /* Buildings */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Buildings;
-			sourceTree = "<group>";
-		};
-		0018CE4D2FC9672F00307E36 /* Resources */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		0018CE502FC9673100307E36 /* World */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = World;
-			sourceTree = "<group>";
-		};
-		0018CE552FC9673600307E36 /* Components */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Components;
-			sourceTree = "<group>";
-		};
-		0018CE5A2FC9673800307E36 /* ViewModels */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		0018CE652FC9673B00307E36 /* Views */ = {
+		AA1000000000000000000001 /* Views */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Views;
 			sourceTree = "<group>";
 		};
-		0018CE702FC9673D00307E36 /* Theme */ = {
+		AA1000000000000000000002 /* ViewModels */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Theme;
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AA1000000000000000000003 /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AA1000000000000000000004 /* Managers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		AA1000000000000000000005 /* Assets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		AA1000000000000000000006 /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -120,158 +52,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0018CE102FC9670000307E36 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDDB2FC9652B00307E36 /* ContentView.swift */,
-				0018CDDC2FC9652B00307E36 /* Quest_For_DuskaraApp.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		0018CE112FC9670200307E36 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				0018CE122FC9670500307E36 /* Persistence */,
-				0018CE222FC9672100307E36 /* Models */,
-				0018CE362FC9672600307E36 /* Systems */,
-				0018CE462FC9672900307E36 /* Managers */,
-			);
-			path = Core;
-			sourceTree = "<group>";
-		};
-		0018CE122FC9670500307E36 /* Persistence */ = {
-			isa = PBXGroup;
-			children = (
-				0018CE2C2FC9672600307E36 /* GameSaveStore.swift */,
-			);
-			path = Persistence;
-			sourceTree = "<group>";
-		};
-		0018CE132FC9670700307E36 /* Gameplay */ = {
-			isa = PBXGroup;
-			children = (
-				0018CE142FC9670900307E36 /* Combat */,
-				0018CE4A2FC9672D00307E36 /* Buildings */,
-				0018CE4D2FC9672F00307E36 /* Resources */,
-				0018CE502FC9673100307E36 /* World */,
-			);
-			path = Gameplay;
-			sourceTree = "<group>";
-		};
-		0018CE142FC9670900307E36 /* Combat */ = {
-			isa = PBXGroup;
-			children = (
-				0018CE212FC9672100307E36 /* SoldierModels.swift */,
-			);
-			path = Combat;
-			sourceTree = "<group>";
-		};
-		0018CE152FC9670D00307E36 /* Presentation */ = {
-			isa = PBXGroup;
-			children = (
-				0018CE552FC9673600307E36 /* Components */,
-				0018CE5A2FC9673800307E36 /* ViewModels */,
-				0018CE652FC9673B00307E36 /* Views */,
-				0018CE702FC9673D00307E36 /* Theme */,
-			);
-			path = Presentation;
-			sourceTree = "<group>";
-		};
-		0018CE162FC9670F00307E36 /* Rendering3D */ = {
-			isa = PBXGroup;
-			children = (
-				0018CE172FC9671100307E36 /* Renderer */,
-				0018CE182FC9671300307E36 /* Camera */,
-				0018CE192FC9671500307E36 /* Entities */,
-				0018CE1A2FC9671700307E36 /* Resources */,
-				0018CE1B2FC9671900307E36 /* Adapters */,
-			);
-			path = Rendering3D;
-			sourceTree = "<group>";
-		};
-		0018CE172FC9671100307E36 /* Renderer */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDD42FC9652B00307E36 /* World3DRenderer.swift */,
-				0018CDD82FC9652B00307E36 /* World3DTownViewController.swift */,
-			);
-			path = Renderer;
-			sourceTree = "<group>";
-		};
-		0018CE182FC9671300307E36 /* Camera */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDD32FC9652B00307E36 /* World3DCameraController.swift */,
-			);
-			path = Camera;
-			sourceTree = "<group>";
-		};
-		0018CE192FC9671500307E36 /* Entities */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDD72FC9652B00307E36 /* World3DTileEntity.swift */,
-			);
-			path = Entities;
-			sourceTree = "<group>";
-		};
-		0018CE1A2FC9671700307E36 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDD52FC9652B00307E36 /* World3DRenderResources.swift */,
-				0018CEA12FC9700000307E36 /* World3DTheme.swift */,
-				00DE51012FDC100000307E36 /* OceanShaders.metal */,
-				00DE51022FDC100000307E36 /* World3DOcean.swift */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		0018CE1B2FC9671900307E36 /* Adapters */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDD22FC9652B00307E36 /* World3DAdapter.swift */,
-			);
-			path = Adapters;
-			sourceTree = "<group>";
-		};
-		0018CE722FC9675200307E36 /* Assets */ = {
-			isa = PBXGroup;
-			children = (
-				0018CDDA2FC9652B00307E36 /* Assets.xcassets */,
-				00DE51102FDC200000307E36 /* building_house.usdz */,
-				00DE51112FDC200000307E36 /* building_pier.usdz */,
-				00DE51122FDC200000307E36 /* building_farm.usdz */,
-				00DE51132FDC200000307E36 /* building_factory.usdz */,
-				00DE51142FDC200000307E36 /* building_barracks.usdz */,
-			);
-			path = Assets;
-			sourceTree = "<group>";
-		};
-		003AC6E22FBB30B9007CEC60 /* docs */ = {
-			isa = PBXGroup;
-			children = (
-				00C0A3AE30016951008973B8 /* DESIGN_LANGUAGE.md */,
-				003AC6DF2FBB30B9007CEC60 /* agents.md */,
-				003AC6E02FBB30B9007CEC60 /* design.md */,
-				003AC6E12FBB30B9007CEC60 /* screen.png */,
-			);
-			path = docs;
-			sourceTree = "<group>";
-		};
 		005C61702FB7949100C85FA6 = {
 			isa = PBXGroup;
 			children = (
-				003AC6E22FBB30B9007CEC60 /* docs */,
+				AA1000000000000000000001 /* Views */,
+				AA1000000000000000000002 /* ViewModels */,
+				AA1000000000000000000003 /* Models */,
+				AA1000000000000000000004 /* Managers */,
+				AA1000000000000000000005 /* Assets */,
+				AA1000000000000000000006 /* Tests */,
 				005C617A2FB7949100C85FA6 /* Products */,
-				0018CE102FC9670000307E36 /* App */,
-				0018CE112FC9670200307E36 /* Core */,
-				0018CE132FC9670700307E36 /* Gameplay */,
-				0018CE152FC9670D00307E36 /* Presentation */,
-				0018CE162FC9670F00307E36 /* Rendering3D */,
-				0018CE722FC9675200307E36 /* Assets */,
 			);
 			sourceTree = "<group>";
 		};
@@ -279,6 +79,7 @@
 			isa = PBXGroup;
 			children = (
 				005C61792FB7949100C85FA6 /* Quest For Duskara.app */,
+				AA000000000000000000000D /* Quest For DuskaraTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -299,16 +100,11 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0018CE222FC9672100307E36 /* Models */,
-				0018CE362FC9672600307E36 /* Systems */,
-				0018CE462FC9672900307E36 /* Managers */,
-				0018CE4A2FC9672D00307E36 /* Buildings */,
-				0018CE4D2FC9672F00307E36 /* Resources */,
-				0018CE502FC9673100307E36 /* World */,
-				0018CE552FC9673600307E36 /* Components */,
-				0018CE5A2FC9673800307E36 /* ViewModels */,
-				0018CE652FC9673B00307E36 /* Views */,
-				0018CE702FC9673D00307E36 /* Theme */,
+				AA1000000000000000000001 /* Views */,
+				AA1000000000000000000002 /* ViewModels */,
+				AA1000000000000000000003 /* Models */,
+				AA1000000000000000000004 /* Managers */,
+				AA1000000000000000000005 /* Assets */,
 			);
 			name = "Quest For Duskara";
 			packageProductDependencies = (
@@ -316,6 +112,28 @@
 			productName = "Quest For Duskara";
 			productReference = 005C61792FB7949100C85FA6 /* Quest For Duskara.app */;
 			productType = "com.apple.product-type.application";
+		};
+		AA0000000000000000000003 /* Quest For DuskaraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000008 /* Build configuration list for PBXNativeTarget "Quest For DuskaraTests" */;
+			buildPhases = (
+				AA0000000000000000000005 /* Sources */,
+				AA0000000000000000000006 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA1000000000000000000003 /* Models */,
+				AA1000000000000000000006 /* Tests */,
+			);
+			name = "Quest For DuskaraTests";
+			packageProductDependencies = (
+			);
+			productName = "Quest For DuskaraTests";
+			productReference = AA000000000000000000000D /* Quest For DuskaraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -330,6 +148,9 @@
 					005C61782FB7949100C85FA6 = {
 						CreatedOnToolsVersion = 26.4;
 					};
+					AA0000000000000000000003 = {
+						CreatedOnToolsVersion = 26.4;
+					};
 				};
 			};
 			buildConfigurationList = 005C61742FB7949100C85FA6 /* Build configuration list for PBXProject "Quest For Duskara" */;
@@ -340,13 +161,13 @@
 				Base,
 			);
 			mainGroup = 005C61702FB7949100C85FA6;
-			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 005C617A2FB7949100C85FA6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				005C61782FB7949100C85FA6 /* Quest For Duskara */,
+				AA0000000000000000000003 /* Quest For DuskaraTests */,
 			);
 		};
 /* End PBXProject section */
@@ -356,16 +177,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				003AC6E32FBB30B9007CEC60 /* agents.md in Resources */,
-				003AC6E42FBB30B9007CEC60 /* design.md in Resources */,
-				0018CE0F2FC9652B00307E36 /* Assets.xcassets in Resources */,
-				00DE51152FDC200000307E36 /* building_house.usdz in Resources */,
-				00DE51162FDC200000307E36 /* building_pier.usdz in Resources */,
-				00DE51172FDC200000307E36 /* building_farm.usdz in Resources */,
-				00DE51182FDC200000307E36 /* building_factory.usdz in Resources */,
-				00DE51192FDC200000307E36 /* building_barracks.usdz in Resources */,
-				003AC6E52FBB30B9007CEC60 /* screen.png in Resources */,
-				00C0A3AF30016951008973B8 /* DESIGN_LANGUAGE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -376,19 +187,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0018CE282FC9672100307E36 /* SoldierModels.swift in Sources */,
-				0018CE3A2FC9672600307E36 /* GameSaveStore.swift in Sources */,
-				0018CE062FC9652B00307E36 /* World3DAdapter.swift in Sources */,
-				0018CE072FC9652B00307E36 /* World3DCameraController.swift in Sources */,
-				0018CE082FC9652B00307E36 /* World3DRenderer.swift in Sources */,
-				0018CE092FC9652B00307E36 /* World3DRenderResources.swift in Sources */,
-				0018CEA02FC9700000307E36 /* World3DTheme.swift in Sources */,
-				00DE51032FDC100000307E36 /* OceanShaders.metal in Sources */,
-				00DE51042FDC100000307E36 /* World3DOcean.swift in Sources */,
-				0018CE0B2FC9652B00307E36 /* World3DTileEntity.swift in Sources */,
-				0018CE0C2FC9652B00307E36 /* World3DTownViewController.swift in Sources */,
-				0018CE0D2FC9652B00307E36 /* ContentView.swift in Sources */,
-				0018CE0E2FC9652B00307E36 /* Quest_For_DuskaraApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -526,7 +331,6 @@
 				DEVELOPMENT_TEAM = WY4YWSUG94;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -537,7 +341,6 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "div.Quest-For-Duskara";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = macosx;
 				SUPPORTS_MACCATALYST = NO;
@@ -582,6 +385,46 @@
 			};
 			name = Release;
 		};
+		AA0000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WY4YWSUG94;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "div.Quest-For-DuskaraTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WY4YWSUG94;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "div.Quest-For-DuskaraTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -599,6 +442,15 @@
 			buildConfigurations = (
 				005C61852FB7949200C85FA6 /* Debug */,
 				005C61862FB7949200C85FA6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000008 /* Build configuration list for PBXNativeTarget "Quest For DuskaraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000009 /* Debug */,
+				AA000000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
