@@ -65,11 +65,25 @@ extension World3DTileEntity {
         addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 3, around: SIMD2<Float>(0, 0), radius: 0.43)
     }
 
+    static func buildingEntityName(for kind: BuildingKind) -> String {
+        "world3d_building_\(kind.rawValue)"
+    }
+
+    static func buildingKind(fromName name: String) -> BuildingKind? {
+        let prefix = "world3d_building_"
+        guard name.hasPrefix(prefix) else { return nil }
+        return BuildingKind(rawValue: String(name.dropFirst(prefix.count)))
+    }
+
     static func makeCraftedBuilding(_ kind: BuildingKind, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize) -> Entity? {
         guard let building = try? Entity.load(named: "building_\(kind.rawValue)") else { return nil }
-        building.scale = SIMD3<Float>(repeating: tileSize * 0.7)
+        building.scale = SIMD3<Float>(repeating: tileSize * BuildingScale.scale(for: kind))
         applyCraftedPalette(to: building)
         playCraftedAnimations(in: building)
+        // Renamed only after recoloring: applyCraftedPalette reads the authored
+        // root name to pick the color children inherit, so renaming first would
+        // change every fallback material in the model.
+        building.name = buildingEntityName(for: kind)
         if kind == .pier {
             let yaw = shorelineYaw(for: coordinate, gridSize: gridSize)
             // The authored pier's deck extends along its local -z axis, the
