@@ -49,7 +49,6 @@ struct ContentView: View {
 
     private func startGame() {
         let newViewModel = GameViewModel()
-        newViewModel.saveCurrentGame()
         saveLoadError = nil
         viewModel.stopClock()
         viewModel = newViewModel

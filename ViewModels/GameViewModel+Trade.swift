@@ -54,5 +54,6 @@ extension GameViewModel {
         guard let offer = currentTradeOffer else { return }
         state.tradeOffers.removeAll { $0.id == offer.id }
         show("Declined \(offer.cityName)'s offer.")
+        saveCurrentGame()
     }
 }

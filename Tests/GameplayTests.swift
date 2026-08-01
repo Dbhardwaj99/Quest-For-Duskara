@@ -17,6 +17,15 @@ struct GameplayTests {
         state.towns[0].resources[.gold] = 321
         state.towns[0].soldierRoster[.archer] = 4
         state.towns[0].armyStrength = 20
+        state.towns[1].faction = .player
+        state.towns[1].resources[.gold] = 777
+        state.towns[1].buildings.append(BuildingInstance(
+            kind: .farm,
+            coordinate: GridCoordinate(x: 0, y: 0),
+            level: 2
+        ))
+        state.towns[1].soldierRoster[.knight] = 3
+        state.towns[1].armyStrength = 30
         state.newsEvents = [NewsEvent(day: 11, kind: .cityCapture, message: "Captured Ironridge")]
         state.tradeOffers = [TownTradeOffer(
             townID: state.towns[0].id,
@@ -31,6 +40,7 @@ struct GameplayTests {
             let savedGame = try #require(loadedGame)
             #expect(savedGame.state == state)
             #expect(savedGame.difficulty == difficulty)
+            #expect(savedGame.schemaVersion == SavedGame.currentSchemaVersion)
         }
 
         let legacyData = try JSONEncoder().encode(LegacySavedGame(dayLabel: "Day 12", state: state))
