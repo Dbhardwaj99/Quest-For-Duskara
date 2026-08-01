@@ -33,4 +33,33 @@ struct GameplayTests {
         #expect(GameRules.transfer(order, state: &state, balance: balance) == nil)
         #expect(state.towns[1].resources[.gold] >= 10)
     }
+
+    @MainActor
+    @Test func losingTheLastTownEndsTheCampaign() {
+        let viewModel = GameViewModel()
+        let balance = viewModel.balance
+        viewModel.startGame()
+
+        guard let player = viewModel.state.towns.firstIndex(where: \.isPlayerControlled),
+              let raider = viewModel.state.towns.firstIndex(where: { $0.faction == .enemy }) else {
+            Issue.record("New game needs a player town and an enemy town.")
+            return
+        }
+        viewModel.state.towns[raider].soldierRoster = SoldierRoster.decompose(strength: 5_000, using: balance.soldierDefinitions)
+        GameRules.syncArmy(&viewModel.state.towns[raider], balance: balance)
+
+        #expect(GameRules.resolveAttack(
+            source: raider,
+            target: player,
+            faction: .enemy,
+            realmID: viewModel.state.towns[raider].realmID,
+            strength: viewModel.state.towns[raider].armyStrength,
+            state: &viewModel.state,
+            balance: balance
+        ))
+        #expect(viewModel.state.towns.contains(where: \.isPlayerControlled) == false)
+
+        viewModel.sanitizeSelection()
+        #expect(viewModel.phase == .defeat)
+    }
 }

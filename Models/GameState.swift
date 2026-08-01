@@ -82,4 +82,5 @@ enum GamePhase: Equatable {
     case setup
     case town
     case victory
+    case defeat
 }

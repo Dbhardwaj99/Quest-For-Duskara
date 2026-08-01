@@ -17,6 +17,23 @@ struct VictoryView: View {
     }
 }
 
+struct DefeatView: View {
+    let day: Int
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("Defeat")
+                .font(DuskaraTheme.Fonts.title)
+                .foregroundStyle(.white)
+            Text("Your last town fell on Day \(day).")
+                .font(DuskaraTheme.Fonts.heading)
+                .foregroundStyle(.white.opacity(0.82))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DuskaraTheme.background.ignoresSafeArea())
+    }
+}
+
 struct GameFeedbackToastView: View {
     let message: String
 

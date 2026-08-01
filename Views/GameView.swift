@@ -28,6 +28,8 @@ struct GameView: View {
                 }
             case .victory:
                 VictoryView(day: viewModel.state.day)
+            case .defeat:
+                DefeatView(day: viewModel.state.day)
             }
         }
         .animation(.smooth(duration: 0.25), value: viewModel.isWorldMapPresented)
