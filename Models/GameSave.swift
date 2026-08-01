@@ -5,14 +5,22 @@ struct SavedGame: Codable, Equatable {
     var state: GameState
 }
 
-// Write-only for now: the game autosaves continuously, but every launch
-// starts a new game, so nothing reads the file back yet.
+enum GameSaveLoadError: Error, Equatable {
+    case unreadable
+    case invalidData
+    case invalidState
+}
+
 struct GameSaveStore {
     private let fileName = "duskara-save.json"
+    private let directory: URL
 
     private var saveURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(fileName)
+        directory.appendingPathComponent(fileName)
+    }
+
+    init(directory: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]) {
+        self.directory = directory
     }
 
     func save(state: GameState) throws {
@@ -21,6 +29,23 @@ struct GameSaveStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(savedGame)
         try data.write(to: saveURL, options: [.atomic])
+    }
+
+    func load() throws -> GameState? {
+        guard FileManager.default.fileExists(atPath: saveURL.path) else { return nil }
+
+        let data: Data
+        do { data = try Data(contentsOf: saveURL) }
+        catch { throw GameSaveLoadError.unreadable }
+
+        let state: GameState
+        do { state = try JSONDecoder().decode(SavedGame.self, from: data).state }
+        catch { throw GameSaveLoadError.invalidData }
+
+        guard state.towns.contains(where: { $0.id == state.activeTownID && $0.isPlayerControlled }) else {
+            throw GameSaveLoadError.invalidState
+        }
+        return state
     }
 
     func dayLabel(for day: Int) -> String {

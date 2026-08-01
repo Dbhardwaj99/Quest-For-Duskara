@@ -126,6 +126,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				AA1000000000000000000003 /* Models */,
+				AA1000000000000000000002 /* ViewModels */,
 				AA1000000000000000000006 /* Tests */,
 			);
 			name = "Quest For DuskaraTests";

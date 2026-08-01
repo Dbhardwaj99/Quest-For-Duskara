@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct MenuView: View {
+    let canContinue: Bool
     let onStartGame: () -> Void
+    let onContinueGame: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 48) {
@@ -18,6 +20,14 @@ struct MenuView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(spacing: DuskaraTheme.spacingM) {
+                if canContinue {
+                    Button(action: onContinueGame) {
+                        Label("Continue Game", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(DuskaraButtonStyle(prominent: true))
+                }
+
                 Button(action: onStartGame) {
                     Label("Start Game", systemImage: "sparkles")
                         .frame(maxWidth: .infinity)
@@ -36,5 +46,5 @@ struct MenuView: View {
 }
 
 #Preview {
-    MenuView(onStartGame: { })
+    MenuView(canContinue: true, onStartGame: { }, onContinueGame: { })
 }

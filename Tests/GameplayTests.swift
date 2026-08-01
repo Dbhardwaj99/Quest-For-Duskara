@@ -1,6 +1,58 @@
+import Foundation
 import Testing
 
 struct GameplayTests {
+    @Test func autosaveRoundTripsAndSurfacesTypedFailures() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = GameSaveStore(directory: directory)
+        #expect(try store.load() == nil)
+
+        var state = makeNewGame(balance: .duskDefault)
+        state.day = 12
+        state.elapsedSecondsInDay = 37
+        state.towns[0].resources[.gold] = 321
+        state.towns[0].soldierRoster[.archer] = 4
+        state.towns[0].armyStrength = 20
+        state.newsEvents = [NewsEvent(day: 11, kind: .cityCapture, message: "Captured Ironridge")]
+        state.tradeOffers = [TownTradeOffer(
+            townID: state.towns[0].id,
+            partnerTownID: state.towns[1].id,
+            wants: [.food: 12],
+            gives: [.gold: 18]
+        )]
+
+        try store.save(state: state)
+
+        #expect(try store.load() == state)
+        try Data("not json".utf8).write(to: directory.appendingPathComponent("duskara-save.json"))
+
+        #expect(throws: GameSaveLoadError.invalidData) {
+            try store.load()
+        }
+    }
+
+    @Test func resumedGameRestoresStateAndResetsPresentation() {
+        var state = makeNewGame(balance: .duskDefault)
+        state.day = 8
+        let viewModel = GameViewModel(resuming: state)
+        defer { viewModel.stopClock() }
+
+        #expect(viewModel.phase == .town)
+        #expect(viewModel.state == state)
+        #expect(viewModel.clockTask != nil)
+        #expect(viewModel.selectedCoordinate == nil)
+        #expect(viewModel.selectedBuildingID == nil)
+        #expect(viewModel.placementBuildingKind == nil)
+        #expect(viewModel.buildingPresentation == nil)
+        #expect(viewModel.isBuildMenuPresented == false)
+        #expect(viewModel.isWorldMapPresented == false)
+        #expect(viewModel.feedback == nil)
+    }
+
     @Test func campaignUsesFifteenLargeIslandsAndKeepsThreeByThreeTowns() {
         let balance = GameBalance.duskDefault
         let state = makeNewGame(balance: balance)
