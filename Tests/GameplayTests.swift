@@ -25,9 +25,21 @@ struct GameplayTests {
             gives: [.gold: 18]
         )]
 
-        try store.save(state: state)
+        for difficulty in Difficulty.allCases {
+            try store.save(state: state, difficulty: difficulty)
+            let loadedGame = try store.load()
+            let savedGame = try #require(loadedGame)
+            #expect(savedGame.state == state)
+            #expect(savedGame.difficulty == difficulty)
+        }
 
-        #expect(try store.load() == state)
+        let legacyData = try JSONEncoder().encode(LegacySavedGame(dayLabel: "Day 12", state: state))
+        try legacyData.write(to: directory.appendingPathComponent("duskara-save.json"))
+        let loadedLegacyGame = try store.load()
+        let legacyGame = try #require(loadedLegacyGame)
+        #expect(legacyGame.state == state)
+        #expect(legacyGame.difficulty == .medium)
+
         try Data("not json".utf8).write(to: directory.appendingPathComponent("duskara-save.json"))
 
         #expect(throws: GameSaveLoadError.invalidData) {
@@ -38,11 +50,12 @@ struct GameplayTests {
     @Test func resumedGameRestoresStateAndResetsPresentation() {
         var state = makeNewGame(balance: .duskDefault)
         state.day = 8
-        let viewModel = GameViewModel(resuming: state)
+        let viewModel = GameViewModel(resuming: state, difficulty: .hard)
         defer { viewModel.stopClock() }
 
         #expect(viewModel.phase == .town)
         #expect(viewModel.state == state)
+        #expect(viewModel.selectedDifficulty == .hard)
         #expect(viewModel.clockTask != nil)
         #expect(viewModel.selectedCoordinate == nil)
         #expect(viewModel.selectedBuildingID == nil)
@@ -85,4 +98,9 @@ struct GameplayTests {
         #expect(GameRules.transfer(order, state: &state, balance: balance) == nil)
         #expect(state.towns[1].resources[.gold] >= 10)
     }
+}
+
+private struct LegacySavedGame: Encodable {
+    let dayLabel: String
+    let state: GameState
 }
