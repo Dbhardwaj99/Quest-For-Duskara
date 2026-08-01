@@ -61,5 +61,12 @@ struct GameplayTests {
 
         viewModel.sanitizeSelection()
         #expect(viewModel.phase == .defeat)
+
+        // A terminal campaign must not keep ticking over.
+        let terminal = viewModel.state
+        viewModel.advanceDayManually()
+        viewModel.tick()
+        #expect(viewModel.state == terminal)
+        #expect(viewModel.phase == .defeat)
     }
 }

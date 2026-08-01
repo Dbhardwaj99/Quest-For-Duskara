@@ -142,6 +142,7 @@ final class GameViewModel {
     }
 
     func advanceDayManually() {
+        guard phase == .town else { return }
         GameRules.advanceDay(state: &state, balance: balance)
         sanitizeSelection()
         saveCurrentGame()

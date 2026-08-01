@@ -19,6 +19,7 @@ struct VictoryView: View {
 
 struct DefeatView: View {
     let day: Int
+    let onNewCampaign: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
@@ -28,6 +29,12 @@ struct DefeatView: View {
             Text("Your last town fell on Day \(day).")
                 .font(DuskaraTheme.Fonts.heading)
                 .foregroundStyle(.white.opacity(0.82))
+            Button(action: onNewCampaign) {
+                Label("New Campaign", systemImage: "sparkles")
+            }
+            .buttonStyle(DuskaraButtonStyle(prominent: true))
+            .frame(width: 240)
+            .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DuskaraTheme.background.ignoresSafeArea())
