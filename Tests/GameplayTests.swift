@@ -41,10 +41,26 @@ struct GameplayTests {
         #expect(legacyGame.difficulty == .medium)
 
         try Data("not json".utf8).write(to: directory.appendingPathComponent("duskara-save.json"))
+        let corruptData = try Data(contentsOf: directory.appendingPathComponent("duskara-save.json"))
 
         #expect(throws: GameSaveLoadError.invalidData) {
             try store.load()
         }
+        #expect(try Data(contentsOf: directory.appendingPathComponent("duskara-save.json")) == corruptData)
+
+        let unsupportedData = try JSONEncoder().encode(UnsupportedSavedGame(
+            schemaVersion: SavedGame.currentSchemaVersion + 1,
+            dayLabel: "Day 12",
+            state: state,
+            difficulty: .hard
+        ))
+        try unsupportedData.write(to: directory.appendingPathComponent("duskara-save.json"))
+
+        #expect(throws: GameSaveLoadError.unsupportedVersion) {
+            try store.load()
+        }
+        #expect(try Data(contentsOf: directory.appendingPathComponent("duskara-save.json")) == unsupportedData)
+        #expect(GameSaveLoadError.invalidData.recoveryMessage.contains(directory.path) == false)
     }
 
     @Test func resumedGameRestoresStateAndResetsPresentation() {
@@ -117,4 +133,11 @@ struct GameplayTests {
 private struct LegacySavedGame: Encodable {
     let dayLabel: String
     let state: GameState
+}
+
+private struct UnsupportedSavedGame: Encodable {
+    let schemaVersion: Int
+    let dayLabel: String
+    let state: GameState
+    let difficulty: Difficulty
 }

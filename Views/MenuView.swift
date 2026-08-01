@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuView: View {
     let canContinue: Bool
+    let saveRecoveryMessage: String?
     let onStartGame: () -> Void
     let onContinueGame: () -> Void
 
@@ -20,6 +21,12 @@ struct MenuView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(spacing: DuskaraTheme.spacingM) {
+                if let saveRecoveryMessage {
+                    Text(saveRecoveryMessage)
+                        .font(DuskaraTheme.Fonts.body)
+                        .foregroundStyle(.white.opacity(0.78))
+                }
+
                 if canContinue {
                     Button(action: onContinueGame) {
                         Label("Continue Game", systemImage: "play.fill")
@@ -29,7 +36,7 @@ struct MenuView: View {
                 }
 
                 Button(action: onStartGame) {
-                    Label("Start Game", systemImage: "sparkles")
+                    Label(saveRecoveryMessage == nil ? "Start Game" : "Start New Campaign", systemImage: "sparkles")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(DuskaraButtonStyle(prominent: true))
@@ -46,5 +53,5 @@ struct MenuView: View {
 }
 
 #Preview {
-    MenuView(canContinue: true, onStartGame: { }, onContinueGame: { })
+    MenuView(canContinue: true, saveRecoveryMessage: nil, onStartGame: { }, onContinueGame: { })
 }
