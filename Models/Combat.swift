@@ -108,21 +108,56 @@ extension GameRules {
         }
     }
 
+    private static let developmentOrder: [BuildingKind] = [.house, .pier, .farm, .barracks, .factory]
+
     private static func develop(_ townID: UUID, state: inout GameState, balance: GameBalance) {
         guard let index = state.towns.firstIndex(where: { $0.id == townID }) else { return }
-        for kind in [BuildingKind.house, .pier, .farm, .barracks, .factory]
+        for kind in developmentOrder
         where state.towns[index].buildings.contains(where: { $0.kind == kind }) == false {
-            let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
-            let coordinate = validCoordinates(for: kind, in: state.towns[index], balance: balance).min {
-                let left = abs($0.x - center.x) + abs($0.y - center.y)
-                let right = abs($1.x - center.x) + abs($1.y - center.y)
-                return (left, $0.y, $0.x) < (right, $1.y, $1.x)
-            }
-            if let coordinate, build(kind, at: coordinate, in: &state.towns[index], balance: balance) == nil {
+            if let coordinate = nearestValidPlot(for: kind, in: state.towns[index], balance: balance),
+               build(kind, at: coordinate, in: &state.towns[index], balance: balance) == nil {
                 state.addNews(.buildingConstruction, "\(state.towns[index].name) built a \(kind.title)")
                 return
             }
         }
+        growWorkforce(index, state: &state, balance: balance)
+    }
+
+    /// The plot closest to the town centre, with ties broken by row then column
+    /// so the same town state always develops the same way.
+    private static func nearestValidPlot(for kind: BuildingKind, in town: Town, balance: GameBalance) -> GridCoordinate? {
+        let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
+        return validCoordinates(for: kind, in: town, balance: balance).min {
+            let left = abs($0.x - center.x) + abs($0.y - center.y)
+            let right = abs($1.x - center.x) + abs($1.y - center.y)
+            return (left, $0.y, $0.x) < (right, $1.y, $1.x)
+        }
+    }
+
+    /// Nothing could be built this turn. The build loop never revisits House
+    /// once one exists, so a town whose missing infrastructure is gated on
+    /// people — rather than on resources — would otherwise stall here forever.
+    /// Housing is the only lever that raises the headcount, so add some.
+    private static func growWorkforce(_ index: Int, state: inout GameState, balance: GameBalance) {
+        let town = state.towns[index]
+        let available = freePeople(town, balance: balance)
+        let starved = developmentOrder.contains { kind in
+            town.buildings.contains(where: { $0.kind == kind }) == false
+                && (balance.buildingDefinitions[kind]?.peopleRequired ?? 0) > available
+        }
+        guard starved else { return }
+
+        if let coordinate = nearestValidPlot(for: .house, in: town, balance: balance),
+           build(.house, at: coordinate, in: &state.towns[index], balance: balance) == nil {
+            state.addNews(.buildingConstruction, "\(town.name) built a \(BuildingKind.house.title)")
+            return
+        }
+        // Board is full or the plot is unaffordable — grow upward instead.
+        guard let house = town.buildings
+            .filter({ $0.kind == .house })
+            .min(by: { ($0.level, $0.coordinate.y, $0.coordinate.x) < ($1.level, $1.coordinate.y, $1.coordinate.x) }),
+              upgrade(house.id, in: &state.towns[index], balance: balance) == nil else { return }
+        state.addNews(.buildingConstruction, "\(town.name) expanded a \(BuildingKind.house.title)")
     }
 
     private static func trainEnemy(_ townID: UUID, state: inout GameState, balance: GameBalance) {

@@ -33,4 +33,41 @@ struct GameplayTests {
         #expect(GameRules.transfer(order, state: &state, balance: balance) == nil)
         #expect(state.towns[1].resources[.gold] >= 10)
     }
+
+    @Test func workforceStarvedEnemyTownRecoversAndKeepsDeveloping() {
+        let balance = GameBalance.duskDefault
+        var state = makeNewGame(balance: balance)
+        guard let enemy = state.towns.first(where: { $0.faction == .enemy }) else {
+            Issue.record("New game needs an enemy town.")
+            return
+        }
+        // Two towns and no sea routes: the AI has no attack targets, so this
+        // fixture is only ever exercising development.
+        state.towns = [state.towns[0], enemy]
+        state.connections = []
+        let enemyID = enemy.id
+        // Resources are deliberately abundant so workforce is the only blocker.
+        state.updateTown(id: enemyID) {
+            $0.resources = ResourceWallet([.gold: 5_000, .skill: 5_000, .food: 500, .people: 4])
+            $0.soldierRoster = SoldierRoster()
+            $0.armyStrength = 0
+        }
+
+        // Turn one builds the Farm and spends the last free person. This is
+        // where development used to stop for good.
+        GameRules.runEnemyTurn(state: &state, balance: balance)
+        #expect(state.town(id: enemyID)?.buildings.contains { $0.kind == .farm } == true)
+        #expect(GameRules.freePeople(state.town(id: enemyID) ?? enemy, balance: balance) == 0)
+
+        for _ in 0..<11 { GameRules.runEnemyTurn(state: &state, balance: balance) }
+
+        guard let developed = state.town(id: enemyID) else {
+            Issue.record("Enemy town disappeared.")
+            return
+        }
+        #expect(developed.buildings.filter { $0.kind == .house }.count > 1)
+        #expect(developed.buildings.contains { $0.kind == .barracks })
+        #expect(developed.buildings.contains { $0.kind == .factory })
+        #expect(developed.armyStrength > 0)
+    }
 }
