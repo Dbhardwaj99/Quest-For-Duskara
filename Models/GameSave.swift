@@ -1,22 +1,31 @@
 import Foundation
 
 struct SavedGame: Codable, Equatable {
+    static let currentSchemaVersion = 1
+
+    var schemaVersion: Int
     var dayLabel: String
     var state: GameState
     var difficulty: Difficulty
 
     init(dayLabel: String, state: GameState, difficulty: Difficulty) {
+        schemaVersion = Self.currentSchemaVersion
         self.dayLabel = dayLabel
         self.state = state
         self.difficulty = difficulty
     }
 
     private enum CodingKeys: String, CodingKey {
-        case dayLabel, state, difficulty
+        case schemaVersion, dayLabel, state, difficulty
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Self.currentSchemaVersion
+        guard schemaVersion > 0 else { throw GameSaveLoadError.invalidData }
+        guard schemaVersion <= Self.currentSchemaVersion else {
+            throw GameSaveLoadError.unsupportedVersion
+        }
         dayLabel = try container.decode(String.self, forKey: .dayLabel)
         state = try container.decode(GameState.self, forKey: .state)
         difficulty = try container.decodeIfPresent(Difficulty.self, forKey: .difficulty) ?? .medium
@@ -27,6 +36,16 @@ enum GameSaveLoadError: Error, Equatable {
     case unreadable
     case invalidData
     case invalidState
+    case unsupportedVersion
+
+    var recoveryMessage: String {
+        switch self {
+        case .unsupportedVersion:
+            "This save was created by an unsupported game version. Start a new campaign to replace it."
+        case .unreadable, .invalidData, .invalidState:
+            "This save could not be loaded. Start a new campaign to replace it."
+        }
+    }
 }
 
 struct GameSaveStore {
@@ -58,6 +77,7 @@ struct GameSaveStore {
 
         let savedGame: SavedGame
         do { savedGame = try JSONDecoder().decode(SavedGame.self, from: data) }
+        catch let error as GameSaveLoadError { throw error }
         catch { throw GameSaveLoadError.invalidData }
 
         let state = savedGame.state

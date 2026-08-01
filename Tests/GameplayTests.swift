@@ -41,22 +41,52 @@ struct GameplayTests {
         #expect(legacyGame.difficulty == .medium)
 
         try Data("not json".utf8).write(to: directory.appendingPathComponent("duskara-save.json"))
+        let corruptData = try Data(contentsOf: directory.appendingPathComponent("duskara-save.json"))
 
         #expect(throws: GameSaveLoadError.invalidData) {
             try store.load()
         }
+        #expect(try Data(contentsOf: directory.appendingPathComponent("duskara-save.json")) == corruptData)
+
+        let unsupportedData = try JSONEncoder().encode(UnsupportedSavedGame(
+            schemaVersion: SavedGame.currentSchemaVersion + 1,
+            dayLabel: "Day 12",
+            state: state,
+            difficulty: .hard
+        ))
+        try unsupportedData.write(to: directory.appendingPathComponent("duskara-save.json"))
+
+        #expect(throws: GameSaveLoadError.unsupportedVersion) {
+            try store.load()
+        }
+        #expect(try Data(contentsOf: directory.appendingPathComponent("duskara-save.json")) == unsupportedData)
+        #expect(GameSaveLoadError.invalidData.recoveryMessage.contains(directory.path) == false)
     }
 
     @Test func resumedGameRestoresStateAndResetsPresentation() {
         var state = makeNewGame(balance: .duskDefault)
         state.day = 8
-        let viewModel = GameViewModel(resuming: state, difficulty: .hard)
+        let viewModel = GameViewModel()
+        let destinationViewModel = viewModel
+        let buildingID = UUID()
+        viewModel.bonusAllocation = [.gold: 100]
+        viewModel.selectedCoordinate = GridCoordinate(x: 1, y: 1)
+        viewModel.selectedBuildingID = buildingID
+        viewModel.placementBuildingKind = .farm
+        viewModel.buildingPresentation = .details(buildingID)
+        viewModel.isBuildMenuPresented = true
+        viewModel.isWorldMapPresented = true
+        viewModel.feedback = GameMessage(text: "Old message")
+
+        viewModel.resume(state: state, difficulty: .hard)
         defer { viewModel.stopClock() }
 
+        #expect(viewModel === destinationViewModel)
         #expect(viewModel.phase == .town)
         #expect(viewModel.state == state)
         #expect(viewModel.selectedDifficulty == .hard)
         #expect(viewModel.clockTask != nil)
+        #expect(viewModel.bonusAllocation.isEmpty)
         #expect(viewModel.selectedCoordinate == nil)
         #expect(viewModel.selectedBuildingID == nil)
         #expect(viewModel.placementBuildingKind == nil)
@@ -103,4 +133,11 @@ struct GameplayTests {
 private struct LegacySavedGame: Encodable {
     let dayLabel: String
     let state: GameState
+}
+
+private struct UnsupportedSavedGame: Encodable {
+    let schemaVersion: Int
+    let dayLabel: String
+    let state: GameState
+    let difficulty: Difficulty
 }
