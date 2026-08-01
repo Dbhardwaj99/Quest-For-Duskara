@@ -142,6 +142,7 @@ final class GameViewModel {
     }
 
     func advanceDayManually() {
+        guard phase == .town else { return }
         GameRules.advanceDay(state: &state, balance: balance)
         sanitizeSelection()
         saveCurrentGame()
@@ -262,7 +263,7 @@ final class GameViewModel {
         let now = Date()
         state.elapsedSecondsInDay += max(0, now.timeIntervalSince(lastTick))
         lastTick = now
-        while state.elapsedSecondsInDay >= balance.dayDuration {
+        while phase == .town, state.elapsedSecondsInDay >= balance.dayDuration {
             let carry = state.elapsedSecondsInDay - balance.dayDuration
             GameRules.advanceDay(state: &state, balance: balance)
             state.elapsedSecondsInDay = carry
@@ -272,6 +273,13 @@ final class GameViewModel {
     }
 
     func sanitizeSelection() {
+        // Enemy captures are the only way the player loses towns, and every
+        // one of them lands here via advanceDay — so this is the single place
+        // that can notice the empire is gone.
+        guard state.towns.contains(where: \.isPlayerControlled) else {
+            concedeCampaign()
+            return
+        }
         if state.town(id: state.activeTownID)?.isPlayerControlled != true,
            let next = state.towns.first(where: \.isPlayerControlled) {
             state.activeTownID = next.id
@@ -281,6 +289,18 @@ final class GameViewModel {
             self.selectedBuildingID = nil
             buildingPresentation = nil
         }
+    }
+
+    /// Terminal loss. Sheets are dismissed explicitly because a day can roll
+    /// over — and the last town fall — while the build menu is open.
+    private func concedeCampaign() {
+        guard phase == .town else { return }
+        phase = .defeat
+        isWorldMapPresented = false
+        isBuildMenuPresented = false
+        buildingPresentation = nil
+        placementBuildingKind = nil
+        stopClock()
     }
 
     func show(_ text: String) {

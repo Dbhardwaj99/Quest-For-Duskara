@@ -12,7 +12,7 @@ struct ContentView: View {
                     .navigationDestination(for: GameRoute.self) { route in
                         switch route {
                         case .game:
-                            GameView(viewModel: viewModel)
+                            GameView(viewModel: viewModel, onNewCampaign: startGame)
                                 .navigationBarBackButtonHidden()
                         }
                     }
