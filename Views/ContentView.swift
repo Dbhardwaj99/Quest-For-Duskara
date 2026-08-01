@@ -42,8 +42,7 @@ struct ContentView: View {
 
     private func continueGame() {
         guard let savedGame else { return }
-        viewModel.stopClock()
-        viewModel = GameViewModel(resuming: savedGame.state, difficulty: savedGame.difficulty)
+        viewModel.resume(state: savedGame.state, difficulty: savedGame.difficulty)
         path = [.game]
     }
 }

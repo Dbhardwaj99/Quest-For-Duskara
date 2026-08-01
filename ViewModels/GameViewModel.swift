@@ -50,8 +50,22 @@ final class GameViewModel {
     init(resuming state: GameState, difficulty: Difficulty) {
         balance = .duskDefault
         self.state = state
+        resume(state: state, difficulty: difficulty)
+    }
+
+    func resume(state: GameState, difficulty: Difficulty) {
+        stopClock()
+        self.state = state
         selectedDifficulty = difficulty
         phase = .town
+        bonusAllocation = [:]
+        selectedCoordinate = nil
+        selectedBuildingID = nil
+        placementBuildingKind = nil
+        buildingPresentation = nil
+        isBuildMenuPresented = false
+        isWorldMapPresented = false
+        feedback = nil
         lastTick = Date()
         startClock()
     }

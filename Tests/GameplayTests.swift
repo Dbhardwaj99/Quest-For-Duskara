@@ -50,13 +50,27 @@ struct GameplayTests {
     @Test func resumedGameRestoresStateAndResetsPresentation() {
         var state = makeNewGame(balance: .duskDefault)
         state.day = 8
-        let viewModel = GameViewModel(resuming: state, difficulty: .hard)
+        let viewModel = GameViewModel()
+        let destinationViewModel = viewModel
+        let buildingID = UUID()
+        viewModel.bonusAllocation = [.gold: 100]
+        viewModel.selectedCoordinate = GridCoordinate(x: 1, y: 1)
+        viewModel.selectedBuildingID = buildingID
+        viewModel.placementBuildingKind = .farm
+        viewModel.buildingPresentation = .details(buildingID)
+        viewModel.isBuildMenuPresented = true
+        viewModel.isWorldMapPresented = true
+        viewModel.feedback = GameMessage(text: "Old message")
+
+        viewModel.resume(state: state, difficulty: .hard)
         defer { viewModel.stopClock() }
 
+        #expect(viewModel === destinationViewModel)
         #expect(viewModel.phase == .town)
         #expect(viewModel.state == state)
         #expect(viewModel.selectedDifficulty == .hard)
         #expect(viewModel.clockTask != nil)
+        #expect(viewModel.bonusAllocation.isEmpty)
         #expect(viewModel.selectedCoordinate == nil)
         #expect(viewModel.selectedBuildingID == nil)
         #expect(viewModel.placementBuildingKind == nil)
