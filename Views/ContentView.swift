@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var viewModel = GameViewModel()
-    @State private var savedState = try? GameSaveStore().load()
+    @State private var savedGame = try? GameSaveStore().load()
     @State private var path: [GameRoute] = []
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
 
@@ -10,7 +10,7 @@ struct ContentView: View {
         ZStack {
             NavigationStack(path: $path) {
                 MenuView(
-                    canContinue: savedState != nil,
+                    canContinue: savedGame != nil,
                     onStartGame: startGame,
                     onContinueGame: continueGame
                 )
@@ -41,9 +41,9 @@ struct ContentView: View {
     }
 
     private func continueGame() {
-        guard let savedState else { return }
+        guard let savedGame else { return }
         viewModel.stopClock()
-        viewModel = GameViewModel(resuming: savedState)
+        viewModel = GameViewModel(resuming: savedGame.state, difficulty: savedGame.difficulty)
         path = [.game]
     }
 }

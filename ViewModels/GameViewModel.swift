@@ -27,6 +27,7 @@ final class GameViewModel {
     let balance: GameBalance
     var phase: GamePhase = .setup
     var state: GameState
+    var selectedDifficulty: Difficulty = .medium
     var bonusAllocation: [ResourceKind: Int] = [:]
     var selectedCoordinate: GridCoordinate?
     var selectedBuildingID: UUID?
@@ -46,9 +47,10 @@ final class GameViewModel {
         state = makeNewGame(balance: balance)
     }
 
-    init(resuming state: GameState) {
+    init(resuming state: GameState, difficulty: Difficulty) {
         balance = .duskDefault
         self.state = state
+        selectedDifficulty = difficulty
         phase = .town
         lastTick = Date()
         startClock()
@@ -66,6 +68,7 @@ final class GameViewModel {
     var populationCapacity: Int { GameRules.populationCapacity(activeTown, balance: balance) }
 
     func adjustBonusPresets(for mode: Difficulty) {
+        selectedDifficulty = mode
         bonusAllocation = mode.modeBalance
     }
 
@@ -227,7 +230,7 @@ final class GameViewModel {
     }
 
     func saveCurrentGame() {
-        do { try saveStore.save(state: state) }
+        do { try saveStore.save(state: state, difficulty: selectedDifficulty) }
         catch { show("Could not save game.") }
     }
 
