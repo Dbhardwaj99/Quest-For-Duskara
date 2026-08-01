@@ -4,6 +4,12 @@ struct GameView: View {
     @Bindable var viewModel: GameViewModel
     @State private var isNewsPresented = false
     @State private var isCameraOrbiting = false
+    /// Debug building sizes. Held here (not read straight off `BuildingScale`)
+    /// so a slider edit invalidates this view and reaches the 3D scene.
+    @State private var buildingScales: [BuildingKind: Float] = [:]
+    #if DEBUG
+    @State private var isBuildingSizePanelPresented = false
+    #endif
 
     var body: some View {
         Group {
@@ -119,6 +125,7 @@ struct GameView: View {
 
             #if DEBUG
             debugOrbitButton
+            debugBuildingSizeButton
             #endif
         }
         .padding(.leading, DuskaraTheme.spacingM)
@@ -167,11 +174,33 @@ struct GameView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(isCameraOrbiting ? "Stop camera orbit" : "Start camera orbit")
     }
+
+    private var debugBuildingSizeButton: some View {
+        Button {
+            isBuildingSizePanelPresented.toggle()
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.white.opacity(0.94))
+                .frame(width: 38, height: 38)
+                .background(DuskaraTheme.hudFill, in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Adjust building sizes")
+        .popover(isPresented: $isBuildingSizePanelPresented, arrowEdge: .bottom) {
+            BuildingSizeDebugPanel(scales: $buildingScales)
+        }
+    }
     #endif
 
     private var townView3D: some View {
-        World3DTownView(sourceViewModel: viewModel, isCameraOrbiting: isCameraOrbiting)
-            .id(viewModel.state.activeTownID)
+        World3DTownView(
+            sourceViewModel: viewModel,
+            isCameraOrbiting: isCameraOrbiting,
+            buildingScales: buildingScales
+        )
+        .id(viewModel.state.activeTownID)
     }
 
     private var worldVignette: some View {

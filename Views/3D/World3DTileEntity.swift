@@ -50,10 +50,12 @@ struct World3DTileEntity {
             soil.position.y = -baseHeight / 2 - 0.014
             root.addChild(soil)
 
+            // Barely-rounded: a heavy corner radius reopens a visible notch
+            // between flush tiles, which is what the gap used to look like.
             let cap = World3DRenderResources.makeBox(
                 size: SIMD3<Float>(tileSize, 0.05, tileSize),
                 material: material,
-                cornerRadius: tileSize * 0.13
+                cornerRadius: tileSize * 0.045
             )
             cap.name = root.name
             cap.position.y = -0.025

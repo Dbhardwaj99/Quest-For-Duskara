@@ -63,6 +63,70 @@ extension World3DRenderer {
             material: matte(palette.skirt, roughness: 0.97)
         )
         staticRoot.addChild(beach)
+
+        addGravelSkirt(boardWidth: boardWidth, boardDepth: boardDepth)
+    }
+
+    // The rim used to end in a machined vertical cut poking out of the beach.
+    // Now loose gravel packs against it all the way round — half-buried in the
+    // earth band up near the grass, thinning out onto the sand below — so the
+    // island reads as a weathered shore rather than a slab set into the beach.
+    // ponytail: a continuous apron ring was tried first and read as a concrete
+    // kerb; scattered pebbles are both cheaper and softer.
+    func addGravelSkirt(boardWidth: Float, boardDepth: Float) {
+        // Sand and soil tones with a couple of stones for contrast — a purely
+        // grey mix reads as roadbase, not shingle.
+        let stones = [palette.warmStone, palette.stoneDust, palette.rootSoil, palette.paleStone, palette.fieldDirt, palette.skirt]
+        let step = tileSize * 0.055 / World3DRenderResources.visualQuality.terrainDecorationMultiplier
+        // Each rim: how far it runs, the fixed cross-axis offset, and whether
+        // the run is along x. Corners get covered twice, which is where the
+        // clutter helps most.
+        let rims: [(run: Float, offset: Float, alongX: Bool)] = [
+            (boardWidth, -boardDepth / 2, true),
+            (boardWidth, boardDepth / 2, true),
+            (boardDepth, -boardWidth / 2, false),
+            (boardDepth, boardWidth / 2, false)
+        ]
+
+        var seed = 0
+        for rim in rims {
+            let outward: Float = rim.offset < 0 ? -1 : 1
+            let span = rim.run + tileSize * 0.14
+            let count = min(38, max(10, Int((rim.run / step).rounded())))
+
+            for index in 0..<count {
+                seed += 1
+                let stone = GridCoordinate(x: seed, y: 0)
+                // Full-step jitter, so stones clump and touch instead of
+                // beading out along the rim at even spacing.
+                let along = (Float(index) + 0.5) / Float(count) * span - span / 2
+                    + Float(stablePercent(stone, salt: 811) - 50) / 50 * step
+                // Squared falloff: most stones pack against the earth band,
+                // just proud of it so they break its silhouette rather than
+                // vanishing inside it, and a few stray out onto the sand.
+                let spill = Float(stablePercent(stone, salt: 823)) / 100
+                let across = rim.offset + outward * (spill * spill * tileSize * 0.15 - tileSize * 0.012)
+                // Higher up the band the earth has only shed chips; the coarse
+                // stuff has rolled to the foot.
+                let depth = Float(stablePercent(stone, salt: 839)) / 100
+                let radius = tileSize * (0.014 + depth * 0.026)
+
+                let pebble = World3DRenderResources.makeSphere(
+                    radius: radius,
+                    material: matte(stones[seed % stones.count], roughness: 0.97),
+                    scale: SIMD3<Float>(1.30, 0.62, 0.95)
+                )
+                // Spread up the exposed earth band, not just along its foot.
+                pebble.position = rim.alongX
+                    ? SIMD3<Float>(along, -0.048 - depth * 0.057, across)
+                    : SIMD3<Float>(across, -0.048 - depth * 0.057, along)
+                pebble.orientation = simd_quatf(
+                    angle: Float(stablePercent(stone, salt: 853)) / 100 * .pi,
+                    axis: SIMD3<Float>(0, 1, 0)
+                )
+                staticRoot.addChild(pebble)
+            }
+        }
     }
 
     func addDuskBackdrop(for gridSize: GridSize) {

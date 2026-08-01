@@ -44,6 +44,19 @@ extension World3DRenderer {
             .forEach { $0.removeFromParent() }
     }
 
+    /// Rescale placed buildings where they stand, so the debug size sliders
+    /// read back instantly. Rebuilding the tiles would work too, but it would
+    /// restart every crafted model's animations on each slider tick. Kinds the
+    /// town has not built yet simply match nothing.
+    func applyBuildingScales() {
+        for tile in tileEntities.values {
+            for child in tile.children {
+                guard let kind = World3DTileEntity.buildingKind(fromName: child.name) else { continue }
+                child.scale = SIMD3<Float>(repeating: tileSize * BuildingScale.scale(for: kind))
+            }
+        }
+    }
+
     func position(for coordinate: GridCoordinate) -> SIMD3<Float> {
         let spacing = tileSize + tileGap
         let centeredX = Float(coordinate.x) - Float(gridSize.columns - 1) / 2

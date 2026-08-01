@@ -81,6 +81,10 @@ final class World3DTownViewController: NSViewController {
         cameraController.setOrbiting(enabled)
     }
 
+    func applyBuildingScales() {
+        renderer?.applyBuildingScales()
+    }
+
     func syncFromGameState() {
         guard cameraController.isInteracting == false else { return }
         renderer?.render(adapter: adapter)

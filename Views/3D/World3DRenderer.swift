@@ -32,7 +32,9 @@ final class World3DRenderer {
     var pierDockPoint: SIMD3<Float>?
 
     let tileSize: Float = 0.46
-    let tileGap: Float = 0.020
+    // Flush board: neighbouring tiles share an edge, so the grid reads as one
+    // carved slab of land. Raise it to pull the plots apart again.
+    let tileGap: Float = 0
     let tileHeight: Float = 0.085
     let sun = DirectionalLight()
     let fillLight = DirectionalLight()
