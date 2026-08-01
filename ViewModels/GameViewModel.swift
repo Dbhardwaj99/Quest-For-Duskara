@@ -46,6 +46,14 @@ final class GameViewModel {
         state = makeNewGame(balance: balance)
     }
 
+    init(resuming state: GameState) {
+        balance = .duskDefault
+        self.state = state
+        phase = .town
+        lastTick = Date()
+        startClock()
+    }
+
     let startingResourceKinds: [ResourceKind] = [.gold, .skill]
     let difficulty = Difficulty.allCases
 
