@@ -1,24 +1,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel = GameViewModel()
     @State private var savedGame: SavedGame?
     @State private var saveLoadError: GameSaveLoadError?
     @State private var path: [GameRoute] = []
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
-
-    init() {
-        do {
-            _savedGame = State(initialValue: try GameSaveStore().load())
-            _saveLoadError = State(initialValue: nil)
-        } catch let error as GameSaveLoadError {
-            _savedGame = State(initialValue: nil)
-            _saveLoadError = State(initialValue: error)
-        } catch {
-            _savedGame = State(initialValue: nil)
-            _saveLoadError = State(initialValue: .invalidData)
-        }
-    }
 
     var body: some View {
         ZStack {
@@ -45,6 +33,10 @@ struct ContentView: View {
             }
         }
         .animation(.smooth(duration: 0.3), value: hasSeenTutorial)
+        .onAppear(perform: refreshSavedGame)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { refreshSavedGame() }
+        }
     }
 
     private func startGame() {
@@ -56,9 +48,23 @@ struct ContentView: View {
     }
 
     private func continueGame() {
+        refreshSavedGame()
         guard let savedGame else { return }
         viewModel.resume(state: savedGame.state, difficulty: savedGame.difficulty)
         path = [.game]
+    }
+
+    private func refreshSavedGame() {
+        do {
+            savedGame = try GameSaveStore().load()
+            saveLoadError = nil
+        } catch let error as GameSaveLoadError {
+            savedGame = nil
+            saveLoadError = error
+        } catch {
+            savedGame = nil
+            saveLoadError = .invalidData
+        }
     }
 }
 
