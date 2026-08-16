@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GameView: View {
     @Bindable var viewModel: GameViewModel
+    var onNewCampaign: () -> Void = {}
     @State private var isNewsPresented = false
     @State private var isCameraOrbiting = false
     /// Debug building sizes. Held here (not read straight off `BuildingScale`)
@@ -28,6 +29,8 @@ struct GameView: View {
                 }
             case .victory:
                 VictoryView(day: viewModel.state.day)
+            case .defeat:
+                DefeatView(day: viewModel.state.day, onNewCampaign: onNewCampaign)
             }
         }
         .animation(.smooth(duration: 0.25), value: viewModel.isWorldMapPresented)
