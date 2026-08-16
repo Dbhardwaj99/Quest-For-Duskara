@@ -11,6 +11,9 @@ struct World3DTileEntity {
         let kind: TemplateKind
         let tileSizeBucket: Int
         let theme: WorldTheme
+        /// Templates bake their colors in, so a contrast change is as much a
+        /// different template as a different theme is.
+        let contrast: Double
     }
 
     static var templateCache: [TemplateKey: Entity] = [:]

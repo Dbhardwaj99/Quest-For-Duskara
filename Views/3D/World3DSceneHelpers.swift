@@ -152,6 +152,6 @@ extension World3DRenderer {
         let sides = BiomeSide.allCases
             .map { side in "\(side.rawValue):\(layout.biome(on: side)?.rawValue ?? "none")" }
             .joined(separator: "|")
-        return "\(townID.uuidString)|\(gridSize.columns)x\(gridSize.rows)|\(sides)|\(WorldTheme.current.rawValue)"
+        return "\(townID.uuidString)|\(gridSize.columns)x\(gridSize.rows)|\(sides)|\(WorldTheme.current.rawValue)|\(WorldContrast.level)"
     }
 }

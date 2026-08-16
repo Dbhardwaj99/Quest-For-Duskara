@@ -118,6 +118,52 @@ struct GameplayTests {
         #expect(knight.dailyFoodUpkeep == 4)
     }
 
+    @Test func contrastKnobPushesColorWithoutEscapingTheChannelRange() {
+        // A mid-blue like the open sea, in HSB.
+        let water = (saturation: 0.68, brightness: 0.47)
+
+        let shipped = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: WorldContrast.neutral)
+        // At neutral the curve is the pastel pass and nothing more: 0.76
+        // desaturation and the brightness lift, with the knob contributing nothing.
+        #expect(abs(shipped.saturation - water.saturation * 0.76) < 0.0001)
+        #expect(abs(shipped.brightness - water.brightness * 1.06) < 0.0001)
+
+        // The world ships above neutral, so the default is deliberately punchier
+        // than the plain pastel pass — that is the whole point of the preset.
+        #expect(WorldContrast.standard > WorldContrast.neutral)
+        #expect(WorldContrast.range.contains(WorldContrast.standard))
+        let byDefault = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: WorldContrast.standard)
+        #expect(byDefault.saturation > shipped.saturation)
+
+        // Turning it up saturates (bluer water, greener grass) and pushes the
+        // sub-midpoint tones darker, which is what makes buildings pop.
+        let vivid = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: 1.8)
+        #expect(vivid.saturation > shipped.saturation)
+        #expect(vivid.brightness < shipped.brightness)
+
+        // Turning it down flattens both toward grey and mid.
+        let flat = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: 0.4)
+        #expect(flat.saturation < shipped.saturation)
+        #expect(flat.brightness > shipped.brightness)
+
+        // Bright tones move the other way — the spread pivots on mid-grey.
+        let peak = WorldContrast.adjust(saturation: 0.1, brightness: 0.9, level: 1.8)
+        let peakShipped = WorldContrast.adjust(saturation: 0.1, brightness: 0.9, level: WorldContrast.standard)
+        #expect(peak.brightness > peakShipped.brightness)
+
+        // NSColor(hue:saturation:brightness:) traps outside 0...1, and the
+        // extremes of the slider are exactly where the curve wants to overshoot.
+        for level in [WorldContrast.range.lowerBound, WorldContrast.standard, WorldContrast.range.upperBound] {
+            for saturation in [0.0, 0.5, 1.0] {
+                for brightness in [0.0, 0.5, 1.0] {
+                    let adjusted = WorldContrast.adjust(saturation: saturation, brightness: brightness, level: level)
+                    #expect((0...1).contains(adjusted.saturation))
+                    #expect((0...1).contains(adjusted.brightness))
+                }
+            }
+        }
+    }
+
     @Test func campaignUsesFifteenLargeIslandsAndKeepsThreeByThreeTowns() {
         let balance = GameBalance.duskDefault
         let state = makeNewGame(balance: balance)

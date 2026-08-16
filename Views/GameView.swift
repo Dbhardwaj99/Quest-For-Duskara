@@ -8,6 +8,10 @@ struct GameView: View {
     /// Debug building sizes. Held here (not read straight off `BuildingScale`)
     /// so a slider edit invalidates this view and reaches the 3D scene.
     @State private var buildingScales: [BuildingKind: Float] = [:]
+    /// World contrast. Held here for the same reason as `buildingScales`: the
+    /// change has to be visible to SwiftUI to reach the 3D scene.
+    @State private var contrast = WorldContrast.level
+    @State private var isContrastPanelPresented = false
     #if DEBUG
     @State private var isBuildingSizePanelPresented = false
     #endif
@@ -49,10 +53,24 @@ struct GameView: View {
                 .allowsHitTesting(false)
                 .zIndex(1)
 
-            townControls
-                .zIndex(2)
+            // Orbit is a look-at-the-world mode, so the whole interface gets out
+            // of the way. The orbit button goes with it, which would strand the
+            // player — so while it runs, a click anywhere is the way out.
+            // ponytail: an invisible catcher rather than per-control hiding; it
+            // also parks the camera drag gesture, which orbit is driving anyway.
+            if isCameraOrbiting {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { isCameraOrbiting = false }
+                    .ignoresSafeArea()
+                    .zIndex(2)
+                    .accessibilityLabel("Stop camera orbit")
+            } else {
+                townControls
+                    .zIndex(2)
+            }
 
-            if isNewsPresented {
+            if isNewsPresented, isCameraOrbiting == false {
                 NewsFeedPanel(events: viewModel.state.newsEvents, onClose: { isNewsPresented = false })
                     .frame(maxWidth: DuskaraTheme.maxTopHUDWidth)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,7 +80,7 @@ struct GameView: View {
                     .zIndex(8)
             }
 
-            if let feedback = viewModel.feedback {
+            if let feedback = viewModel.feedback, isCameraOrbiting == false {
                 GameFeedbackToastView(message: feedback.text)
                     .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -71,6 +89,10 @@ struct GameView: View {
         }
         .animation(.snappy, value: viewModel.feedback?.id)
         .animation(.snappy, value: isNewsPresented)
+        .animation(.smooth(duration: 0.3), value: isCameraOrbiting)
+        // Esc as well as the click, since that is what a full-bleed mode trains
+        // you to reach for. It needs key focus, so the click stays the guarantee.
+        .onExitCommand { isCameraOrbiting = false }
         .background(DuskaraTheme.worldBackdrop.ignoresSafeArea())
         .sheet(isPresented: $viewModel.isBuildMenuPresented) {
             // macOS sheets ignore presentation detents, so size them explicitly.
@@ -125,6 +147,7 @@ struct GameView: View {
             .accessibilityLabel("World news")
 
             themeCycleButton
+            contrastButton
 
             #if DEBUG
             debugOrbitButton
@@ -154,6 +177,64 @@ struct GameView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Cycle world theme")
+    }
+
+    private var contrastButton: some View {
+        Button {
+            isContrastPanelPresented.toggle()
+        } label: {
+            Image(systemName: "circle.righthalf.filled")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white.opacity(0.94))
+                .frame(width: 38, height: 38)
+                .background(DuskaraTheme.hudFill, in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Adjust world contrast")
+        .popover(isPresented: $isContrastPanelPresented, arrowEdge: .bottom) {
+            contrastPanel
+        }
+    }
+
+    private var contrastPanel: some View {
+        VStack(alignment: .leading, spacing: DuskaraTheme.spacingM) {
+            HStack {
+                Text("Contrast")
+                    .font(DuskaraTheme.Fonts.heading)
+                Spacer()
+                Text(String(format: "%.2f", contrast))
+                    .font(DuskaraTheme.Fonts.numberSmall)
+                    .foregroundStyle(DuskaraTheme.warmGold)
+            }
+
+            // Stepped, not continuous: every distinct value rebuilds the board
+            // and mints a material per color, so a free drag would thrash both.
+            Slider(
+                value: Binding(get: { contrast }, set: setContrast),
+                in: WorldContrast.range,
+                step: WorldContrast.step
+            )
+
+            HStack {
+                Text("Flat")
+                Spacer()
+                Text("Vivid")
+            }
+            .font(DuskaraTheme.Fonts.label)
+            .foregroundStyle(DuskaraTheme.mutedInk)
+
+            Button("Reset") { setContrast(WorldContrast.standard) }
+                .font(DuskaraTheme.Fonts.caption)
+        }
+        .foregroundStyle(DuskaraTheme.ink)
+        .padding(DuskaraTheme.spacingL)
+        .frame(width: 250)
+    }
+
+    private func setContrast(_ newValue: Double) {
+        contrast = newValue
+        WorldContrast.level = newValue
     }
 
     #if DEBUG
@@ -201,7 +282,8 @@ struct GameView: View {
         World3DTownView(
             sourceViewModel: viewModel,
             isCameraOrbiting: isCameraOrbiting,
-            buildingScales: buildingScales
+            buildingScales: buildingScales,
+            contrast: contrast
         )
         .id(viewModel.state.activeTownID)
     }

@@ -24,12 +24,22 @@ enum WorldTheme: String, CaseIterable {
         return all[(index + 1) % all.count]
     }
 
+    // Palettes are built on demand so the contrast knob can retint them, but
+    // `Palette` is read once per primitive during a rebuild — so the last one
+    // is kept. One entry is enough: only one theme is current at a time.
+    nonisolated(unsafe) private static var cached: (theme: WorldTheme, contrast: Double, palette: WorldPalette)?
+
     var palette: WorldPalette {
-        switch self {
+        if let cached = Self.cached, cached.theme == self, cached.contrast == WorldContrast.level {
+            return cached.palette
+        }
+        let built: WorldPalette = switch self {
         case .village: .village
         case .desert: .desert
         case .mountains: .mountains
         case .forest: .forest
         }
+        Self.cached = (self, WorldContrast.level, built)
+        return built
     }
 }

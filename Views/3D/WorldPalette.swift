@@ -67,10 +67,8 @@ struct WorldPalette {
     var potionPurple = c(0.62, 0.54, 0.78)
 
     // Water
-    var waterSheen = NSColor(red: 0.72, green: 0.86, blue: 0.86, alpha: 0.45)
-    // Deep-ocean base deliberately bypasses the pastel pass: the sea needs
-    // real depth so the pale island pops against it (see DESIGN_LANGUAGE.md).
-    var waterDeep = NSColor(red: 0.15, green: 0.34, blue: 0.47, alpha: 1)
+    var waterSheen = deepWater(0.72, 0.86, 0.86, alpha: 0.45)
+    var waterDeep = deepWater(0.15, 0.34, 0.47)
     var waterOpen = c(0.28, 0.56, 0.62)
     var waterShadow = c(0.20, 0.44, 0.52)
     var tileWater = c(0.24, 0.50, 0.58)
@@ -97,9 +95,12 @@ struct WorldPalette {
     var baseRiver = c(0.22, 0.50, 0.58)
     var tileGround = c(0.47, 0.60, 0.36)
 
-    static let village = WorldPalette()
+    // Palettes are rebuilt on read rather than stored so the contrast knob can
+    // retint the whole world; `WorldTheme.palette` caches the result so this
+    // never lands on the per-tile render path.
+    static var village: WorldPalette { WorldPalette() }
 
-    static let desert: WorldPalette = {
+    static var desert: WorldPalette {
         var p = WorldPalette()
         p.grassLight = c(0.85, 0.75, 0.52)
         p.grassShadow = c(0.74, 0.62, 0.42)
@@ -133,7 +134,7 @@ struct WorldPalette {
         p.cropGold = c(0.90, 0.78, 0.46)
         p.cropGreen = c(0.62, 0.68, 0.40)
         p.mushroomCap = c(0.84, 0.56, 0.36)
-        p.waterDeep = NSColor(red: 0.16, green: 0.40, blue: 0.47, alpha: 1)
+        p.waterDeep = deepWater(0.16, 0.40, 0.47)
         p.waterOpen = c(0.30, 0.62, 0.62)
         p.waterShadow = c(0.22, 0.50, 0.54)
         p.tileWater = c(0.28, 0.56, 0.60)
@@ -155,9 +156,9 @@ struct WorldPalette {
         p.baseRiver = c(0.28, 0.56, 0.60)
         p.tileGround = c(0.84, 0.73, 0.51)
         return p
-    }()
+    }
 
-    static let mountains: WorldPalette = {
+    static var mountains: WorldPalette {
         var p = WorldPalette()
         p.grassLight = c(0.55, 0.66, 0.48)
         p.grassShadow = c(0.42, 0.54, 0.42)
@@ -188,7 +189,7 @@ struct WorldPalette {
         p.strawShadow = c(0.58, 0.52, 0.38)
         p.fortifiedClay = c(0.60, 0.58, 0.58)
         p.slateRoof = c(0.38, 0.44, 0.54)
-        p.waterDeep = NSColor(red: 0.13, green: 0.31, blue: 0.47, alpha: 1)
+        p.waterDeep = deepWater(0.13, 0.31, 0.47)
         p.waterOpen = c(0.30, 0.56, 0.66)
         p.waterShadow = c(0.22, 0.44, 0.56)
         p.tileWater = c(0.26, 0.48, 0.58)
@@ -210,9 +211,9 @@ struct WorldPalette {
         p.baseRiver = c(0.24, 0.48, 0.58)
         p.tileGround = c(0.50, 0.60, 0.45)
         return p
-    }()
+    }
 
-    static let forest: WorldPalette = {
+    static var forest: WorldPalette {
         var p = WorldPalette()
         p.grassLight = c(0.38, 0.55, 0.33)
         p.grassShadow = c(0.26, 0.43, 0.29)
@@ -246,7 +247,7 @@ struct WorldPalette {
         p.cropGold = c(0.78, 0.68, 0.40)
         p.cropGreen = c(0.44, 0.58, 0.32)
         p.mushroomCap = c(0.85, 0.40, 0.33)
-        p.waterDeep = NSColor(red: 0.10, green: 0.28, blue: 0.36, alpha: 1)
+        p.waterDeep = deepWater(0.10, 0.28, 0.36)
         p.waterOpen = c(0.22, 0.50, 0.52)
         p.waterShadow = c(0.16, 0.40, 0.44)
         p.tileWater = c(0.20, 0.42, 0.48)
@@ -268,28 +269,43 @@ struct WorldPalette {
         p.baseRiver = c(0.18, 0.42, 0.48)
         p.tileGround = c(0.32, 0.47, 0.28)
         return p
-    }()
+    }
 }
 
 // Design language: every palette color passes through one pastel pass —
 // gently desaturated and lifted so the whole world reads as calm painted
-// wood rather than saturated plastic. Tune here, never per-color.
+// wood rather than saturated plastic, scaled by the player's contrast knob.
+// The curve itself lives in `WorldContrast.adjust`; tune it there.
 func c(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat) -> NSColor {
+    tinted(NSColor(red: red, green: green, blue: blue, alpha: 1))
+}
+
+// Deep water and its sheen skip the pastel desaturation on purpose: the sea
+// needs real depth so the pale island pops against it (see DESIGN_LANGUAGE.md).
+// They still answer to the contrast knob — open ocean is the largest single
+// color on screen, and "bluer water" is most of what the knob is for.
+func deepWater(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, alpha: CGFloat = 1) -> NSColor {
+    tinted(NSColor(red: red, green: green, blue: blue, alpha: alpha), pastel: 1)
+}
+
+private func tinted(_ color: NSColor, pastel: Double = 0.76) -> NSColor {
     var hue: CGFloat = 0
     var saturation: CGFloat = 0
     var brightness: CGFloat = 0
     var alpha: CGFloat = 0
-    NSColor(red: red, green: green, blue: blue, alpha: 1)
-        .getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
-    let pastel = NSColor(
+    color.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+    let adjusted = WorldContrast.adjust(
+        saturation: Double(saturation),
+        brightness: Double(brightness),
+        pastel: pastel
+    )
+    let pastelColor = NSColor(
         hue: hue,
-        saturation: saturation * 0.76,
-        // Lift scales with existing brightness so dark accents (timber,
-        // mine mouths) keep their depth instead of washing out.
-        brightness: min(1, brightness + 0.06 * brightness),
-        alpha: 1
+        saturation: CGFloat(adjusted.saturation),
+        brightness: CGFloat(adjusted.brightness),
+        alpha: alpha
     )
     // Renderer material keys require RGB-space colors (getRed raises on
     // other spaces); hue-initialized colors must be converted back.
-    return pastel.usingColorSpace(.deviceRGB) ?? pastel
+    return pastelColor.usingColorSpace(.deviceRGB) ?? pastelColor
 }
