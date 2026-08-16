@@ -106,6 +106,18 @@ struct GameplayTests {
         #expect(viewModel.feedback == nil)
     }
 
+    @Test func knightOutpowersTwoArchersWithoutChangingPremiumCosts() throws {
+        let definitions = GameBalance.duskDefault.soldierDefinitions
+        let archer = try #require(definitions[.archer])
+        let knight = try #require(definitions[.knight])
+
+        #expect(knight.power == 24)
+        #expect(knight.power > archer.power * 2)
+        #expect(knight.trainingCost == [.gold: 45, .skill: 15, .food: 25])
+        #expect(knight.peopleRequired == 2)
+        #expect(knight.dailyFoodUpkeep == 4)
+    }
+
     @Test func campaignUsesFifteenLargeIslandsAndKeepsThreeByThreeTowns() {
         let balance = GameBalance.duskDefault
         let state = makeNewGame(balance: balance)

@@ -104,7 +104,7 @@ struct GameBalance {
             .knight: SoldierDefinition(
                 kind: .knight,
                 trainingCost: [.gold: 45, .skill: 15, .food: 25],
-                power: 20,
+                power: 24,
                 peopleRequired: 2,
                 dailyFoodUpkeep: 4
             )
