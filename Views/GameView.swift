@@ -99,6 +99,10 @@ struct GameView: View {
             BuildMenuView(viewModel: viewModel)
                 .frame(minWidth: 430, idealWidth: 460, maxWidth: 520, minHeight: 520, idealHeight: 640)
         }
+        .sheet(isPresented: $viewModel.isTransferPresented) {
+            TransferView(viewModel: viewModel)
+                .frame(minWidth: 420, idealWidth: 460, maxWidth: 520, minHeight: 440, idealHeight: 560)
+        }
         .sheet(item: $viewModel.buildingPresentation) { presentation in
             BuildingDetailsSheetView(viewModel: viewModel, buildingID: presentation.id)
                 .frame(minWidth: 430, idealWidth: 460, maxWidth: 520, minHeight: 480, idealHeight: 620)
@@ -308,7 +312,10 @@ struct GameView: View {
         BottomBarView(
             onBuild: { viewModel.isBuildMenuPresented = true },
             onWorld: { viewModel.isWorldMapPresented = true },
-            onNextDay: viewModel.advanceDayManually
+            onNextDay: viewModel.advanceDayManually,
+            onSend: viewModel.transferDestinations.isEmpty
+                ? nil
+                : { viewModel.isTransferPresented = true }
         )
     }
 

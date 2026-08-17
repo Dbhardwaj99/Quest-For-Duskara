@@ -146,10 +146,11 @@ struct GameplayTests {
         #expect(flat.saturation < shipped.saturation)
         #expect(flat.brightness > shipped.brightness)
 
-        // Bright tones move the other way — the spread pivots on mid-grey.
-        let peak = WorldContrast.adjust(saturation: 0.1, brightness: 0.9, level: 1.8)
-        let peakShipped = WorldContrast.adjust(saturation: 0.1, brightness: 0.9, level: WorldContrast.standard)
-        #expect(peak.brightness > peakShipped.brightness)
+        // Bright tones move the other way — the spread pivots on mid-grey. Kept
+        // clear of 1.0, where both sides would clamp and compare equal.
+        let litNeutral = WorldContrast.adjust(saturation: 0.1, brightness: 0.7, level: WorldContrast.neutral)
+        let litVivid = WorldContrast.adjust(saturation: 0.1, brightness: 0.7, level: 1.8)
+        #expect(litVivid.brightness > litNeutral.brightness)
 
         // NSColor(hue:saturation:brightness:) traps outside 0...1, and the
         // extremes of the slider are exactly where the curve wants to overshoot.
@@ -178,6 +179,78 @@ struct GameplayTests {
         #expect(generated.nodes.first(where: { $0.townID == state.towns[0].id })?.y == 1 - generated.world.layout.playableInset)
         #expect(generated.nodes.first(where: { $0.townID == state.towns.last?.id })?.x == 1 - generated.world.layout.playableInset)
         #expect(generated.nodes.first(where: { $0.townID == state.towns.last?.id })?.y == generated.world.layout.playableInset)
+    }
+
+    @MainActor
+    @Test func foundingBuildingsStockTheirOwnPopulationForPlayerAndAI() throws {
+        let balance = GameBalance.duskDefault
+        let house = try #require(balance.buildingDefinitions[.house])
+        let expected = house.peopleOnBuild
+        let state = makeNewGame(balance: balance)
+
+        // The player's wallet is rebuilt from `baseStartingResources`, which has
+        // no people in it — the regression was that rebuild wiping the founding
+        // population and leaving the town at zero under a House built for eight.
+        #expect(state.towns[0].isPlayerControlled)
+        #expect(state.towns[0].resources[.people] == expected)
+        for town in state.towns {
+            #expect(town.resources[.people] == expected)
+        }
+
+        // Starting the campaign rebuilds that wallet a second time, with the
+        // difficulty bonus on top. People have to survive that pass too.
+        let viewModel = GameViewModel()
+        viewModel.adjustBonusPresets(for: .easy)
+        viewModel.startGame()
+        defer { viewModel.stopClock() }
+        #expect(viewModel.activeTown.resources[.people] == expected)
+        #expect(viewModel.activeTown.resources[.gold] > (balance.baseStartingResources[.gold] ?? 0))
+
+        // The Pier is staffed out of that population, so free people is what is
+        // left over — not the zero a starved town reports.
+        let pierWorkers = try #require(balance.buildingDefinitions[.pier]).peopleRequired
+        #expect(viewModel.freePeople == expected - pierWorkers)
+        #expect(viewModel.freePeople > 0)
+    }
+
+    @MainActor
+    @Test func sendingIsOfferedOnlyOnceASecondTownIsHeld() throws {
+        let viewModel = GameViewModel()
+        viewModel.startGame()
+        defer { viewModel.stopClock() }
+
+        // One town: nowhere to send, so the button is not offered at all.
+        #expect(viewModel.transferDestinations.isEmpty)
+
+        let second = try #require(viewModel.state.towns.firstIndex { $0.isPlayerControlled == false })
+        let secondID = viewModel.state.towns[second].id
+        viewModel.state.towns[second].faction = .player
+
+        let destinations = viewModel.transferDestinations
+        #expect(destinations.count == 1)
+        #expect(destinations.first?.id == secondID)
+        // The town doing the sending is never its own destination.
+        #expect(destinations.contains { $0.id == viewModel.state.activeTownID } == false)
+
+        // Soldiers are read from army strength, not the wallet, which only
+        // mirrors it for towns that have fought.
+        viewModel.state.updateTown(id: viewModel.state.activeTownID) {
+            $0.resources[.gold] = 120
+            $0.armyStrength = 40
+            $0.resources[.soldiers] = 0
+        }
+        #expect(viewModel.availableToSend(.gold) == 120)
+        #expect(viewModel.availableToSend(.soldiers) == 40)
+
+        // Towns are founded holding gold, so this is a delta, not a total.
+        let destinationGold = try #require(viewModel.state.town(id: secondID)).resources[.gold]
+        viewModel.transfer(.gold, amount: 50, to: secondID)
+        #expect(viewModel.activeTown.resources[.gold] == 70)
+        #expect(viewModel.state.town(id: secondID)?.resources[.gold] == destinationGold + 50)
+
+        // People are not offered: shipping them out would strand the workforce
+        // its buildings already claim.
+        #expect(GameRules.transferableKinds.contains(.people) == false)
     }
 
     @Test func buildTrainAndTransfer() {

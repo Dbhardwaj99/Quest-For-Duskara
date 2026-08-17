@@ -3,6 +3,16 @@ import SwiftUI
 struct BuildMenuView: View {
     @Bindable var viewModel: GameViewModel
 
+    /// Every town is founded with a Pier and may only ever have one, so listing
+    /// it offers a build that always fails on `duplicatePier`. Keyed on the town
+    /// actually having one rather than on the kind, so a town that somehow lost
+    /// its Pier can still rebuild it. Upgrades live in the building's own sheet.
+    private var buildableKinds: [BuildingKind] {
+        BuildingKind.allCases.filter { kind in
+            kind != .pier || viewModel.activeTown.buildings.contains { $0.kind == .pier } == false
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -14,7 +24,7 @@ struct BuildMenuView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 14)
 
-                        ForEach(BuildingKind.allCases) { kind in
+                        ForEach(buildableKinds) { kind in
                             if let definition = viewModel.definition(for: kind) {
                                 BuildingMenuCard(kind: kind, definition: definition) {
                                     viewModel.beginPlacement(for: kind)

@@ -40,7 +40,7 @@ struct StartSetupView: View {
         .padding(.horizontal, 64)
         .frame(maxWidth: DuskaraTheme.maxContentWidth)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DuskaraTheme.background.ignoresSafeArea())
+        .background(HomeBackgroundView())
     }
 }
 

@@ -42,6 +42,11 @@ extension GameState {
 }
 
 extension GameRules {
+    /// People are deliberately absent: they are tied to the housing that
+    /// supports them, so shipping them out would strand a town's workforce
+    /// below what its buildings already claim.
+    static let transferableKinds: [ResourceKind] = [.gold, .food, .skill, .soldiers]
+
     enum TransferFailure: String {
         case sourceNotOwned = "Source town is not controlled."
         case destinationNotOwned = "Destination town is not controlled."

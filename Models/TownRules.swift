@@ -26,6 +26,14 @@ enum GameRules {
         }
     }
 
+    /// A founding town's buildings are placed straight into it rather than
+    /// through `build`, so the people they would have brought never arrive.
+    /// Seeded from the same definitions, so raising a House's `peopleOnBuild`
+    /// reaches every town's starting population instead of drifting from it.
+    static func startingPeople(for kinds: [BuildingKind], balance: GameBalance) -> Int {
+        kinds.reduce(0) { $0 + (balance.buildingDefinitions[$1]?.peopleOnBuild ?? 0) }
+    }
+
     static func freePeople(_ town: Town, balance: GameBalance) -> Int {
         let workers = town.buildings.reduce(0) {
             $0 + (balance.buildingDefinitions[$1.kind]?.peopleRequired ?? 0)

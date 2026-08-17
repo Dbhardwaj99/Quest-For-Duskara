@@ -87,6 +87,9 @@ struct BottomBarView: View {
     let onBuild: () -> Void
     let onWorld: () -> Void
     let onNextDay: () -> Void
+    /// Nil until the player holds a second town — with nowhere to send, the
+    /// button would only ever open a sheet with an empty destination list.
+    var onSend: (() -> Void)?
 
     // Compact floating panel: the buttons hug their labels instead of
     // stretching across the window.
@@ -96,6 +99,14 @@ struct BottomBarView: View {
                 Label("Build", systemImage: "hammer.fill")
             }
             .buttonStyle(DuskaraButtonStyle())
+
+            if let onSend {
+                Button(action: onSend) {
+                    Label("Send", systemImage: "shippingbox.fill")
+                }
+                .buttonStyle(DuskaraButtonStyle())
+                .accessibilityLabel("Send resources to another town")
+            }
 
             Button(action: onNextDay) {
                 Label("Next", systemImage: "forward.end.fill")
