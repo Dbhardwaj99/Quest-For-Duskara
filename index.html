@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quest for Duskara — Build, train, and sail before dusk claims the isles</title>
+<meta name="description" content="Quest for Duskara is a calm, clay-crafted strategy game for macOS. Rule one island, raise an army, and conquer your way across an archipelago of fifteen cities until Duskara's crown falls.">
+<meta name="theme-color" content="#1a1410">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Quest for Duskara">
+<meta property="og:description" content="Build, train, and sail before dusk claims the isles. A free, open-source strategy game for macOS.">
+<meta property="og:url" content="https://dbhardwaj99.github.io/Quest-For-Duskara/">
+<meta property="og:image" content="https://dbhardwaj99.github.io/Quest-For-Duskara/Assets/Brand/quest-for-duskara-logo-square.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b4a5e'/%3E%3Ccircle cx='24' cy='30' r='11' fill='%23f0a64f'/%3E%3Cpath d='M12 42l20-9 20 9-20 9z' fill='%238cad66'/%3E%3Crect x='27' y='20' width='10' height='18' rx='2' fill='%23eddebf'/%3E%3Cpath d='M24 21l8-9 8 9z' fill='%23c97a5c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Rokkitt:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   Quest for Duskara — landing page
+   Tokens are lifted straight from the game: DuskaraTheme (panels, ink,
+   accent, warm gold), WorldPalette.village (clay, grass, sea, sand) and
+   DisplayNames (resource + faction colours).
+   ------------------------------------------------------------------ */
+:root{
+  --bg:#171c1b;
+  --bg-2:#243130; --bg-3:#3b4a3b; --bg-4:#594733;
+  --panel:#29211a; --panel-dark:#1a1410; --card:#3b342a; --card-2:#463c30;
+  --ink:#f2e8d1; --muted:#bdad94; --muted-2:#8f836f;
+  --accent:#d17a3d; --accent-deep:#8c4d2e; --gold:#e6b35c; --moss:#526e42;
+  --sea:#478f9e; --sea-deep:#1b4a5e; --sea-shadow:#337083; --sea-pale:#8fc4c8;
+  --sand:#eed494; --earth:#debf87;
+  --grass:#8cad66; --grass-2:#78996b; --grass-3:#5e7f4f;
+  --plaster:#eddebf; --terracotta:#c97a5c; --terracotta-2:#a3573f; --slate:#70808a;
+  --f-player:#48b861; --f-neutral:#bdab80; --f-enemy:#cc3d33; --f-duskara:#7057b8;
+  --r-gold:#edab38; --r-food:#73b35c; --r-people:#bd7854; --r-soldiers:#ad2e2e; --r-skill:#e6e6e6;
+  --ready:#8fd670; --blocked:#f58570;
+  --glass:rgba(255,255,255,.14);
+  --hud:rgba(33,28,23,.86);
+  --hud-glass:rgba(48,41,31,.62);
+  --font-ui:"Avenir Next Condensed","Barlow Semi Condensed","Arial Narrow",sans-serif;
+  --font-display:"Rokkitt","Rockwell","Roboto Slab",Georgia,serif;
+  --radius-s:8px; --radius-m:12px; --radius-l:18px;
+  --wrap:1140px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--font-ui);font-weight:500;font-size:17px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+img,svg,video{display:block;max-width:100%}
+a{color:var(--gold);text-decoration:none}
+a:hover{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2,h3,h4{margin:0;line-height:1.1}
+p{margin:0}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:12px;background:var(--panel);padding:8px 14px;border-radius:999px;z-index:100}
+.skip:focus{left:12px}
+.wrap{width:min(var(--wrap),calc(100% - 40px));margin-inline:auto}
+.hidden{display:none!important}
+/* grid/flex children may shrink below their content so wide blocks scroll instead of stretching the page */
+.row > *,.lore > *,.get > *,.setup > *,.formula > *,.tbody,.bcard .top > div{min-width:0}
+
+/* ---- typography ---- */
+.display{font-family:var(--font-display);font-weight:800;letter-spacing:.02em;text-transform:uppercase}
+.h1{font-size:clamp(34px,5.4vw,60px);line-height:1}
+.h2{font-size:clamp(30px,4.2vw,44px)}
+.h3{font-size:clamp(22px,2.6vw,28px);font-family:var(--font-ui);font-weight:800;letter-spacing:0;text-transform:none}
+.eyebrow{font-weight:700;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.lead{font-size:clamp(18px,2vw,21px);color:var(--muted);line-height:1.5}
+.lead strong{color:var(--ink);font-weight:700}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+.caption{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+
+/* ---- ornament heading (screenshot's  —•  About  •—  divider) ---- */
+.ornament{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 auto 18px}
+.ornament::before,.ornament::after{content:"";height:1px;width:clamp(40px,8vw,96px);background:linear-gradient(90deg,transparent,var(--gold))}
+.ornament::after{background:linear-gradient(90deg,var(--gold),transparent)}
+.ornament .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(230,179,92,.18)}
+.ornament h2{font-size:clamp(22px,3.4vw,36px);white-space:nowrap}
+@media (max-width:640px){.ornament h2{white-space:normal;text-align:center;text-wrap:balance}.ornament::before,.ornament::after{display:none}}
+.ornament.left{justify-content:flex-start}
+.ornament.left::before{display:none}
+
+/* ---- buttons: DuskaraButtonStyle ---- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:12px 22px;border-radius:999px;border:1px solid rgba(255,255,255,.34);
+  font-weight:600;font-size:16px;line-height:1;white-space:nowrap;
+  background:linear-gradient(180deg,#544738,#3d3326);color:var(--ink);
+  box-shadow:0 5px 9px rgba(0,0,0,.18);
+  transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease,filter .16s ease;
+  text-decoration:none!important;
+}
+.btn svg{width:17px;height:17px;flex:none}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 16px rgba(0,0,0,.26);filter:brightness(1.06)}
+.btn:active{transform:scale(.965);box-shadow:0 2px 4px rgba(0,0,0,.10);opacity:.86}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep));border-color:rgba(255,255,255,.22);color:#fff}
+.btn-lg{padding:15px 28px;font-size:18px}
+.btn-sm{padding:8px 14px;font-size:14px}
+.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+
+/* ---- panels: hud / card / sheet ---- */
+.hud{
+  background:var(--hud-glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  border:1px solid var(--glass);border-radius:18px 14px 18px 14px;
+  box-shadow:0 10px 18px rgba(0,0,0,.28);
+}
+.hud-solid{background:var(--hud)}
+.card{
+  background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;
+}
+.sheet{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius-m)}
+.frame{
+  position:relative;background:linear-gradient(180deg,#2c3a2a,#243024);
+  border:1px solid rgba(230,179,92,.35);border-radius:14px;
+  box-shadow:inset 0 0 0 6px rgba(0,0,0,.18),0 24px 50px rgba(0,0,0,.35);
+}
+.frame::before,.frame::after,.frame .peg::before,.frame .peg::after{
+  content:"";position:absolute;width:10px;height:10px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#f4dcb0,#b98a4d 70%);box-shadow:0 1px 2px rgba(0,0,0,.5);
+}
+.frame::before{top:11px;left:11px}.frame::after{top:11px;right:11px}
+.frame .peg::before{bottom:11px;left:11px}.frame .peg::after{bottom:11px;right:11px}
+
+/* ---- resource pills: ResourcePill ---- */
+.pill{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 9px 5px 6px;border-radius:999px;
+  background:linear-gradient(180deg,#544738,#3d3326);border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 2px 5px rgba(0,0,0,.12);font-weight:700;font-size:15px;line-height:1;white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.pill i{
+  width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex:none;
+  font-style:normal;font-size:10px;font-weight:700;color:#fff;
+  border:1px solid rgba(255,255,255,.36);box-shadow:0 2px 5px var(--c,rgba(0,0,0,.2));
+  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.35),transparent 55%),var(--c,#888);
+}
+.pill .d{font-size:11px;padding:2px 5px;border-radius:999px;background:rgba(0,0,0,.32);color:var(--ready)}
+.pill .d.neg{color:#f07a66}
+.pill.gold i{--c:var(--r-gold)}
+.pill.food i{--c:var(--r-food)}
+.pill.people i{--c:var(--r-people)}
+.pill.soldiers i{--c:var(--r-soldiers)}
+.pill.skill i{--c:var(--r-skill);color:#3a3a3a}
+.pill.soldiers{--c:var(--r-soldiers)}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.costrow{display:flex;flex-direction:column;gap:6px}
+.costrow .caption{margin:0}
+
+/* ---- chips / tags ---- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.02em;background:rgba(255,255,255,.08);color:var(--muted);border:1px solid rgba(255,255,255,.08)}
+.chip svg{width:12px;height:12px}
+.chip.ready{background:rgba(143,214,112,.14);color:var(--ready);border-color:transparent}
+.chip.blocked{background:rgba(245,133,112,.14);color:var(--blocked);border-color:transparent}
+.chip.gold{background:rgba(230,179,92,.14);color:var(--gold);border-color:transparent}
+
+/* ---- nav ---- */
+.nav{
+  position:fixed;inset:0 0 auto 0;z-index:50;padding:12px 0;
+  transition:background .25s ease,box-shadow .25s ease,padding .25s ease;
+}
+.nav.scrolled{background:rgba(26,20,16,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--glass),0 10px 30px rgba(0,0,0,.25);padding:8px 0}
+.nav .wrap{display:flex;align-items:center;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none!important}
+.brand svg{width:34px;height:34px}
+.brand b{font-family:var(--font-display);font-weight:800;letter-spacing:.06em;font-size:15px;line-height:1;text-transform:uppercase}
+.brand b small{display:block;font-size:9px;letter-spacing:.32em;color:var(--gold);margin-bottom:2px}
+.nav-links{display:flex;gap:4px;margin-left:auto;list-style:none;padding:0;margin-block:0}
+.nav-links a{display:block;padding:8px 12px;border-radius:999px;color:rgba(242,232,209,.82);font-weight:600;font-size:15px;text-decoration:none!important;transition:background .15s,color .15s}
+.nav-links a:hover,.nav-links a.active{background:rgba(255,255,255,.08);color:var(--ink)}
+.nav .btn{margin-left:6px}
+.nav-toggle{display:none;margin-left:auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--glass);background:var(--hud);place-items:center}
+.nav-toggle svg{width:18px;height:18px}
+@media (max-width:860px){
+  .nav-links{display:none;position:absolute;top:calc(100% + 6px);left:20px;right:20px;flex-direction:column;background:var(--hud);border:1px solid var(--glass);border-radius:14px;padding:8px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .nav-links.open{display:flex}
+  .nav-links a{padding:12px 14px;font-size:17px}
+  .nav .btn{display:none}
+  .nav-toggle{display:grid}
+}
+
+/* ---- hero: HomeBackgroundView — looping video, blurred, 45% scrim ---- */
+.hero{
+  position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;overflow:hidden;
+  background:linear-gradient(180deg,var(--bg-2),var(--bg-3) 55%,var(--bg-4));
+  padding:120px 0 80px;
+}
+.hero-video{position:absolute;inset:-6%;width:112%;height:112%;object-fit:cover;filter:blur(10px) saturate(1.05);opacity:0;transition:opacity 1.2s ease}
+.hero-video.ready{opacity:1}
+.hero-scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.hero-scrim::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(23,28,27,.25),transparent 30%,transparent 70%,var(--bg))}
+.hero-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:22px;max-width:820px;padding:0 20px}
+.hero-logo{width:min(640px,86vw);height:auto;filter:drop-shadow(0 18px 30px rgba(0,0,0,.45))}
+.wordmark{display:none;color:var(--ink);text-shadow:0 2px 0 #3a2a1c,0 6px 18px rgba(0,0,0,.5);-webkit-text-stroke:1.5px #3a2a1c;paint-order:stroke fill}
+.wordmark small{display:block;font-size:.34em;letter-spacing:.42em;margin-bottom:.15em}
+.logo-fallback .hero-logo{display:none}
+.logo-fallback .wordmark{display:block}
+.hero .tagline{font-size:clamp(20px,2.6vw,27px);font-weight:600;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5);letter-spacing:.01em}
+.hero .sub{font-size:clamp(16px,1.8vw,19px);color:rgba(255,255,255,.78);max-width:620px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:6px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.hero-meta .chip{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.scroll-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:2;color:rgba(255,255,255,.55);font-size:12px;letter-spacing:.2em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:6px}
+.scroll-hint svg{width:16px;height:16px;animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+/* ---- sections ---- */
+.section{padding:clamp(64px,9vw,112px) 0;position:relative}
+.section.tight{padding-top:0}
+.section-head{text-align:center;max-width:800px;margin:0 auto 44px}
+.section-head .lead{margin-top:14px;text-wrap:balance}
+.band{background:linear-gradient(180deg,var(--bg) 0%,#1d2422 20%,#22291f 60%,var(--bg) 100%)}
+.band-warm{background:linear-gradient(180deg,var(--bg),#241f1a 30%,#2a231b 70%,var(--bg))}
+.band-sea{background:linear-gradient(180deg,var(--bg),#16323b 25%,#1b4a5e 60%,#16323b 90%,var(--bg))}
+
+/* ---- overview stats ---- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:44px}
+.stat{padding:18px 16px;text-align:center;border-radius:14px;background:var(--panel);border:1px solid rgba(255,255,255,.06)}
+.stat .v{font-family:var(--font-display);font-weight:800;font-size:38px;line-height:1;color:var(--gold)}
+.stat .l{margin-top:6px;font-size:14px;color:var(--muted);font-weight:600}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- game screen composite ---- */
+.screen{
+  position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#3b4b57;
+  box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08);
+}
+.screen video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.07)}
+.screen .vignette{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.18),transparent 30%,transparent 70%,rgba(0,0,0,.16)),radial-gradient(ellipse at center,transparent 45%,rgba(8,10,14,.22))}
+.screen .fallback{position:absolute;inset:0;background:linear-gradient(135deg,#4f6985,#637d8f 50%,#9c7352)}
+.screen-hud{position:absolute;top:12px;left:14px;display:flex;gap:8px;align-items:flex-start}
+.tophud{width:min(400px,72vw);padding:11px 14px 12px}
+.tophud .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tophud .town{font-weight:700;font-size:18px;color:#fff;line-height:1.1}
+.tophud .metrics{display:flex;gap:12px;margin-top:5px}
+.metric{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.94)}
+.metric svg{width:11px;height:11px;color:rgba(255,255,255,.6)}
+.dial{width:34px;height:34px;position:relative;flex:none}
+.dial svg{width:100%;height:100%;transform:rotate(-90deg)}
+.dial .track{stroke:rgba(255,255,255,.16)}
+.dial .arc{stroke:var(--gold);stroke-linecap:round;stroke-dasharray:88;stroke-dashoffset:88;animation:dial 60s linear infinite}
+.dial::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--gold) 0 3px,transparent 3.5px)}
+@keyframes dial{to{stroke-dashoffset:0}}
+.progress{height:3px;background:rgba(255,255,255,.14);border-radius:2px;margin:9px 0;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--gold);animation:grow 60s linear infinite}
+@keyframes grow{to{width:100%}}
+.tophud .pills{flex-wrap:nowrap;overflow:hidden;mask-image:linear-gradient(90deg,#000 88%,transparent)}
+.roundbtn{width:38px;height:38px;border-radius:50%;background:var(--hud);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;color:rgba(255,255,255,.94);flex:none}
+.roundbtn svg{width:15px;height:15px}
+.bottombar{position:absolute;right:14px;bottom:12px;display:flex;gap:8px;padding:9px 10px;border-radius:999px;background:var(--hud);border:1px solid var(--glass);box-shadow:0 10px 18px rgba(0,0,0,.28)}
+.bottombar .btn{padding:10px 14px;font-size:15px}
+.toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:10px 16px;border-radius:999px;background:var(--hud);border:1px solid rgba(255,255,255,.2);font-weight:600;font-size:15px;color:#fff;box-shadow:0 7px 14px rgba(0,0,0,.26);white-space:nowrap}
+.screen-caption{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;color:var(--muted);font-size:14px}
+@media (max-width:640px){
+  .screen{aspect-ratio:4/3}
+  .tophud{width:min(300px,78vw);padding:9px 11px}
+  .tophud .metrics{gap:8px}.metric{font-size:13px}
+  .bottombar{right:8px;bottom:8px;padding:6px}
+  .bottombar .btn{padding:8px 10px;font-size:13px}
+  .toast{display:none}
+  .screen-hud .roundbtn{display:none}
+}
+
+/* ---- how it plays: alternating rows ---- */
+.rows{display:flex;flex-direction:column;gap:clamp(40px,6vw,72px)}
+.row{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(24px,5vw,64px);align-items:center}
+.row:nth-child(even) .row-art{order:2}
+.row-art{position:relative;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#2f3d33,#1f2a28 60%,#2c2a23);box-shadow:0 24px 50px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.06);aspect-ratio:5/3.6;display:grid;place-items:center}
+.row-art svg{width:100%;height:100%}
+.row-art .art-inner{width:100%;height:100%;display:grid;place-items:center;padding:18px}
+.row-text .eyebrow{display:block;margin-bottom:10px}
+.row-text h3{margin-bottom:12px}
+.row-text p{color:var(--muted);font-size:17px}
+.row-text p strong{color:var(--ink);font-weight:700}
+.row-text .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.step-no{position:absolute;top:12px;left:14px;font-family:var(--font-display);font-weight:800;font-size:14px;letter-spacing:.14em;color:var(--gold);padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.35);border:1px solid rgba(230,179,92,.3)}
+@media (max-width:860px){
+  .row{grid-template-columns:1fr}
+  .row:nth-child(even) .row-art{order:0}
+}
+
+/* ---- building cards (BuildingMenuCard) ---- */
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.bcard{display:flex;flex-direction:column;gap:10px}
+.bcard .top{display:flex;gap:12px;align-items:center}
+.bcard .art{width:64px;height:64px;border-radius:8px;flex:none;background:var(--tint,rgba(255,255,255,.1));display:grid;place-items:center;overflow:hidden}
+.bcard .art svg{width:100%;height:100%}
+.bcard h4{font-size:19px;font-weight:700}
+.bcard .summary{font-size:13px;color:var(--muted);font-weight:600;margin-top:2px}
+.bcard .lvl{margin-left:auto;display:flex;gap:2px;color:var(--gold);flex:none}
+.bcard .lvl svg{width:13px;height:13px}
+.bcard .lvl svg.off{color:var(--muted-2)}
+.bcard .req{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--blocked)}
+.bcard .req svg{width:12px;height:12px}
+.bcard .rule{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.bcard .rule svg{width:12px;height:12px;flex:none}
+.bcard.house{--tint:rgba(191,99,64,.18)}
+.bcard.pier{--tint:rgba(77,138,168,.18)}
+.bcard.farm{--tint:rgba(140,171,69,.18)}
+.bcard.factory{--tint:rgba(87,125,199,.18)}
+.bcard.barracks{--tint:rgba(161,56,51,.18)}
+.upgrade-note{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:14px;padding:14px 16px}
+.upgrade-note .lvls{display:flex;gap:6px}
+.upgrade-note .lvls span{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-weight:800;font-size:15px;color:var(--gold)}
+.upgrade-note p{font-size:14px;color:var(--muted)}
+@media (max-width:560px){.upgrade-note{grid-template-columns:1fr}}
+
+/* ---- unit cards (screenshot's FLAME / RIVER / FOREST trio) ---- */
+.units{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ucard{
+  position:relative;border-radius:16px;overflow:hidden;min-height:440px;display:flex;flex-direction:column;
+  background:var(--g,#333);border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 50px rgba(0,0,0,.4);
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+.ucard:hover{transform:translateY(-4px);box-shadow:0 30px 60px rgba(0,0,0,.5)}
+.ucard .figure{flex:1;display:grid;place-items:center;padding:26px 26px 10px}
+.ucard .figure svg{width:min(220px,70%);height:auto;filter:drop-shadow(0 16px 20px rgba(0,0,0,.35))}
+.ucard .name{padding:0 22px 6px;text-align:center}
+.ucard .name .display{font-size:26px;letter-spacing:.12em;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.ucard .name .role{font-size:13px;color:rgba(255,255,255,.75);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.ucard .body{margin:14px;padding:12px 14px;border-radius:10px;background:rgba(20,16,12,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
+.ucard .body .spec{font-size:13px;color:var(--muted);font-weight:600}
+.ucard .body p{font-size:14px;color:var(--ink)}
+.ucard.archer{--g:radial-gradient(120% 80% at 50% 0%,#5f7a45,#33452c 55%,#1f2b1c)}
+.ucard.knight{--g:radial-gradient(120% 80% at 50% 0%,#6a7f8f,#3a4a57 55%,#1f2830)}
+.ucard.duskara{--g:radial-gradient(120% 80% at 50% 0%,#6f5aa8,#3a2f5c 55%,#1c1730)}
+@media (max-width:900px){.units{grid-template-columns:1fr;max-width:460px;margin-inline:auto}}
+
+/* ---- defense formula ---- */
+.formula{display:grid;grid-template-columns:1.25fr .75fr;gap:32px;align-items:center;margin-top:52px}
+.formula .eq{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;font-weight:700;font-size:16px}
+.formula .eq .lbl{align-self:center;font-family:var(--font-display);font-size:20px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);padding-right:6px}
+.formula .eq .term{padding:8px 11px;border-radius:10px;background:var(--card);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:96px}
+.formula .eq .term small{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.2}
+.formula .eq .term b{color:var(--gold);font-size:18px}
+.formula .eq .op{align-self:center;color:var(--muted);font-size:20px}
+.formula ul{margin:12px 0 0;padding-left:18px;color:var(--muted);font-size:15px}
+.formula li{margin:4px 0}
+.formula li strong{color:var(--ink)}
+@media (max-width:860px){.formula{grid-template-columns:1fr}}
+
+/* ---- world map (WorldMapView) ---- */
+.map{
+  position:relative;border-radius:18px;overflow:hidden;background:var(--sea);
+  box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08);aspect-ratio:1.45;
+}
+.map-scroll{width:100%;height:100%;overflow:hidden}
+.map-scroll > svg{width:100%;height:100%;display:block}
+.map .mvig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.22))}
+.map-header{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:var(--hud);border:1px solid var(--glass);box-shadow:0 7px 14px rgba(0,0,0,.3)}
+.map-header .t{font-weight:700;font-size:17px}
+.map-header .s{font-size:12px;color:var(--muted);font-weight:600}
+.map-legend{position:absolute;top:14px;right:14px;padding:10px;border-radius:12px;background:var(--hud);border:1px solid var(--glass);box-shadow:0 6px 12px rgba(0,0,0,.3);font-size:12px;font-weight:600}
+.map-legend .t{color:var(--ink);margin-bottom:6px}
+.map-legend .sw{display:flex;gap:8px}
+.map-legend .sw span{display:inline-flex;align-items:center;gap:4px;color:var(--muted)}
+.map-legend .sw i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.map-legend .route{display:flex;align-items:center;gap:4px;color:var(--muted);margin-top:6px}
+.map-legend .route i{width:5px;height:2px;border-radius:2px;background:#f0c76b;display:inline-block}
+.compass{position:absolute;left:18px;bottom:18px;width:64px;height:64px;opacity:.9}
+.map-tip{
+  position:absolute;z-index:5;pointer-events:none;opacity:0;transform:translate(-50%,-110%) scale(.96);
+  transition:opacity .15s,transform .15s;padding:10px 12px;border-radius:11px;background:var(--hud);
+  border:1px solid rgba(255,255,255,.28);box-shadow:0 10px 20px rgba(0,0,0,.4);min-width:190px;max-width:240px;
+}
+.map-tip.show{opacity:1;transform:translate(-50%,-112%) scale(1)}
+.map-tip .n{font-weight:700;font-size:15px}
+.map-tip .f{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;margin-top:2px}
+.map-tip .h{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
+.map-tip .act{display:inline-block;margin-top:8px;padding:4px 10px;border-radius:999px;background:var(--accent);color:#fff;font-size:12px;font-weight:700}
+.map-tip .act.off{opacity:.45}
+.town{cursor:pointer}
+.town .glyph{transition:transform .16s ease;transform-box:fill-box;transform-origin:center}
+.town:hover .glyph,.town:focus-visible .glyph{transform:scale(1.12)}
+.town:focus-visible{outline:none}
+.town:focus-visible .glyph{filter:drop-shadow(0 0 6px var(--gold))}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pulse 2s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.85);opacity:.75}100%{transform:scale(1.8);opacity:0}}
+.map-notes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.map-note{padding:14px;border-radius:12px;background:var(--panel);border:1px solid rgba(255,255,255,.06)}
+.map-note .t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-bottom:4px}
+.map-note .t i{width:12px;height:12px;border-radius:3px;display:inline-block;flex:none}
+.map-note p{font-size:14px;color:var(--muted)}
+@media (max-width:860px){
+  .map-notes{grid-template-columns:repeat(2,1fr)}
+  .map-legend{display:none}
+  .map-header{padding:8px 10px}.map-header .t{font-size:14px}.map-header .s{display:none}
+  .compass{width:44px;height:44px;left:10px;bottom:10px}
+  /* small screens pan the map, like the game */
+  .map{aspect-ratio:auto;height:520px}
+  .map-scroll{overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .map-scroll > svg{width:1000px;height:auto;max-width:none}
+}
+@media (max-width:520px){.map-notes{grid-template-columns:1fr}}
+
+/* ---- lore ---- */
+.lore{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(28px,5vw,64px);align-items:start}
+.lore-text p{font-size:17px;color:var(--muted);margin-bottom:16px}
+.lore-text p:first-of-type::first-letter{font-family:var(--font-display);font-size:3.4em;font-weight:800;float:left;line-height:.85;margin:6px 8px 0 0;color:var(--gold)}
+.lore-text p strong{color:var(--ink);font-weight:700}
+.chronicle{display:flex;flex-direction:column;gap:10px}
+.chronicle .entry{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#3a3126,#2e2720);border:1px solid rgba(230,179,92,.18)}
+.chronicle .entry .ic{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;color:var(--gold)}
+.chronicle .entry .ic svg{width:20px;height:20px}
+.chronicle .entry b{display:block;font-size:16px}
+.chronicle .entry small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:3px}
+.chronicle .entry p{font-size:14px;color:var(--muted)}
+.banners{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:44px}
+.banner{position:relative;padding:18px 16px 16px;border-radius:12px;background:var(--panel);border:1px solid rgba(255,255,255,.06);overflow:hidden}
+.banner::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--c)}
+.banner .t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px}
+.banner .t i{width:12px;height:12px;border-radius:3px;background:var(--c);display:inline-block}
+.banner .cities{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:4px 0 8px}
+.banner p{font-size:14px;color:var(--muted)}
+@media (max-width:900px){.lore{grid-template-columns:1fr}.banners{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.banners{grid-template-columns:1fr}}
+
+/* ---- campaign timeline ---- */
+.timeline{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:10px}
+.timeline::before{content:"";position:absolute;left:4%;right:4%;top:22px;height:2px;background:linear-gradient(90deg,var(--gold),var(--accent) 70%,var(--f-duskara))}
+.tl{position:relative;padding-top:54px}
+.tl .day{position:absolute;top:6px;left:50%;transform:translateX(-50%);padding:4px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--gold);color:var(--gold);font-weight:800;font-size:12px;letter-spacing:.06em;white-space:nowrap;font-family:var(--font-display)}
+.tl.win .day{border-color:var(--f-duskara);color:#c6b6ff}
+.tl b{display:block;font-size:16px;margin-bottom:4px}
+.tl p{font-size:14px;color:var(--muted)}
+@media (max-width:1000px){.timeline{grid-template-columns:repeat(4,1fr)}.timeline::before{display:none}.tl{padding-top:44px}}
+@media (max-width:600px){.timeline{grid-template-columns:1fr 1fr}}
+
+/* ---- strategy cards + difficulty ---- */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.scard{padding:18px;border-radius:14px;background:var(--panel);border:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:8px}
+.scard .ic{width:40px;height:40px;border-radius:10px;background:rgba(230,179,92,.12);color:var(--gold);display:grid;place-items:center}
+.scard .ic svg{width:20px;height:20px}
+.scard b{font-size:18px}
+.scard p{font-size:14px;color:var(--muted)}
+.scard p strong{color:var(--ink)}
+@media (max-width:900px){.sgrid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.sgrid{grid-template-columns:1fr}}
+.setup{display:grid;grid-template-columns:1fr 420px;gap:clamp(28px,5vw,64px);align-items:center;margin-top:64px}
+.setup-panel{padding:16px;border-radius:8px;background:var(--panel)}
+.setup-panel .t{text-align:center;font-weight:700;font-size:18px;margin-bottom:12px}
+.diff{display:block;width:100%;text-align:left;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(135deg,var(--accent),var(--accent-deep));color:#fff;box-shadow:0 5px 9px rgba(0,0,0,.18);margin-bottom:10px;transition:transform .16s,box-shadow .16s,opacity .16s}
+.diff:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.diff:active{transform:scale(.975);opacity:.86}
+.diff b{display:block;font-size:18px;font-weight:700}
+.diff span{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.85);margin:3px 0 8px}
+.diff .pills{gap:8px}
+.diff .pill{padding:4px 6px}
+.diff .pills em{font-style:normal;font-size:12px;font-weight:700;color:rgba(255,255,255,.92);margin-left:-4px}
+.diff .pills > div{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:900px){.setup{grid-template-columns:1fr}}
+
+/* ---- get the game ---- */
+.get{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(28px,5vw,64px);align-items:center}
+.get .steps{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:10px}
+.get .steps li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;font-size:15px;color:var(--muted)}
+.get .steps li b{color:var(--ink)}
+.get .steps li i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:13px;background:rgba(230,179,92,.14);color:var(--gold)}
+.code{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--panel-dark);border:1px solid rgba(255,255,255,.08);font:600 13.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#e8dcc2;overflow-x:auto;white-space:pre}
+.code .c{color:var(--muted-2)}
+.req{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.get-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.get-art{display:grid;place-items:center}
+.get-art img{width:100%;max-width:340px;height:auto;border-radius:28%;box-shadow:0 30px 60px rgba(0,0,0,.5);transform:rotate(-3deg)}
+@media (max-width:900px){.get{grid-template-columns:1fr}.get-art{order:-1}.get-art img{max-width:240px}}
+
+/* ---- footer: dusk horizon band, then links "under the sea" ---- */
+footer{position:relative;margin-top:40px;overflow:hidden;background:#1d3a44}
+.horizon{position:relative;height:clamp(220px,30vw,360px);background:linear-gradient(180deg,var(--bg) 0%,#2a2c3a 30%,#6b4a4a 65%,#c98354 100%);pointer-events:none}
+.horizon svg{position:absolute;inset:0;width:100%;height:100%}
+.foot{position:relative;z-index:1;padding:40px 0 26px;background:transparent}
+footer .sea-band{background:linear-gradient(180deg,#2a5262,#1d3a44 40%,#172c34)}
+.foot-top{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px;align-items:start}
+.foot .brand svg{width:44px;height:44px}
+.foot .tag{margin-top:12px;color:rgba(255,255,255,.8);font-size:15px;max-width:340px}
+.foot h5{margin:0 0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.foot ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.foot ul a{color:rgba(255,255,255,.88);font-weight:600;font-size:15px}
+.foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:40px;padding-top:16px;border-top:1px solid rgba(255,255,255,.14);font-size:13px;color:rgba(255,255,255,.7)}
+@media (max-width:760px){.foot-top{grid-template-columns:1fr 1fr}.foot-top > :first-child{grid-column:1/-1}}
+
+/* ---- reveal on scroll ---- */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .scroll-hint svg,.pulse,.dial .arc,.progress i{animation:none}
+  .dial .arc{stroke-dashoffset:66}.progress i{width:25%}
+  .btn,.ucard,.diff{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#overview">Skip to content</a>
+
+<!-- icon sprite (stand-ins for the SF Symbols the game uses) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-hammer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l5 5-2.5 2.5-5-5z"/><path d="M13.5 8.5 4 18l2 2 9.5-9.5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 5v6c0 5.2 3.4 9.6 8 11 4.6-1.4 8-5.8 8-11V5z"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="8" r="3.4"/><circle cx="17" cy="9" r="2.7"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5zM16 20h5.5c0-2.8-1.9-5-4.4-5.5"/></symbol>
+    <symbol id="i-person" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2.5 6 2.5 6-2.5v15L15 21 9 18.5 3 21zM9 3.5v15M15 6v15"/></symbol>
+    <symbol id="i-boat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h18l-2.5 4h-13z"/><path d="M12 3v14M12 4l7 10h-7"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18l-1.5-9-5 3.5L12 5l-2.5 7.5-5-3.5zM4 20h16v1.5H4z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24" fill="currentColor"><path d="M5 5v14l10-7z"/><rect x="17" y="5" width="2.6" height="14" rx="1"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10"/></symbol>
+    <symbol id="i-news" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h6M7 12h10M7 16h10"/></symbol>
+    <symbol id="i-github" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14zM5 19c3-4 6-7 10-9"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8zM4 2l.6 1.6L6 4l-1.4.5L4 6l-.6-1.5L2 4l1.4-.4z"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+    <symbol id="i-chev-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-chev-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></symbol>
+    <symbol id="i-arrow-ur" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></symbol>
+    <symbol id="i-water" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 9c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h5v5H3zM9.5 3h5v5h-5zM16 3h5v5h-5zM3 9.5h5v5H3zM9.5 9.5h5v5h-5zM16 9.5h5v5h-5zM3 16h5v5H3zM9.5 16h5v5h-5zM16 16h5v5h-5z"/></symbol>
+    <symbol id="i-mountain" viewBox="0 0 24 24" fill="currentColor"><path d="M2 20l6.5-11 4 6 2.5-3.5L22 20z"/></symbol>
+    <symbol id="i-columns" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10M9.5 21V10M14.5 21V10M19 21V10M2.5 10L12 4l9.5 6z"/></symbol>
+    <symbol id="i-triangle" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 18H3z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 16.5v-9M8.5 11l3.5-3.5 3.5 3.5"/></symbol>
+    <symbol id="i-wheat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V9M12 9c-3 0-5-2-5-5 3 0 5 2 5 5zM12 9c3 0 5-2 5-5-3 0-5 2-5 5zM12 14c-3 0-5-2-5-5 3 0 5 2 5 5zM12 14c3 0 5-2 5-5-3 0-5 2-5 5zM12 19c-3 0-5-2-5-5 3 0 5 2 5 5zM12 19c3 0 5-2 5-5-3 0-5 2-5 5z"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+    <symbol id="i-house" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></symbol>
+    <symbol id="i-sword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-9 9-6-6zM5 13l-2 2 6 6 2-2M4 20l-1 1M8 8l6 6"/></symbol>
+    <symbol id="i-anchor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5V21M5 12H2c0 5 4.5 9 10 9s10-4 10-9h-3M8 12h8"/></symbol>
+  </defs>
+</svg>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Quest for Duskara — home">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <rect width="48" height="48" rx="12" fill="#1b4a5e"/>
+        <circle cx="19" cy="22" r="9" fill="#f0a64f"/>
+        <path d="M8 31l16-7 16 7-16 7z" fill="#8cad66"/>
+        <path d="M11 30.5l13-6 13 6-13 6z" fill="#8fc4c8" opacity=".55" transform="translate(0 6)"/>
+        <rect x="20" y="16" width="8" height="15" rx="1.6" fill="#eddebf"/>
+        <path d="M18 17l6-8 6 8z" fill="#c97a5c"/>
+        <rect x="23.4" y="6" width="1.2" height="5" fill="#eddebf"/><path d="M24.6 6l4 1.5-4 1.5z" fill="#c97a5c"/>
+      </svg>
+      <b><small>Quest for</small>Duskara</b>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Open menu"><svg><use href="#i-menu"/></svg></button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#how">How it plays</a></li>
+      <li><a href="#systems">Systems</a></li>
+      <li><a href="#world">Archipelago</a></li>
+      <li><a href="#lore">Lore</a></li>
+      <li><a href="#campaign">Campaign</a></li>
+      <li><a href="#get">Get the game</a></li>
+    </ul>
+    <a class="btn btn-primary btn-sm" href="https://github.com/Dbhardwaj99/Quest-For-Duskara" target="_blank" rel="noopener"><svg><use href="#i-github"/></svg>View on GitHub</a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
+    <source src="Assets/homescreen-bg.mp4" type="video/mp4">
+  </video>
+  <div class="hero-scrim"></div>
+  <div class="hero-inner">
+    <h1>
+      <img class="hero-logo" src="Assets/Brand/quest-for-duskara-logo-landscape.png" alt="Quest for Duskara" width="1711" height="919" fetchpriority="high" onerror="this.parentElement.classList.add('logo-fallback')">
+      <span class="wordmark display h1"><small>Quest for</small>Duskara</span>
+    </h1>
+    <p class="tagline">Build, train, and sail before dusk claims the isles.</p>
+    <p class="sub">A calm, clay-crafted strategy game for macOS. Rule one island. Fourteen more wait beyond the water — including Duskara, the dark stronghold itself.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg" href="#get"><svg><use href="#i-sparkles"/></svg>Start a campaign</a>
+      <a class="btn btn-lg" href="#how"><svg><use href="#i-map"/></svg>How it plays</a>
+    </div>
+    <div class="hero-meta" aria-label="At a glance">
+      <span class="chip">Free &amp; open source</span>
+      <span class="chip">macOS 26</span>
+      <span class="chip">SwiftUI · RealityKit · Metal</span>
+      <span class="chip">Single-player campaign</span>
+    </div>
+  </div>
+  <a class="scroll-hint" href="#overview" aria-hidden="true" tabindex="-1">Scroll<svg><use href="#i-chev-down"/></svg></a>
+</section>
+
+<!-- ================= OVERVIEW ================= -->
+<section class="section" id="overview">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">Overview</h2><span class="dot"></span></div>
+      <p class="lead">Quest for Duskara is a strategy game set across an archipelago of <strong>fifteen island cities</strong>. You rule one of them. Grow your settlement, raise an army, and conquer your way across the isles. The campaign is won the day <strong>Duskara's crown falls to you</strong> — and lost the day your last town falls.</p>
+    </div>
+
+    <div class="stats reveal" aria-label="Key numbers">
+      <div class="stat"><div class="v">15</div><div class="l">Island cities on every map</div></div>
+      <div class="stat"><div class="v">5 × 3</div><div class="l">Buildings, three levels each</div></div>
+      <div class="stat"><div class="v">60s</div><div class="l">Per day — or press Next</div></div>
+      <div class="stat"><div class="v">1</div><div class="l">Crown to take</div></div>
+    </div>
+
+    <div class="screen reveal" style="margin-top:44px" aria-label="A town screen in Quest for Duskara">
+      <div class="fallback" aria-hidden="true"></div>
+      <video id="gameVideo" muted loop playsinline preload="none" aria-label="Hearthglen, the player's first island, rendered by the game"><source src="Assets/homescreen-bg.mp4" type="video/mp4"></video>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="toast" aria-hidden="true">Day 9 begins.</div>
+      <div class="screen-hud">
+        <div class="hud tophud">
+          <div class="row">
+            <div>
+              <div class="town">Hearthglen</div>
+              <div class="metrics">
+                <span class="metric"><svg><use href="#i-sun"/></svg>Day 9</span>
+                <span class="metric"><svg><use href="#i-shield"/></svg>48</span>
+                <span class="metric"><svg><use href="#i-people"/></svg>1/32</span>
+              </div>
+            </div>
+            <div class="dial" aria-hidden="true"><svg viewBox="0 0 34 34"><circle class="track" cx="17" cy="17" r="14" fill="none" stroke-width="4"/><circle class="arc" cx="17" cy="17" r="14" fill="none" stroke-width="4"/></svg></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i></i></div>
+          <div class="pills">
+            <span class="pill gold"><i>G</i>184<span class="d">+16</span></span>
+            <span class="pill food"><i>F</i>47<span class="d">+14</span></span>
+            <span class="pill people"><i>P</i>12</span>
+            <span class="pill soldiers"><i>A</i>48</span>
+            <span class="pill skill"><i>S</i>96<span class="d">+7</span></span>
+          </div>
+        </div>
+        <div class="roundbtn" title="World News" aria-hidden="true"><svg><use href="#i-news"/></svg></div>
+      </div>
+      <div class="bottombar" aria-hidden="true">
+        <span class="btn"><svg><use href="#i-hammer"/></svg>Build</span>
+        <span class="btn"><svg><use href="#i-next"/></svg>Next</span>
+        <span class="btn btn-primary"><svg><use href="#i-map"/></svg>World</span>
+      </div>
+    </div>
+    <div class="screen-caption reveal">
+      <span>Hearthglen on Day 9. The island is rendered live by the game's RealityKit engine — boats circle the coast and put in at your pier, sheep graze, chimneys smoke.</span>
+      <span>Top-left: town, day clock, army strength, free people. Bottom-right: Build · Next · World.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT PLAYS ================= -->
+<section class="section band" id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">How it plays</h2><span class="dot"></span></div>
+      <p class="lead">One island, one board, one clock. Every decision you make in Quest for Duskara comes back to four verbs.</p>
+    </div>
+
+    <div class="rows">
+      <div class="row reveal">
+        <div class="row-art" id="art-build" role="img" aria-label="An isometric 3 by 3 town board with a house, pier, farm, factory and barracks"><span class="step-no">01</span></div>
+        <div class="row-text">
+          <span class="eyebrow">Build</span>
+          <h3 class="h3">Raise a city on nine plots</h3>
+          <p>Tap <strong>Build</strong> and place structures on your town's 3×3 board. <strong>Houses</strong> add people, <strong>Piers</strong> bring in gold from sea trade, <strong>Farms</strong> grow food, <strong>Factories</strong> produce skill, and <strong>Barracks</strong> unlock soldier training. Every building can be upgraded to Level 3 — costs and output scale together, so a fully-grown Farm feeds an army.</p>
+          <div class="chips">
+            <span class="chip"><svg><use href="#i-water"/></svg>Pier must sit on the shoreline</span>
+            <span class="chip"><svg><use href="#i-anchor"/></svg>One Pier per town</span>
+            <span class="chip"><svg><use href="#i-star"/></svg>Level 2 costs ×2, Level 3 costs ×3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row reveal">
+        <div class="row-art" id="art-economy" aria-label="A day's ledger: what each building produces and what the army eats">
+          <span class="step-no">02</span>
+          <div class="art-inner">
+            <div class="hud hud-solid" style="width:min(380px,100%);padding:14px 16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <div><div style="font-weight:700;font-size:17px">Day 9 → Day 10</div><div class="caption">Hearthglen ledger</div></div>
+                <div class="dial" aria-hidden="true"><svg viewBox="0 0 34 34"><circle class="track" cx="17" cy="17" r="14" fill="none" stroke-width="4"/><circle class="arc" cx="17" cy="17" r="14" fill="none" stroke-width="4"/></svg></div>
+              </div>
+              <div class="ledger">
+                <div class="lrow"><span>Pier <small>Lv 1</small></span><span class="pills"><span class="pill gold"><i>G</i>+8</span></span></div>
+                <div class="lrow"><span>Farm <small>Lv 1</small></span><span class="pills"><span class="pill gold"><i>G</i>+8</span><span class="pill food"><i>F</i>+14</span></span></div>
+                <div class="lrow"><span>Factory <small>Lv 1</small></span><span class="pills"><span class="pill skill"><i>S</i>+7</span></span></div>
+                <div class="lrow"><span>2 Knights <small>upkeep</small></span><span class="pills"><span class="pill food"><i>F</i>−8</span></span></div>
+                <div class="lrow total"><span>Net for the day</span><span class="pills"><span class="pill gold"><i>G</i>+16</span><span class="pill food"><i>F</i>+6</span><span class="pill skill"><i>S</i>+7</span></span></div>
+              </div>
+              <div class="lnote"><svg><use href="#i-clock"/></svg>Days pass on a 60-second clock, or whenever you press <b>Next</b>. Every 20th day, rival cities take their turn.</div>
+            </div>
+          </div>
+        </div>
+        <div class="row-text">
+          <span class="eyebrow">Grow</span>
+          <h3 class="h3">Keep the ledger balanced</h3>
+          <p>Every day your buildings produce and your soldiers eat. <strong>Gold</strong> and <strong>skill</strong> pay for construction and training. <strong>Food</strong> feeds your army — run out and it starts to disband, knights first. <strong>People</strong> staff your buildings, so keep housing ahead of demand. Piers also draw trade ships from neighbouring free cities, each carrying a one-day offer to swap gold, food, or skill.</p>
+          <div class="chips">
+            <span class="chip"><svg><use href="#i-sun"/></svg>60-second days</span>
+            <span class="chip"><svg><use href="#i-next"/></svg>Press Next to march ahead</span>
+            <span class="chip"><svg><use href="#i-boat"/></svg>Harbor trade offers expire at midnight</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row reveal">
+        <div class="row-art" id="art-train" aria-label="The Barracks training panel with Archer and Knight">
+          <span class="step-no">03</span>
+          <div class="art-inner">
+            <div class="card" style="width:min(400px,100%);display:flex;flex-direction:column;gap:12px">
+              <div><div style="font-weight:700;font-size:18px">Training</div><div class="caption" style="text-transform:none;letter-spacing:0;font-size:13px">Current Soldiers: 48</div></div>
+              <div class="train">
+                <div class="tic" style="background:var(--accent)"><svg><use href="#i-arrow-ur"/></svg></div>
+                <div class="tbody">
+                  <div class="tname">Archer <span class="chip ready">Ready to train</span></div>
+                  <div class="tspec">+10 power · 1 people · 2 food/day</div>
+                  <div class="costrow" style="margin-top:6px"><span class="caption">Training Cost</span><div class="pills"><span class="pill gold"><i>G</i>20</span><span class="pill skill"><i>S</i>5</span><span class="pill food"><i>F</i>10</span></div></div>
+                </div>
+                <span class="btn btn-primary btn-sm">Train</span>
+              </div>
+              <hr class="rule-line">
+              <div class="train">
+                <div class="tic" style="background:var(--accent)"><svg><use href="#i-shield"/></svg></div>
+                <div class="tbody">
+                  <div class="tname">Knight <span class="chip blocked">Unavailable</span></div>
+                  <div class="tspec">+24 power · 2 people · 4 food/day</div>
+                  <div class="tspec" style="color:var(--blocked)">Not enough free people to train that soldier.</div>
+                  <div class="costrow" style="margin-top:6px"><span class="caption">Training Cost</span><div class="pills"><span class="pill gold"><i>G</i>45</span><span class="pill skill"><i>S</i>15</span><span class="pill food"><i>F</i>25</span></div></div>
+                </div>
+                <span class="btn btn-primary btn-sm" aria-disabled="true">Train</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row-text">
+          <span class="eyebrow">Train</span>
+          <h3 class="h3">Raise an army the granary can carry</h3>
+          <p>Build a <strong>Barracks</strong>, then train <strong>Archers</strong> and <strong>Knights</strong> from its panel. Archers are cheap and quick to field; a Knight outpowers two of them but eats twice as much and takes two people off the board for good. Your army can never commit more people than your Houses can hold — housing is the ceiling on your power.</p>
+          <div class="chips">
+            <span class="chip"><svg><use href="#i-people"/></svg>Army size capped by population capacity</span>
+            <span class="chip"><svg><use href="#i-wheat"/></svg>Starvation disbands the hungriest units first</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row reveal">
+        <div class="row-art" id="art-sail" role="img" aria-label="Two islands on the world map joined by a sea lane, with an attack about to launch"><span class="step-no">04</span></div>
+        <div class="row-text">
+          <span class="eyebrow">Sail</span>
+          <h3 class="h3">Cross the water and take what you can hold</h3>
+          <p>From the <strong>World Map</strong> you can sail against any city in the archipelago — but an attack commits your active town's whole army, and it only succeeds if that army <strong>overpowers the defender's garrison and defenses</strong>. Captured cities join your empire: visit them to build and train there, and use <strong>Send</strong> to move gold, food, skill, or soldiers between your cities to reinforce the front.</p>
+          <div class="chips">
+            <span class="chip"><svg><use href="#i-flag"/></svg>Survivors garrison what they capture</span>
+            <span class="chip"><svg><use href="#i-box"/></svg>People can't be shipped — only supplies and soldiers</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SYSTEMS ================= -->
+<section class="section" id="systems">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">Systems</h2><span class="dot"></span></div>
+      <p class="lead">Five buildings. Two units. One rule of engagement. Every number below is the number the game uses.</p>
+    </div>
+
+    <div class="frame reveal" style="padding:clamp(22px,4vw,40px)"><span class="peg"></span>
+      <div style="text-align:center;margin-bottom:22px">
+        <h3 class="display" style="font-size:clamp(24px,3vw,32px);color:#fff">The Build menu</h3>
+        <p class="muted" style="margin-top:6px;font-size:15px">Choose a building, then place it on a highlighted town plot. Every town is founded with a House at its centre and a Pier on the shore.</p>
+      </div>
+      <div class="bgrid">
+        <article class="card bcard house">
+          <div class="top"><div class="art" id="art-house"></div><div><h4>House</h4><div class="summary">Adds people and raises population capacity.</div></div><div class="lvl" title="Upgrades to Level 3"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div></div>
+          <div class="costrow"><span class="caption">Cost</span><div class="pills"><span class="pill gold"><i>G</i>25</span><span class="pill skill"><i>S</i>10</span></div></div>
+          <div class="costrow"><span class="caption">On build</span><div class="pills"><span class="pill people"><i>P</i>+4</span><span class="chip">+8 population capacity</span></div></div>
+          <div class="rule"><svg><use href="#i-grid"/></svg>Can be built on any empty plot</div>
+        </article>
+        <article class="card bcard pier">
+          <div class="top"><div class="art" id="art-pier"></div><div><h4>Pier</h4><div class="summary">Brings in daily gold from sea trade.</div></div><div class="lvl"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div></div>
+          <div class="costrow"><span class="caption">Cost</span><div class="pills"><span class="pill gold"><i>G</i>35</span><span class="pill skill"><i>S</i>20</span></div></div>
+          <div class="req"><svg><use href="#i-person"/></svg>Requires 2 free people</div>
+          <div class="costrow"><span class="caption">Daily Production</span><div class="pills"><span class="pill gold"><i>G</i>8</span><span class="chip"><svg><use href="#i-boat"/></svg>Harbor trade offers</span></div></div>
+          <div class="rule"><svg><use href="#i-water"/></svg>Must be built on the town's edge, by the water · one per town</div>
+        </article>
+        <article class="card bcard farm">
+          <div class="top"><div class="art" id="art-farm"></div><div><h4>Farm</h4><div class="summary">Turns labor into daily food and gold.</div></div><div class="lvl"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div></div>
+          <div class="costrow"><span class="caption">Cost</span><div class="pills"><span class="pill gold"><i>G</i>35</span><span class="pill skill"><i>S</i>20</span></div></div>
+          <div class="req"><svg><use href="#i-person"/></svg>Requires 2 free people</div>
+          <div class="costrow"><span class="caption">Daily Production</span><div class="pills"><span class="pill gold"><i>G</i>8</span><span class="pill food"><i>F</i>14</span></div></div>
+          <div class="rule"><svg><use href="#i-grid"/></svg>Can be built on any empty plot</div>
+        </article>
+        <article class="card bcard factory">
+          <div class="top"><div class="art" id="art-factory"></div><div><h4>Factory</h4><div class="summary">Generates technology for upgrades and soldiers.</div></div><div class="lvl"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div></div>
+          <div class="costrow"><span class="caption">Cost</span><div class="pills"><span class="pill gold"><i>G</i>45</span><span class="chip gold">No skill cost — it is the only source of skill</span></div></div>
+          <div class="req"><svg><use href="#i-person"/></svg>Requires 3 free people</div>
+          <div class="costrow"><span class="caption">Daily Production</span><div class="pills"><span class="pill skill"><i>S</i>7</span></div></div>
+          <div class="rule"><svg><use href="#i-grid"/></svg>Can be built on any empty plot</div>
+        </article>
+        <article class="card bcard barracks">
+          <div class="top"><div class="art" id="art-barracks"></div><div><h4>Barracks</h4><div class="summary">Unlocks soldier training actions.</div></div><div class="lvl"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div></div>
+          <div class="costrow"><span class="caption">Cost</span><div class="pills"><span class="pill gold"><i>G</i>60</span><span class="pill skill"><i>S</i>30</span></div></div>
+          <div class="req"><svg><use href="#i-person"/></svg>Requires 4 free people</div>
+          <div class="costrow"><span class="caption">Unlocks</span><div class="pills"><span class="chip"><svg><use href="#i-arrow-ur"/></svg>Archer</span><span class="chip"><svg><use href="#i-shield"/></svg>Knight</span></div></div>
+          <div class="rule"><svg><use href="#i-grid"/></svg>Can be built on any empty plot</div>
+        </article>
+        <article class="card upgrade-note" style="display:flex;flex-direction:column;justify-content:center;gap:10px;margin-top:0">
+          <div class="lvls" aria-hidden="true"><span>Lv 1</span><span>Lv 2</span><span>Lv 3</span></div>
+          <p><strong style="color:var(--ink)">Upgrading</strong> multiplies a building's base cost by its new level and its output to match: a Level 3 Farm yields 24 gold and 42 food a day, and a Level 3 House holds 24 people. Tap any building on the board to open its sheet and upgrade it.</p>
+        </article>
+      </div>
+    </div>
+
+    <div class="section-head reveal" style="margin-top:80px">
+      <span class="eyebrow">The Barracks</span>
+      <h3 class="display h2" style="margin-top:8px">Two units. One stronghold.</h3>
+    </div>
+    <div class="units reveal">
+      <article class="ucard archer">
+        <div class="figure" id="fig-archer" role="img" aria-label="A clay archer with a bow"></div>
+        <div class="name"><div class="display">Archer</div><div class="role">Ranged · cheap · quick to field</div></div>
+        <div class="body">
+          <div class="spec">+10 power · 1 person · 2 food/day</div>
+          <div class="pills"><span class="pill gold"><i>G</i>20</span><span class="pill skill"><i>S</i>5</span><span class="pill food"><i>F</i>10</span></div>
+          <p>The backbone of an early garrison. Ten archers cost 200 gold and eat 20 food a day.</p>
+        </div>
+      </article>
+      <article class="ucard knight">
+        <div class="figure" id="fig-knight" role="img" aria-label="A clay knight with helmet and shield"></div>
+        <div class="name"><div class="display">Knight</div><div class="role">Heavy · outpowers two archers</div></div>
+        <div class="body">
+          <div class="spec">+24 power · 2 people · 4 food/day</div>
+          <div class="pills"><span class="pill gold"><i>G</i>45</span><span class="pill skill"><i>S</i>15</span><span class="pill food"><i>F</i>25</span></div>
+          <p>More power per person and per coin — but knights starve first when the granary runs dry.</p>
+        </div>
+      </article>
+      <article class="ucard duskara">
+        <div class="figure" id="fig-duskara" role="img" aria-label="The dark clay tower of Duskara, crowned, against a setting sun"></div>
+        <div class="name"><div class="display">Duskara</div><div class="role">The stronghold · the campaign's end</div></div>
+        <div class="body">
+          <div class="spec">188 strength · 7 knights &amp; 2 archers · defense 300+</div>
+          <div class="pills"><span class="pill soldiers"><i>A</i>188</span><span class="chip" style="color:#c6b6ff;background:rgba(112,87,184,.22)"><svg><use href="#i-crown"/></svg>Holds the crown</span></div>
+          <p>Its garrison fights at +35%, its walls add +55, and every sea lane between you and it adds more.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="formula reveal">
+      <div>
+        <span class="eyebrow">Rule of engagement</span>
+        <h3 class="h3" style="margin:8px 0 14px">An attack succeeds only if your army's strength beats the city's defense</h3>
+        <div class="eq" aria-label="Defense equals garrison plus 35 percent of garrison plus 4 per step closer to Duskara plus 55 if the city is Duskara">
+          <span class="lbl">Defense =</span>
+          <span class="term"><small>Garrison</small><b>strength</b></span><span class="op">+</span>
+          <span class="term"><small>Fortified</small><b>35% of it</b></span><span class="op">+</span>
+          <span class="term"><small>Each step toward Duskara</small><b>+4</b></span><span class="op">+</span>
+          <span class="term"><small>Duskara itself</small><b>+55</b></span>
+        </div>
+      </div>
+      <ul>
+        <li><strong>Win</strong>, and the survivors — minus a quarter of the surplus — garrison the city. Half its gold and skill is lost in the sack.</li>
+        <li><strong>Lose</strong>, and the soldiers you committed are gone; the defender's garrison is worn down by the strength you threw at it.</li>
+        <li>Cities deeper in the archipelago defend themselves more fiercely, and Duskara most of all. Build your strength island by island.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ARCHIPELAGO ================= -->
+<section class="section band-sea" id="world">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">The Archipelago</h2><span class="dot"></span></div>
+      <p class="lead">Every campaign draws a new archipelago. Islands gather in clusters and scatter loose; sea lanes link each isle to its nearest neighbours so the whole chain stays navigable. <strong>Hearthglen</strong> always founds in the south-west. <strong>Duskara</strong> always waits in the north-east.</p>
+    </div>
+
+    <div class="map reveal" id="map">
+      <div class="map-scroll" id="mapScroll"><svg id="worldmap" viewBox="0 0 1160 800" role="img" aria-label="The world map: fifteen island cities linked by sea lanes, coloured by who holds them"></svg></div>
+      <div class="mvig" aria-hidden="true"></div>
+      <div class="map-header">
+        <div><div class="t">World Map</div><div class="s">Empire power 48 · Active: Hearthglen</div></div>
+        <span class="btn btn-primary btn-sm"><svg><use href="#i-chev-left"/></svg>Town</span>
+      </div>
+      <div class="map-legend" aria-hidden="true">
+        <div class="t">Territories</div>
+        <div class="sw"><span><i style="background:var(--f-player)"></i>You</span><span><i style="background:var(--f-neutral)"></i>Neutral</span><span><i style="background:var(--f-enemy)"></i>Enemy</span><span><i style="background:var(--f-duskara)"></i>Duskara</span></div>
+        <div class="route"><i></i><i></i><i></i>&nbsp;Trade route</div>
+      </div>
+      <svg class="compass" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="rgba(33,28,23,.86)" stroke="rgba(255,255,255,.2)"/>
+        <path d="M32 6l6 26-6 26-6-26z" fill="#e6b35c"/><path d="M6 32l26-6 26 6-26 6z" fill="#f2e8d1" opacity=".7"/>
+        <path d="M32 6l6 26H26z" fill="#d17a3d"/><circle cx="32" cy="32" r="3" fill="#29211a"/>
+        <text x="32" y="15" text-anchor="middle" font-size="7" font-weight="700" fill="#29211a">N</text>
+      </svg>
+      <div class="map-tip" id="mapTip" role="tooltip"></div>
+    </div>
+    <p class="muted reveal" style="text-align:center;font-size:14px;margin-top:12px">Hover, tap, or focus a city to inspect it; on a small screen, drag the map to pan. Garrisons shown are what a fresh campaign deals on this layout — Duskara always starts at 188.</p>
+
+    <div class="map-notes reveal">
+      <div class="map-note"><div class="t"><i style="background:#f0c76b"></i>Sea lanes</div><p>Each island links to its two nearest neighbours; loose groups are stitched together through their closest pair. Attacks and trade both follow the lanes.</p></div>
+      <div class="map-note"><div class="t"><i style="background:var(--f-player)"></i>Territories</div><p>Every patch of land belongs to its nearest city and takes that city's colour when it changes hands. Open sea is nobody's.</p></div>
+      <div class="map-note"><div class="t"><i style="background:var(--gold)"></i>Landmarks</div><p>Five named places seed each world — a ruin on the plains, a shrine in the woods, a mountain gate, a harbor, and a desert obelisk.</p></div>
+      <div class="map-note"><div class="t"><i style="background:var(--f-duskara)"></i>Garrisons</div><p>Neighbours of Duskara start with 35–60 strength; the far isles with 3–8. The closer you sail to dusk, the harder every wall becomes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LORE ================= -->
+<section class="section band-warm" id="lore">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">The Crown of Duskara</h2><span class="dot"></span></div>
+      <p class="lead">What the old sailors say, told the way they tell it.</p>
+    </div>
+    <div class="lore reveal">
+      <div class="lore-text">
+        <p>Long before the first pier was hammered into Hearthglen's shore, the isles answered to a single crown. It was worked from the same pale clay as the islands themselves, and it was said that whoever wore it could hear every tide in the archipelago at once.</p>
+        <p>The last king to wear it died at the standing stones on the plains — no heir, no will, no word. The stones have been called <strong>Crownless</strong> ever since. In the quiet that followed, the crown was carried east across the water by the king's own guard, to the one island the sun leaves first each evening. There they raised walls, trained knights, and closed the gates. The island's old name was forgotten. People simply called it <strong>Duskara</strong>: the place where dusk begins.</p>
+        <p>Four cities took Duskara's coin and raised their own banners — <strong>Wolfscar, Blackfen, Grimhaven</strong> and <strong>Redspire</strong>. They expand, drill their garrisons, and strike whichever neighbour is weakest whenever their granaries are full. The rest of the free cities trade, wait, and watch the horizon.</p>
+        <p>You hold Hearthglen: a house, a pier, and four people who believe the isles could be one again. Dusk moves west a little every year. The only question is whether you can sail east faster.</p>
+      </div>
+      <div class="chronicle" aria-label="Landmarks of the archipelago">
+        <div class="entry"><div class="ic"><svg><use href="#i-columns"/></svg></div><div><small>Ancient ruin · Plains</small><b>Crownless Stones</b><p>The ring where the last king fell. Nothing has grown inside it since.</p></div></div>
+        <div class="entry"><div class="ic"><svg><use href="#i-leaf"/></svg></div><div><small>Forest shrine · Woods</small><b>Wyrdwood Shrine</b><p>Farmers leave the first sheaf of every harvest here. The forest gives back — mostly.</p></div></div>
+        <div class="entry"><div class="ic"><svg><use href="#i-mountain"/></svg></div><div><small>Mountain gate · Peaks</small><b>Gate of Cinders</b><p>A pass burned open in the old wars. The coal seams still smoke on cold mornings.</p></div></div>
+        <div class="entry"><div class="ic"><svg><use href="#i-boat"/></svg></div><div><small>Coastal harbor · Shore</small><b>Saltwind Harbor</b><p>Every trade ship in the isles has tied up here at least once. Prices are whispered, never posted.</p></div></div>
+        <div class="entry"><div class="ic"><svg><use href="#i-triangle"/></svg></div><div><small>Desert obelisk · Dry north</small><b>Sable Obelisk</b><p>A black needle in the sand. At dusk its shadow points at Duskara. Always.</p></div></div>
+      </div>
+    </div>
+
+    <div class="banners reveal">
+      <div class="banner" style="--c:var(--f-player)"><div class="t"><i></i>Your Realm</div><div class="cities">Hearthglen &amp; every city you take</div><p>Visit any city you hold to build and train there. Send supplies and soldiers along the lanes to reinforce the front.</p></div>
+      <div class="banner" style="--c:var(--f-neutral)"><div class="t"><i></i>The Free Cities</div><div class="cities">Green Hollow · Ironridge · Mosswatch · Ashbarrow · Pinefall · Stonewake · Rivergate · Brindle Keep · Oakmere</div><p>Neutral isles that send trade ships to your piers — and develop, train, and defend themselves like anyone else.</p></div>
+      <div class="banner" style="--c:var(--f-enemy)"><div class="t"><i></i>The Banners</div><div class="cities">Wolfscar · Blackfen · Grimhaven · Redspire</div><p>Rival warlords sworn to Duskara's coin. Every twentieth day they build, drill, and attack a weaker neighbour.</p></div>
+      <div class="banner" style="--c:var(--f-duskara)"><div class="t"><i></i>Duskara</div><div class="cities">The stronghold</div><p>Holds the crown behind 188 strength of knights and archers. The campaign ends the day it falls.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CAMPAIGN ================= -->
+<section class="section" id="campaign">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">A campaign, day by day</h2><span class="dot"></span></div>
+      <p class="lead">What you actually do between founding Hearthglen and taking the crown.</p>
+    </div>
+    <div class="timeline reveal">
+      <div class="tl"><span class="day">Day 1</span><b>Found Hearthglen</b><p>Pick a difficulty. A House and a Pier already stand; four people are waiting for work. Build a Farm first — food is the leash on everything that follows.</p></div>
+      <div class="tl"><span class="day">Days 2–6</span><b>Light the Factory</b><p>Skill has no other source. Add a second House, and start weighing the trade offers that ships bring to your pier each day.</p></div>
+      <div class="tl"><span class="day">Days 7–15</span><b>Raise the Barracks</b><p>Train Archers while the granary fills. Upgrade the Farm before the first Knights — four food a day each adds up.</p></div>
+      <div class="tl"><span class="day">Day 20</span><b>The first enemy turn</b><p>Every rival city builds, trains, and — if its stores are full — attacks a neighbour. Are you the softest target on the sea lanes?</p></div>
+      <div class="tl"><span class="day">Days 20–40</span><b>Take a near isle</b><p>Sail against a free city whose defense you clear. Survivors garrison it; visit, build, and Send supplies from home.</p></div>
+      <div class="tl"><span class="day">Day 40+</span><b>Climb toward dusk</b><p>Each step closer to Duskara adds defense. Mass Knights in your forward city, stockpile food, and strike the moment the numbers say yes.</p></div>
+      <div class="tl win"><span class="day">Victory</span><b>Duskara falls</b><p>“Duskara fell on Day 63.” The crown is yours — until the next campaign draws a new sea.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STRATEGY ================= -->
+<section class="section band" id="strategy">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="ornament"><span class="dot"></span><h2 class="display">The decisions that matter</h2><span class="dot"></span></div>
+      <p class="lead">Duskara is calm on the surface. Underneath, every coin has three places it could go.</p>
+    </div>
+    <div class="sgrid reveal">
+      <div class="scard"><div class="ic"><svg><use href="#i-wheat"/></svg></div><b>Food is the leash</b><p>Knights eat 4 food a day, archers 2. Miss a day and the hungriest units disband first. A Level 3 Farm makes <strong>42 food a day</strong> — enough for ten knights.</p></div>
+      <div class="scard"><div class="ic"><svg><use href="#i-house"/></svg></div><b>People before production</b><p>Every workplace claims people who must already live in a House, and training a soldier removes them for good. Build housing <strong>ahead</strong> of the army you want.</p></div>
+      <div class="scard"><div class="ic"><svg><use href="#i-gear"/></svg></div><b>Skill has one source</b><p>The Factory costs no skill to build, so you can never lock yourself out. But a town without one can't upgrade, can't train, can't raise a Barracks.</p></div>
+      <div class="scard"><div class="ic"><svg><use href="#i-clock"/></svg></div><b>The clock is theirs too</b><p>Every 20 days rival cities build, train, and strike a neighbour weaker than themselves — Duskara first, if they can reach it. Your border towns are on that list.</p></div>
+      <div class="scard"><div class="ic"><svg><use href="#i-sword"/></svg></div><b>One attack, whole army</b><p>An attack commits the active town's entire army. Win and the survivors stay as the new garrison; lose and they're gone. <strong>Send</strong> soldiers forward before you strike.</p></div>
+      <div class="scard"><div class="ic"><svg><use href="#i-swap"/></svg></div><b>Harbor trades are a lever</b><p>Each day a neighbouring free city offers a swap at your pier — 15–45 gold, 10–32 food, or 8–26 skill for one of the others. Offers expire at midnight.</p></div>
+    </div>
+
+    <div class="setup reveal">
+      <div>
+        <span class="eyebrow">Choose your start</span>
+        <h3 class="h3" style="margin:8px 0 14px;font-size:clamp(24px,3vw,32px)">Found your first settlement by choosing a starting stockpile</h3>
+        <p class="muted" style="font-size:17px">Difficulty only changes what you begin with. Everyone starts with 100 gold and 50 skill; the campaign tops that up — and then it's the same sea, the same rivals, and the same 188 strength waiting at Duskara. Your campaign autosaves after every action and resumes from the menu.</p>
+      </div>
+      <div class="setup-panel" aria-label="Difficulty options">
+        <div class="t">Choose Difficulty</div>
+        <div class="diff"><b>Easy</b><span>A generous treasury to learn the ropes.</span><div class="pills"><div><span class="pill gold"><i>G</i></span><em>+500</em></div><div><span class="pill skill"><i>S</i></span><em>+250</em></div></div></div>
+        <div class="diff"><b>Medium</b><span>A balanced stockpile for seasoned commanders.</span><div class="pills"><div><span class="pill gold"><i>G</i></span><em>+300</em></div><div><span class="pill skill"><i>S</i></span><em>+150</em></div></div></div>
+        <div class="diff" style="margin-bottom:0"><b>Hard</b><span>Scarce coin and skill. Earn every island.</span><div class="pills"><div><span class="pill gold"><i>G</i></span><em>+100</em></div><div><span class="pill skill"><i>S</i></span><em>+50</em></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GET THE GAME ================= -->
+<section class="section" id="get">
+  <div class="wrap">
+    <div class="get reveal">
+      <div>
+        <div class="ornament left"><h2 class="display">Get the game</h2><span class="dot"></span></div>
+        <p class="lead">Quest for Duskara is <strong>free and open source</strong> under the MIT license. It's a native macOS app built with SwiftUI, RealityKit and a Metal ocean — clone it and build it in Xcode.</p>
+        <ol class="steps">
+          <li><i>1</i><span><b>Clone the repository</b> from GitHub, or download the source from the Releases page.</span></li>
+          <li><i>2</i><span><b>Open <code>Quest For Duskara.xcodeproj</code></b> in Xcode.</span></li>
+          <li><i>3</i><span><b>Choose the <code>Quest For Duskara</code> scheme</b> and build for macOS. Your first campaign opens with a short tutorial.</span></li>
+        </ol>
+        <div class="code" aria-label="Clone command"><span class="c"># clone and open</span>
+git clone https://github.com/Dbhardwaj99/Quest-For-Duskara.git
+open "Quest-For-Duskara/Quest For Duskara.xcodeproj"</div>
+        <div class="req" aria-label="Requirements">
+          <span class="chip"><svg><use href="#i-check"/></svg>macOS 26 or later</span>
+          <span class="chip"><svg><use href="#i-check"/></svg>Xcode</span>
+          <span class="chip"><svg><use href="#i-check"/></svg>No account, no network, no service layer</span>
+        </div>
+        <div class="get-cta">
+          <a class="btn btn-primary btn-lg" href="https://github.com/Dbhardwaj99/Quest-For-Duskara" target="_blank" rel="noopener"><svg><use href="#i-github"/></svg>View on GitHub</a>
+          <a class="btn btn-lg" href="https://github.com/Dbhardwaj99/Quest-For-Duskara/releases" target="_blank" rel="noopener"><svg><use href="#i-flag"/></svg>Releases</a>
+        </div>
+      </div>
+      <div class="get-art">
+        <img src="Assets/Brand/quest-for-duskara-app-icon.png" alt="Quest for Duskara app icon: a clay tower on a small green island with a setting sun" width="1254" height="1254" loading="lazy" onerror="this.style.display='none'">
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="horizon" aria-hidden="true">
+    <svg viewBox="0 0 1440 360" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <radialGradient id="sunG" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffd58a"/><stop offset=".6" stop-color="#f0a64f"/><stop offset="1" stop-color="#e0843f"/></radialGradient>
+        <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f8f9c"/><stop offset="1" stop-color="#2a5262"/></linearGradient>
+      </defs>
+      <circle cx="1010" cy="262" r="92" fill="url(#sunG)" opacity=".95"/>
+      <rect x="0" y="270" width="1440" height="90" fill="url(#seaG)"/>
+      <path d="M0 282c120-8 220 10 340 6s230-16 360-8 260 16 380 6 240-14 360-4v78H0z" fill="#3d6d7c" opacity=".7"/>
+      <g opacity=".95">
+        <path d="M540 274c40-26 120-32 180-14 36 11 60 22 96 20 40-2 60-18 100-14 42 5 60 14 84 16v6H540z" fill="#e8d6a4"/>
+        <path d="M580 268c30-22 100-28 160-12 28 6 50 16 80 14 44-4 58-16 96-10 40 6 56 12 74 14v4H580z" fill="#7f9a62"/>
+        <rect x="720" y="212" width="34" height="58" rx="4" fill="#eddebf"/>
+        <path d="M712 214l25-36 25 36z" fill="#c97a5c"/>
+        <rect x="736" y="164" width="2.5" height="16" fill="#eddebf"/><path d="M738.5 164l14 5-14 5z" fill="#c97a5c"/>
+        <rect x="731" y="242" width="9" height="16" rx="3" fill="#a0764e"/>
+        <rect x="800" y="234" width="26" height="36" rx="3" fill="#eddebf"/><path d="M795 236l18-20 18 20z" fill="#c97a5c"/>
+        <rect x="672" y="242" width="22" height="28" rx="3" fill="#eddebf"/><path d="M668 244l15-16 15 16z" fill="#7d8e98"/>
+        <circle cx="646" cy="258" r="12" fill="#5f8a55"/><circle cx="860" cy="256" r="10" fill="#5f8a55"/><circle cx="878" cy="262" r="7" fill="#6f9a60"/>
+      </g>
+      <g fill="#3d2f27" opacity=".85">
+        <path d="M300 284h28l-4 8h-20z"/><rect x="313" y="264" width="2" height="20"/><path d="M315 264l12 10-12 4z" fill="#e8d6a4"/>
+        <path d="M1220 288h34l-5 9h-24z"/><rect x="1236" y="262" width="2" height="26"/><path d="M1238 262l16 13-16 5z" fill="#e8d6a4"/>
+      </g>
+    </svg>
+  </div>
+  <div class="sea-band">
+  <div class="wrap foot">
+    <div class="foot-top">
+      <div>
+        <a class="brand" href="#top" aria-label="Quest for Duskara — back to top">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <rect width="48" height="48" rx="12" fill="#1b4a5e"/><circle cx="19" cy="22" r="9" fill="#f0a64f"/>
+            <path d="M8 31l16-7 16 7-16 7z" fill="#8cad66"/><rect x="20" y="16" width="8" height="15" rx="1.6" fill="#eddebf"/>
+            <path d="M18 17l6-8 6 8z" fill="#c97a5c"/><rect x="23.4" y="6" width="1.2" height="5" fill="#eddebf"/><path d="M24.6 6l4 1.5-4 1.5z" fill="#c97a5c"/>
+          </svg>
+          <b><small>Quest for</small>Duskara</b>
+        </a>
+        <p class="tag">Build, train, and sail before dusk claims the isles. A small, calm strategy game for macOS — and an open project you're welcome to fork.</p>
+      </div>
+      <div>
+        <h5>The game</h5>
+        <ul><li><a href="#overview">Overview</a></li><li><a href="#how">How it plays</a></li><li><a href="#systems">Systems</a></li><li><a href="#campaign">A campaign, day by day</a></li></ul>
+      </div>
+      <div>
+        <h5>The world</h5>
+        <ul><li><a href="#world">The Archipelago</a></li><li><a href="#lore">The Crown of Duskara</a></li><li><a href="https://github.com/Dbhardwaj99/Quest-For-Duskara" target="_blank" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/Dbhardwaj99/Quest-For-Duskara/releases" target="_blank" rel="noopener">Releases</a></li></ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Quest for Duskara · MIT License</span>
+      <span>Built with SwiftUI, RealityKit and Metal. Good luck, commander.</span>
+    </div>
+  </div>
+  </div>
+</footer>
+<style>
+/* component styles used by the illustrations */
+.ledger{display:flex;flex-direction:column;gap:2px}
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07);font-weight:600;font-size:15px}
+.lrow small{color:var(--muted);font-weight:600;font-size:12px;margin-left:4px}
+.lrow.total{border-bottom:0;border-top:1px solid rgba(255,255,255,.14);margin-top:4px;padding-top:10px;color:var(--gold)}
+.lrow .pills{gap:4px;justify-content:flex-end;flex-wrap:nowrap}
+.lrow .pill{padding:3px 7px 3px 4px;font-size:13px}
+.lrow .pill i{width:16px;height:16px;font-size:9px}
+.lnote{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13px;color:var(--muted);font-weight:600;line-height:1.4}
+.lnote svg{width:14px;height:14px;flex:none;margin-top:2px;color:var(--gold)}
+.lnote b{color:var(--ink)}
+.train{display:flex;gap:12px;align-items:flex-start}
+.tic{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:#fff;flex:none}
+.tic svg{width:16px;height:16px}
+.tbody{flex:1;min-width:0}
+.tname{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px;flex-wrap:wrap}
+.tspec{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
+.rule-line{border:0;border-top:1px solid var(--glass);margin:0}
+.train .btn{flex:none;align-self:center;min-width:72px}
+.steps code,p code{font:600 .9em ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:5px}
+.upgrade-note{display:flex;flex-direction:column;justify-content:center;gap:10px;margin-top:0}
+.lane{stroke:#f0c76b;stroke-opacity:.6;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-dasharray:5 7;animation:flow 2.4s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}
+.lane-shadow{stroke:rgba(0,0,0,.12);stroke-width:4;fill:none}
+.ship{offset-rotate:auto;animation:sail 18s ease-in-out infinite alternate}
+@keyframes sail{from{offset-distance:0%}to{offset-distance:100%}}
+@media (prefers-reduced-motion:reduce){.lane,.ship{animation:none}}
+</style>
+
+<script>
+(function(){
+'use strict';
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const f1 = n => Math.round(n*10)/10;
+
+// ---------- colour helpers ----------
+function shade(hex, f){
+  const n = parseInt(hex.slice(1),16);
+  const ch = v => Math.max(0, Math.min(255, Math.round(v*f)));
+  const r = ch((n>>16)&255), g = ch((n>>8)&255), b = ch(n&255);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+// deterministic noise, like WorldNoise.value
+function noise(seed, a, b, salt){
+  let h = (seed*374761393 + a*668265263 + b*2246822519 + salt*3266489917) >>> 0;
+  h = Math.imul(h ^ (h>>>13), 1274126177) >>> 0;
+  return ((h ^ (h>>>16)) >>> 0) / 4294967296;
+}
+
+// ---------- palette: WorldPalette.village after the pastel pass ----------
+const C = {
+  grass:'#8cad66', grassSide:'#6b8a52', grassSideDark:'#557140', tuft:'#4d6b3a',
+  sand:'#eed494', sandSide:'#d3b676', sandDark:'#b7975c',
+  water:'#8fc4c8', waterRim:'#f3e8d3', sea:'#478f9e', seaDeep:'#2d6c7c',
+  plaster:'#eddebf', terracotta:'#c97a5c', terracottaDark:'#a3573f', roofHi:'#e08f73',
+  doorWood:'#70503a', windowGlow:'#ffcc78', barnWood:'#a37352', strawRoof:'#dbba7a',
+  timber:'#8f6b4a', darkTimber:'#614a36', cutWood:'#ba8f61',
+  warmStone:'#b3a994', deepStone:'#7a8589', paleStone:'#d3ccba', peakCap:'#e9e7dc', stoneDust:'#9c9c90',
+  cropGold:'#e0bf70', cropGreen:'#8cab61', fortifiedClay:'#b87a69', slate:'#70808a',
+  bannerRed:'#c7614f', forestMoss:'#548561', forestDeep:'#386650', leafHi:'#85ab61', bark:'#6b4d38',
+  cloud:'#ededea', lantern:'#ffb85c'
+};
+
+// ---------- isometric clay engine ----------
+const ISO = { a:46, b:23, c:44 };
+const P = (x,y,z=0) => [(x-y)*ISO.a, (x+y)*ISO.b - z*ISO.c];
+const pts = arr => arr.map(p => f1(p[0])+','+f1(p[1])).join(' ');
+const poly = (arr, fill, extra='') => `<polygon points="${pts(arr)}" fill="${fill}" ${extra}/>`;
+
+class Scene {
+  constructor(){ this.items = []; }
+  add(depth, svg){ this.items.push({depth, svg}); }
+  render(){ return this.items.sort((p,q)=>p.depth-q.depth).map(i=>i.svg).join(''); }
+}
+
+function box(x0,y0,x1,y1,z0,z1,col,o={}){
+  const top = o.top || col, left = o.left || shade(col,.84), right = o.right || shade(col,.68);
+  return poly([P(x0,y0,z1),P(x1,y0,z1),P(x1,y1,z1),P(x0,y1,z1)], top, o.extra||'')
+       + poly([P(x0,y1,z0),P(x1,y1,z0),P(x1,y1,z1),P(x0,y1,z1)], left)
+       + poly([P(x1,y0,z0),P(x1,y1,z0),P(x1,y1,z1),P(x1,y0,z1)], right);
+}
+// gable roof; ridge runs along x ('x') or along y ('y')
+function gable(x0,y0,x1,y1,h,r,col,along='x',o=.08,t=.05){
+  const hi = shade(col,1.08), lo = shade(col,.78), end = shade(col,.62);
+  const e = h - .015;
+  if (along === 'x'){
+    const ym=(y0+y1)/2;
+    return poly([P(x0-o,y0-o,e),P(x1+o,y0-o,e),P(x1+o,ym,h+r),P(x0-o,ym,h+r)], lo)
+         + poly([P(x1,y0,h),P(x1,y1,h),P(x1,ym,h+r)], end)
+         + poly([P(x0-o,y1+o,e),P(x1+o,y1+o,e),P(x1+o,ym,h+r),P(x0-o,ym,h+r)], hi)
+         + poly([P(x1+o,ym,h+r),P(x1+o,y1+o,e),P(x1+o,y1+o,e-t),P(x1+o,ym,h+r-t)], lo);
+  }
+  const xm=(x0+x1)/2;
+  return poly([P(x0-o,y0-o,e),P(x0-o,y1+o,e),P(xm,y1+o,h+r),P(xm,y0-o,h+r)], lo)
+       + poly([P(x0,y1,h),P(x1,y1,h),P(xm,y1,h+r)], end)
+       + poly([P(x1+o,y0-o,e),P(x1+o,y1+o,e),P(xm,y1+o,h+r),P(xm,y0-o,h+r)], hi)
+       + poly([P(xm,y1+o,h+r),P(x1+o,y1+o,e),P(x1+o,y1+o,e-t),P(xm,y1+o,h+r-t)], lo);
+}
+function shadowEllipse(cx,cy,rx,ry){
+  const [sx,sy] = P(cx,cy,0);
+  return `<ellipse cx="${f1(sx)}" cy="${f1(sy)}" rx="${rx}" ry="${ry}" fill="rgba(0,0,0,.16)"/>`;
+}
+function tuft(x,y){
+  const a=P(x,y,0), b=P(x,y,.07);
+  return `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" stroke="${C.tuft}" stroke-width="1.6" stroke-linecap="round"/>`;
+}
+function tile(i,j,seed){
+  let s = box(i+.02,j+.02,i+.98,j+.98,-.3,0,C.grass,{left:C.grassSide,right:C.grassSideDark});
+  for (let k=0;k<5;k++){
+    const x = i+.12+noise(seed,i*7+k,j*3,1)*.76, y = j+.12+noise(seed,i*5+k,j*11,2)*.76;
+    s += tuft(x,y);
+  }
+  return s;
+}
+function tree(x,y,size=1,z0=0){
+  const trunk = box(x-.05,y-.05,x+.05,y+.05,z0,z0+.22*size,C.bark);
+  const [cx,cy] = P(x,y,z0+.42*size);
+  return trunk
+    + `<circle cx="${f1(cx)}" cy="${f1(cy)}" r="${f1(15*size)}" fill="${C.forestMoss}"/>`
+    + `<circle cx="${f1(cx-5*size)}" cy="${f1(cy-5*size)}" r="${f1(8*size)}" fill="${C.leafHi}" opacity=".8"/>`
+    + `<circle cx="${f1(cx+4*size)}" cy="${f1(cy+6*size)}" r="${f1(9*size)}" fill="${C.forestDeep}" opacity=".5"/>`;
+}
+function bush(x,y,r=8,z0=.1){
+  const [cx,cy] = P(x,y,z0);
+  return `<ellipse cx="${f1(cx)}" cy="${f1(cy)}" rx="${r}" ry="${r*.8}" fill="${C.forestMoss}"/><ellipse cx="${f1(cx-r*.3)}" cy="${f1(cy-r*.3)}" rx="${r*.5}" ry="${r*.4}" fill="${C.leafHi}" opacity=".7"/>`;
+}
+function mountain(x,y,h=1.1,w=.7,z0=0){
+  const apex = P(x,y,z0+h), l = P(x-w,y+w*.2,z0), f = P(x+w*.5,y+w*.5,z0), r = P(x+w*.2,y-w,z0);
+  const cap = .72;
+  const capL = [P(x-w*(1-cap),y+w*.2*(1-cap),z0+h*cap), f.map((v,k)=>apex[k]+(v-apex[k])*(1-cap)), apex];
+  const capR = [f.map((v,k)=>apex[k]+(v-apex[k])*(1-cap)), P(x+w*.2*(1-cap),y-w*(1-cap),z0+h*cap), apex];
+  return poly([l,f,apex], C.warmStone) + poly([f,r,apex], shade(C.warmStone,.7))
+       + poly(capL, C.peakCap) + poly(capR, shade(C.peakCap,.86));
+}
+function boat(x,y,z,dir=1,scale=1){
+  const w=.34*scale,d=.16*scale;
+  let s = shadowEllipse(x,y,12*scale,5*scale);
+  s += box(x-w/2,y-d/2,x+w/2,y+d/2,z,z+.09*scale,C.barnWood,{top:C.cutWood});
+  s += box(x-.012,y-.012,x+.012,y+.012,z+.09*scale,z+.5*scale,C.darkTimber);
+  const m = P(x,y,z+.48*scale), b1 = P(x+.28*scale*dir,y,z+.18*scale), b2 = P(x,y,z+.14*scale);
+  s += poly([m,b1,b2], C.plaster);
+  return s;
+}
+function house(i,j,lvl=1){
+  const g=.22, h=.42, x0=i+g, y0=j+g, x1=i+1-g, y1=j+1-g;
+  let s = shadowEllipse(i+.55,j+.55,22,11);
+  s += box(x0,y0,x1,y1,0,h,C.plaster);
+  // door on the +y face, window on the +x face
+  s += poly([P(x0+.2,y1,0),P(x0+.34,y1,0),P(x0+.34,y1,.2),P(x0+.2,y1,.2)], C.doorWood);
+  s += poly([P(x1,y0+.18,.16),P(x1,y0+.32,.16),P(x1,y0+.32,.3),P(x1,y0+.18,.3)], C.windowGlow);
+  s += gable(x0,y0,x1,y1,h,.3,C.terracotta,'x');
+  if (lvl>1) s += box(x0+.08,y0+.12,x0+.18,y0+.22,h+.15,h+.42,C.terracottaDark);
+  return s;
+}
+function farm(i,j){
+  let s = shadowEllipse(i+.5,j+.5,26,13);
+  for (let k=0;k<4;k++){
+    const x=i+.14+k*.19;
+    s += box(x,j+.14,x+.11,j+.86,0,.07,k%2?C.cropGold:C.cropGreen);
+  }
+  s += box(i+.86,j+.12,i+1.0,j+.5,0,.05,C.timber); // fence rail
+  // small barn on the far corner
+  s += box(i+.62,j+.08,i+.92,j+.36,0,.22,C.barnWood);
+  s += gable(i+.62,j+.08,i+.92,j+.36,.22,.16,C.strawRoof,'y',.05,.04);
+  return s;
+}
+function factory(i,j){
+  let s = shadowEllipse(i+.5,j+.5,26,13);
+  s += box(i+.14,j+.18,i+.86,j+.82,0,.1,C.warmStone);
+  s += box(i+.2,j+.24,i+.8,j+.76,.1,.5,C.paleStone);
+  s += poly([P(i+.42,j+.76,.1),P(i+.58,j+.76,.1),P(i+.58,j+.76,.32),P(i+.42,j+.76,.32)], C.doorWood);
+  s += gable(i+.2,j+.24,i+.8,j+.76,.5,.2,C.slate,'x',.07,.04);
+  s += box(i+.64,j+.3,i+.74,j+.4,.5,.98,C.deepStone,{top:'#3c4346'});
+  const p1=P(i+.69,j+.35,1.1), p2=P(i+.72,j+.3,1.28);
+  s += `<ellipse cx="${f1(p1[0])}" cy="${f1(p1[1])}" rx="7" ry="5" fill="${C.cloud}" opacity=".85"/><ellipse cx="${f1(p2[0])}" cy="${f1(p2[1])}" rx="9" ry="6" fill="${C.cloud}" opacity=".55"/>`;
+  return s;
+}
+function barracks(i,j){
+  let s = shadowEllipse(i+.5,j+.5,27,13);
+  s += box(i+.14,j+.14,i+.86,j+.86,0,.34,C.fortifiedClay);
+  for (let k=0;k<3;k++){
+    s += box(i+.16+k*.26,j+.72,i+.3+k*.26,j+.86,.34,.44,C.fortifiedClay);
+    s += box(i+.72,j+.16+k*.26,i+.86,j+.3+k*.26,.34,.44,C.fortifiedClay);
+  }
+  s += box(i+.34,j+.34,i+.66,j+.66,.34,.66,shade(C.fortifiedClay,.96),{top:C.slate});
+  s += poly([P(i+.44,j+.86,0),P(i+.56,j+.86,0),P(i+.56,j+.86,.2),P(i+.44,j+.86,.2)], C.darkTimber);
+  s += box(i+.49,j+.49,i+.52,j+.52,.66,1.08,C.darkTimber);
+  s += poly([P(i+.52,j+.5,1.08),P(i+.86,j+.5,1.0),P(i+.52,j+.5,.9)], C.bannerRed);
+  return s;
+}
+// pier on the board's shoreline; a raised boardwalk on pilings reaching +y (front-left) over the beach to the water
+function pier(i,j){
+  const sandZ=-.3, wz=-.46, deckZ=-.1;
+  let s = '';
+  s += box(i+.14,j+.14,i+.46,j+.46,0,.22,C.plaster);
+  s += gable(i+.14,j+.14,i+.46,j+.46,.22,.15,C.strawRoof,'y',.05,.04);
+  for (const [k,z0] of [[1.22,sandZ],[1.66,sandZ],[2.12,wz-.06]]) s += box(i+.43,j+k,i+.47,j+k+.04,z0,deckZ-.06,C.darkTimber) + box(i+.55,j+k,i+.59,j+k+.04,z0,deckZ-.06,C.darkTimber);
+  s += box(i+.42,j+.98,i+.6,j+2.35,deckZ-.06,deckZ,C.cutWood,{top:C.cutWood,left:C.timber,right:C.darkTimber});
+  s += box(i+.585,j+2.29,i+.615,j+2.32,deckZ,deckZ+.3,C.darkTimber);
+  s += boat(i+.94,j+2.02,wz,-1,.9);
+  return s;
+}
+const BUILD = { house, farm, factory, barracks };
+
+function boardSVG(){
+  const seed = 7, d = .3;
+  const sc = new Scene();
+  // sea + island plate
+  const [wx,wy] = P(1.5,1.5,-d-.16);
+  sc.add(-100, `<ellipse cx="${f1(wx)}" cy="${f1(wy+4)}" rx="252" ry="128" fill="${C.waterRim}" opacity=".9"/>
+    <ellipse cx="${f1(wx)}" cy="${f1(wy+4)}" rx="238" ry="118" fill="${C.water}"/>`);
+  sc.add(-90, box(-.55,-.55,3.55,3.55,-d-.16,-d,C.sand,{left:C.sandSide,right:C.sandDark,extra:'stroke="'+C.sand+'" stroke-width="22" stroke-linejoin="round"'}));
+  // pebbles on the rim
+  for (let k=0;k<26;k++){
+    const t = k/26*Math.PI*2, r = 3.9 + noise(seed,k,1,9)*.25;
+    const x = 1.5 + Math.cos(t)*r*.62, y = 1.5 + Math.sin(t)*r*.62;
+    const [px,py] = P(x,y,-d-.02);
+    sc.add(-89+(x+y)*.001, `<ellipse cx="${f1(px)}" cy="${f1(py)}" rx="${f1(2+noise(seed,k,2,3)*2)}" ry="${f1(1.4+noise(seed,k,3,4))}" fill="${C.stoneDust}" opacity=".85"/>`);
+  }
+  // fringe: forest on the back-left, peaks on the back-right, bushes front
+  const G=-.3;
+  sc.add(-2.4, tree(-.25,-.45,1.15,G)); sc.add(-1.6, tree(.55,-.5,1,G)); sc.add(-.9, tree(1.35,-.55,1.2,G)); sc.add(-.2, tree(2.15,-.5,.95,G));
+  sc.add(-1.9, tree(-.5,.4,1,G)); sc.add(-.9, tree(-.5,1.3,1.1,G)); sc.add(.1, tree(-.5,2.2,.9,G));
+  sc.add(2.1, mountain(3.35,-.35,1.15,.65,G)); sc.add(2.6, mountain(3.5,.55,.8,.45,G));
+  sc.add(6.5, bush(3.2,3.25,8,G+.1)); sc.add(6.9, bush(3.45,3.35,6,G+.08)); sc.add(2.8, bush(-.2,3.2,7,G+.1));
+  // tiles + buildings
+  const layout = [
+    ['house','factory','farm'],
+    ['farm','house','barracks'],
+    ['house','pier',null]
+  ];
+  for (let j=0;j<3;j++) for (let i=0;i<3;i++){
+    const depth = i+j;
+    let s = tile(i,j,seed);
+    const kind = layout[j][i];
+    if (kind === 'pier') s += pier(i,j);
+    else if (kind) s += BUILD[kind](i,j, kind==='house' && i===1 ? 2 : 1);
+    sc.add(depth + .5, s);
+  }
+  // sheep on the empty plot
+  const [sx,sy] = P(2.55,2.4,0);
+  sc.add(5.6, `<ellipse cx="${f1(sx)}" cy="${f1(sy-6)}" rx="7" ry="5" fill="#f4efe4"/><circle cx="${f1(sx+5)}" cy="${f1(sy-7)}" r="3" fill="#3f3630"/>`);
+  // boats offshore
+  sc.add(-60, boat(-.4,-1.15,-d-.16,1,1.1)); sc.add(9, boat(4.2,2.4,-d-.16,-1,.9));
+  return `<svg viewBox="-300 -150 600 350" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><linearGradient id="seaG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f8494"/><stop offset="1" stop-color="#2b6272"/></linearGradient></defs>
+    <rect x="-300" y="-150" width="600" height="350" fill="url(#seaG2)"/>
+    ${sc.render()}
+  </svg>`;
+}
+
+function tileCardSVG(kind){
+  let s = tile(0,0,3);
+  if (kind === 'pier') s += pier(0,0);
+  else s += BUILD[kind](0,0);
+  const vb = kind === 'pier' ? '-70 -34 130 130' : '-52 -58 104 104';
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${s}</svg>`;
+}
+
+// ---------- world map ----------
+const FACTION = { player:'#48b861', neutral:'#bdab80', enemy:'#cc3d33', duskara:'#7057b8' };
+const TERRAIN = { plains:'#78996b', forest:'#4a7856', mountains:'#9e9a8a', desert:'#d9bf85', coast:'#eed494' };
+const TOWNS = [
+  {n:'Hearthglen',x:.09,y:.91,f:'player',t:'plains'},
+  {n:'Green Hollow',x:.24,y:.72,f:'neutral',t:'forest'},
+  {n:'Ironridge',x:.14,y:.50,f:'neutral',t:'mountains'},
+  {n:'Mosswatch',x:.36,y:.86,f:'neutral',t:'plains'},
+  {n:'Ashbarrow',x:.30,y:.42,f:'neutral',t:'plains'},
+  {n:'Pinefall',x:.50,y:.66,f:'neutral',t:'forest'},
+  {n:'Stonewake',x:.60,y:.88,f:'neutral',t:'mountains'},
+  {n:'Rivergate',x:.44,y:.24,f:'neutral',t:'plains'},
+  {n:'Brindle Keep',x:.62,y:.46,f:'neutral',t:'mountains'},
+  {n:'Oakmere',x:.20,y:.20,f:'neutral',t:'forest'},
+  {n:'Wolfscar',x:.78,y:.70,f:'enemy',t:'forest'},
+  {n:'Blackfen',x:.60,y:.14,f:'enemy',t:'desert'},
+  {n:'Grimhaven',x:.88,y:.42,f:'enemy',t:'mountains'},
+  {n:'Redspire',x:.76,y:.24,f:'enemy',t:'desert'},
+  {n:'Duskara',x:.91,y:.09,f:'duskara',t:'desert'}
+];
+const ASPECT = 1.45;
+const dist = (a,b) => Math.hypot((a.x-b.x)*ASPECT, a.y-b.y);
+
+// WorldGenerator.makeConnections: two nearest neighbours each, then bridge components
+function connections(nodes){
+  const set = new Map();
+  const key = (a,b) => a<b ? a+'-'+b : b+'-'+a;
+  nodes.forEach((n,i)=>{
+    nodes.map((m,j)=>({j,d:dist(n,m)})).filter(o=>o.j!==i).sort((p,q)=>p.d-q.d).slice(0,2)
+      .forEach(o=>set.set(key(i,o.j),[i,o.j]));
+  });
+  const parent = nodes.map((_,i)=>i);
+  const find = v => { while (parent[v]!==v) v = parent[v] = parent[parent[v]]; return v; };
+  for (const [a,b] of set.values()) parent[find(a)] = find(b);
+  for(;;){
+    const roots = new Set(nodes.map((_,i)=>find(i)));
+    if (roots.size <= 1) break;
+    let best=null, bd=Infinity;
+    nodes.forEach((a,i)=>nodes.forEach((b,j)=>{ if (find(i)!==find(j) && dist(a,b)<bd){ bd=dist(a,b); best=[i,j]; } }));
+    set.set(key(best[0],best[1]), best); parent[find(best[0])] = find(best[1]);
+  }
+  return Array.from(set.values());
+}
+// GameRules.graphDistances
+function bfs(from, n, edges){
+  const d = new Array(n).fill(-1); d[from]=0; const q=[from];
+  while (q.length){ const c=q.shift(); for (const [a,b] of edges){ const o = a===c?b:b===c?a:-1; if (o>=0 && d[o]<0){ d[o]=d[c]+1; q.push(o);} } }
+  return d;
+}
+// SoldierRoster.decompose + armyStrength (knight 24, archer 10)
+function garrison(strength){
+  let rem = strength; const k = Math.floor(rem/24); rem -= k*24; let a = Math.floor(rem/10); rem -= a*10; if (rem>0) a++;
+  return {k, a, s: k*24 + a*10};
+}
+function blobPath(cx,cy,r,seed,n=14){
+  const p=[];
+  for (let k=0;k<n;k++){
+    const t = k/n*Math.PI*2, w = 1 + (noise(seed,k,1,11)-.5)*.44;
+    p.push([cx+Math.cos(t)*r*w, cy+Math.sin(t)*r*w]);
+  }
+  // smooth with quadratic midpoints
+  let d = '';
+  for (let k=0;k<n;k++){
+    const a=p[k], b=p[(k+1)%n], m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    d += (k===0?`M${f1(m[0])} ${f1(m[1])}`:'') + ` Q${f1(b[0])} ${f1(b[1])} `;
+    const c=p[(k+2)%n], m2=[(b[0]+c[0])/2,(b[1]+c[1])/2];
+    d += `${f1(m2[0])} ${f1(m2[1])}`;
+  }
+  return d+'Z';
+}
+function islandSVG(px,py,r,terrain,seed,faction){
+  let s = '';
+  s += `<path d="${blobPath(px,py+3,r*1.28,seed)}" fill="${FACTION[faction]}" opacity=".2"/>`;
+  s += `<path d="${blobPath(px,py+5,r,seed)}" fill="rgba(0,0,0,.18)"/>`;
+  s += `<path d="${blobPath(px,py,r,seed)}" fill="${TERRAIN.coast}"/>`;
+  s += `<path d="${blobPath(px,py,r*.7,seed+1)}" fill="${TERRAIN[terrain]}"/>`;
+  if (terrain==='forest') for (let k=0;k<5;k++){ const t=k/5*Math.PI*2+seed, rr=r*.34; s += `<circle cx="${f1(px+Math.cos(t)*rr)}" cy="${f1(py+Math.sin(t)*rr*.8)}" r="${f1(5+noise(seed,k,4,5)*3)}" fill="${C.forestDeep}"/>`; }
+  if (terrain==='mountains') for (let k=0;k<3;k++){ const x=px-14+k*13, y=py+4+((k%2)*8); s += `<path d="M${x-9} ${y}l9-14 9 14z" fill="${C.stoneDust}"/><path d="M${x-3} ${y-9}l3-5 3 5z" fill="${C.peakCap}"/>`; }
+  if (terrain==='desert') for (let k=0;k<3;k++){ s += `<ellipse cx="${f1(px-12+k*12)}" cy="${f1(py+6-(k%2)*10)}" rx="8" ry="3" fill="#c8a862" opacity=".8"/>`; }
+  if (terrain==='plains') for (let k=0;k<6;k++){ const x=px-20+noise(seed,k,7,8)*40, y=py-14+noise(seed,k,8,9)*28; s += `<circle cx="${f1(x)}" cy="${f1(y)}" r="1.6" fill="${C.tuft}" opacity=".6"/>`; }
+  return s;
+}
+function glyphSVG(px,py,faction,isDuskara,isActive){
+  const col = FACTION[faction];
+  let s = `<g class="glyph">`;
+  if (isActive) s += `<circle class="pulse" cx="${px}" cy="${py-6}" r="19" fill="none" stroke="${col}" stroke-width="2"/>`;
+  s += `<ellipse cx="${px}" cy="${py}" rx="21" ry="7.5" fill="rgba(0,0,0,.3)"/>`;
+  s += `<rect x="${px-21}" y="${py-11}" width="42" height="15" rx="7" fill="${col}"/><rect x="${px-21}" y="${py-11}" width="42" height="15" rx="7" fill="url(#plateShade)"/>`;
+  const hs = isDuskara ? [13,25,15] : [13,20,15];
+  hs.forEach((h,k)=>{ const x = px-16+k*11; s += `<rect x="${x}" y="${py-8-h}" width="9" height="${h}" rx="2" fill="#ebd6b0"/><rect x="${x-1}" y="${py-11-h}" width="11" height="4" rx="2" fill="${col}"/>`; });
+  if (isDuskara) s += `<path d="M${px-5} ${py-37}l2.5-5 2.5 3 2.5-3 2.5 5z" fill="#e6b35c"/>`;
+  return s + '</g>';
+}
+function badgeSVG(px,py,text,isDuskara){
+  const w = 30 + String(text).length*6;
+  return `<g><rect x="${f1(px-w/2)}" y="${py-8}" width="${w}" height="15" rx="7.5" fill="rgba(0,0,0,.45)"/>
+    <use href="${isDuskara?'#i-crown':'#i-shield'}" x="${f1(px-w/2+5)}" y="${py-5.5}" width="10" height="10" fill="#fff" style="color:#fff"/>
+    <text x="${f1(px-w/2+18)}" y="${py+3.5}" font-size="10" font-weight="700" fill="#fff" font-family="inherit">${text}</text></g>`;
+}
+function worldMapSVG(){
+  const W=1160, H=800;
+  // open ocean around the terrain, like WorldMapView.oceanPadding
+  const pad = 84;
+  const pxOf = t => ({x:pad + t.x*(W-pad*2), y:pad + t.y*(H-pad*2)});
+  const edges = connections(TOWNS);
+  const duskara = TOWNS.findIndex(t=>t.f==='duskara');
+  const d = bfs(duskara, TOWNS.length, edges);
+  const maxD = Math.max(...d, 1);
+  // NewGame.swift starting strengths
+  TOWNS.forEach((t,i)=>{
+    if (t.f==='player'){ t.g=0; return; }
+    const v = i % 6, dd = d[i];
+    const strength = t.f==='duskara' ? 180 : dd<=1 ? 35+v*5 : dd<=Math.max(2,Math.floor(maxD/2)) ? 20+Math.min(15,v*3) : dd<maxD ? 10+Math.min(10,v*2) : 3+Math.min(5,v);
+    t.g = garrison(strength).s;
+  });
+  // GameRules.defense
+  TOWNS.forEach((t,i)=>{ t.def = t.g + Math.round(t.g*.35) + (t.f==='duskara'?55:0) + Math.max(0,maxD-d[i])*4; t.steps = d[i]; });
+
+  let s = `<defs>
+    <linearGradient id="plateShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+    <pattern id="waves" width="90" height="46" patternUnits="userSpaceOnUse"><path d="M0 23c8-6 16-6 24 0s16 6 24 0M45 40c8-6 16-6 24 0s16 6 24 0" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="1.5" stroke-linecap="round"/></pattern>
+  </defs>
+  <rect width="${W}" height="${H}" fill="${C.sea}"/><rect width="${W}" height="${H}" fill="url(#waves)"/>`;
+  // lanes (curved like SeaRoute)
+  edges.forEach(([a,b],k)=>{
+    const A=pxOf(TOWNS[a]), B=pxOf(TOWNS[b]);
+    const mx=(A.x+B.x)/2, my=(A.y+B.y)/2, dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy);
+    const bend = (k%2?1:-1)*len*.12;
+    const cx = mx - dy/len*bend, cy = my + dx/len*bend;
+    const dpath = `M${f1(A.x)} ${f1(A.y)} Q${f1(cx)} ${f1(cy)} ${f1(B.x)} ${f1(B.y)}`;
+    s += `<path class="lane-shadow" d="${dpath}"/><path class="lane" d="${dpath}" style="animation-delay:${-(k*.37)}s"/>`;
+    if (k%3===0) s += `<g class="ship" style="offset-path:path('${dpath}');animation-duration:${14+k%5*2}s"><path d="M-6 1h12l-2 4H-4z" fill="#3d2f27"/><path d="M0-8v9M0-8l6 6H0z" fill="#f2e8d1" stroke="#3d2f27" stroke-width=".6"/></g>`;
+  });
+  // islands (back to front)
+  TOWNS.map((t,i)=>({t,i,p:pxOf(t)})).sort((p,q)=>p.p.y-q.p.y).forEach(({t,i,p})=>{
+    s += islandSVG(p.x,p.y,57,t.t,i*13+5,t.f);
+  });
+  // landmarks: name, icon, [town index, dx, dy]
+  const LM = [
+    ['Crownless Stones','#i-columns',3,-30,-22],
+    ['Wyrdwood Shrine','#i-leaf',5,28,-24],
+    ['Gate of Cinders','#i-mountain',8,-30,22],
+    ['Saltwind Harbor','#i-boat',12,-46,30],
+    ['Sable Obelisk','#i-triangle',13,-40,-22]
+  ];
+  LM.forEach(([name,icon,ti,dx,dy])=>{
+    const p = pxOf(TOWNS[ti]); const x=p.x+dx, y=p.y+dy;
+    s += `<g><circle cx="${x}" cy="${y}" r="10" fill="rgba(0,0,0,.24)"/><use href="${icon}" x="${x-5.5}" y="${y-5.5}" width="11" height="11" style="color:rgba(255,255,255,.86)"/>
+      <text x="${x}" y="${y+20}" text-anchor="middle" font-size="7.5" font-weight="700" font-family="Georgia,serif" fill="rgba(255,255,255,.7)">${name}</text></g>`;
+  });
+  // town markers
+  TOWNS.forEach((t,i)=>{
+    const p = pxOf(t), isD = t.f==='duskara', act = t.f==='player';
+    const help = act ? `${t.n} — your city. Click to inspect, Visit to rule it.`
+      : isD ? `${t.n} — the stronghold. Defeat its ${t.g} soldiers to win.`
+      : `${t.n} — garrison of ${t.g}. Click to inspect or attack.`;
+    s += `<g class="town" tabindex="0" role="button" data-i="${i}" aria-label="${help}">
+      <rect x="${p.x-40}" y="${p.y-46}" width="80" height="78" fill="transparent"/>
+      ${glyphSVG(p.x,p.y,t.f,isD,act)}
+      <text x="${p.x}" y="${p.y+18}" text-anchor="middle" font-size="11" font-weight="700" fill="#000" opacity=".55" font-family="inherit" dy="1">${t.n}</text>
+      <text x="${p.x}" y="${p.y+18}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="inherit">${t.n}</text>
+      ${badgeSVG(p.x,p.y+28,t.g,isD)}
+    </g>`;
+  });
+  return s;
+}
+
+// ---------- sail illustration ----------
+function sailSVG(){
+  const W=520,H=360;
+  const A={x:120,y:236}, B={x:392,y:132};
+  const mx=(A.x+B.x)/2, my=(A.y+B.y)/2, dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy), bend=len*.14;
+  const cx=mx-dy/len*bend, cy=my+dx/len*bend;
+  const dpath=`M${A.x} ${A.y} Q${f1(cx)} ${f1(cy)} ${B.x} ${B.y}`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <linearGradient id="plateShade2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+    <pattern id="waves2" width="90" height="46" patternUnits="userSpaceOnUse"><path d="M0 23c8-6 16-6 24 0s16 6 24 0M45 40c8-6 16-6 24 0s16 6 24 0" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="1.5" stroke-linecap="round"/></pattern></defs>
+    <rect width="${W}" height="${H}" fill="${C.sea}"/><rect width="${W}" height="${H}" fill="url(#waves2)"/>`;
+  s += `<path class="lane-shadow" d="${dpath}"/><path class="lane" d="${dpath}" style="stroke-width:2.4"/>`;
+  s += islandSVG(A.x,A.y,66,'plains',21,'player') + islandSVG(B.x,B.y,60,'forest',44,'neutral');
+  s += islandSVG(470,300,34,'mountains',9,'enemy').replace(/<path[^>]*opacity="\.2"\/>/,'');
+  s += `<g class="ship" style="offset-path:path('${dpath}');animation-duration:12s"><path d="M-9 1h18l-3 6H-6z" fill="#3d2f27"/><path d="M0-12v13M0-12l9 9H0z" fill="#f2e8d1" stroke="#3d2f27" stroke-width=".8"/></g>`;
+  s += glyphSVG(A.x,A.y,'player',false,true).replace('class="glyph"','class="glyph" style="transform:scale(1.15)"') ;
+  s += `<text x="${A.x}" y="${A.y+20}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="inherit" style="text-shadow:0 1px 2px rgba(0,0,0,.8)">Hearthglen</text>` + badgeSVG(A.x,A.y+31,'48',false);
+  // selected target card
+  s += `<rect x="${B.x-52}" y="${B.y-58}" width="104" height="112" rx="11" fill="rgba(33,28,23,.82)" stroke="rgba(255,255,255,.28)"/>`;
+  s += glyphSVG(B.x,B.y-18,'neutral',false,false);
+  s += `<text x="${B.x}" y="${B.y+4}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="inherit">Green Hollow</text>` + badgeSVG(B.x,B.y+16,'31',false);
+  s += `<rect x="${B.x-30}" y="${B.y+28}" width="60" height="18" rx="9" fill="#d17a3d"/><text x="${B.x}" y="${B.y+40.5}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="inherit">Attack</text>`;
+  // defense readout
+  s += `<g transform="translate(20 54)"><rect width="188" height="58" rx="10" fill="rgba(33,28,23,.86)" stroke="rgba(255,255,255,.14)"/>
+    <text x="12" y="20" font-size="11" font-weight="700" fill="#bdad94" font-family="inherit" letter-spacing=".08em">GREEN HOLLOW · DEFENSE</text>
+    <text x="12" y="44" font-size="15" font-weight="700" fill="#f2e8d1" font-family="inherit">31 + 35% + 4×1 = <tspan fill="#e6b35c">46</tspan></text></g>`;
+  s += `<g transform="translate(20 120)"><rect width="188" height="36" rx="10" fill="rgba(33,28,23,.86)" stroke="rgba(255,255,255,.14)"/>
+    <text x="12" y="23" font-size="13" font-weight="700" fill="#8fd670" font-family="inherit">Your 48 &gt; 46 — the sail is on.</text></g>`;
+  return s + '</svg>';
+}
+
+// ---------- unit figures ----------
+const ARCHER = `<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="sh" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></radialGradient></defs>
+  <ellipse cx="100" cy="222" rx="58" ry="10" fill="rgba(0,0,0,.28)"/>
+  <rect x="72" y="176" width="22" height="42" rx="10" fill="#6b4d38"/><rect x="106" y="176" width="22" height="42" rx="10" fill="#6b4d38"/>
+  <rect x="70" y="180" width="26" height="12" rx="6" fill="#4d3627" opacity=".5"/><rect x="104" y="180" width="26" height="12" rx="6" fill="#4d3627" opacity=".5"/>
+  <path d="M60 100c0-14 14-24 40-24s40 10 40 24v64c0 14-16 22-40 22s-40-8-40-22z" fill="#6d8a4c"/><path d="M60 100c0-14 14-24 40-24s40 10 40 24v64c0 14-16 22-40 22s-40-8-40-22z" fill="url(#sh)"/>
+  <rect x="60" y="134" width="80" height="12" fill="#4a3a2a"/><rect x="92" y="131" width="16" height="18" rx="3" fill="#e6b35c"/>
+  <rect x="120" y="60" width="16" height="70" rx="8" fill="#5b4433" transform="rotate(14 128 95)"/><g stroke="#e9dcc0" stroke-width="2.5" stroke-linecap="round"><path d="M128 66l4-14M132 66l4-14"/></g><path d="M130 50l3-6 3 6z" fill="#c7614f"/>
+  <path d="M46 78c-26 30-26 74 0 104" fill="none" stroke="#6b4d38" stroke-width="8" stroke-linecap="round"/>
+  <path d="M46 78L46 182" stroke="#f2e8d1" stroke-width="1.6" opacity=".9"/>
+  <rect x="40" y="118" width="40" height="20" rx="10" fill="#e6c9a3" transform="rotate(-8 60 128)"/>
+  <circle cx="100" cy="58" r="33" fill="#efd9b6"/>
+  <path d="M62 60c0-26 16-42 38-42s38 16 38 42c0-6-6-12-12-14-8-4-16-6-26-6s-18 2-26 6c-6 2-12 8-12 14z" fill="#587040"/>
+  <path d="M100 18c8-4 18-2 24 6-8-2-16-1-24 2-8-3-16-4-24-2 6-8 16-10 24-6z" fill="#587040"/>
+  <circle cx="88" cy="60" r="3.2" fill="#3f3630"/><circle cx="112" cy="60" r="3.2" fill="#3f3630"/>
+  <circle cx="82" cy="70" r="4" fill="#e9a98f" opacity=".6"/><circle cx="118" cy="70" r="4" fill="#e9a98f" opacity=".6"/>
+  <path d="M94 72c4 3 8 3 12 0" fill="none" stroke="#3f3630" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="86" cy="36" r="10" fill="#fff" opacity=".18"/>
+</svg>`;
+const KNIGHT = `<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="sh2" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#000" stop-opacity=".14"/></radialGradient></defs>
+  <ellipse cx="100" cy="222" rx="60" ry="10" fill="rgba(0,0,0,.28)"/>
+  <rect x="70" y="174" width="24" height="44" rx="11" fill="#5e6c78"/><rect x="106" y="174" width="24" height="44" rx="11" fill="#5e6c78"/>
+  <rect x="68" y="204" width="28" height="14" rx="6" fill="#3f3630"/><rect x="104" y="204" width="28" height="14" rx="6" fill="#3f3630"/>
+  <path d="M56 100c0-16 16-26 44-26s44 10 44 26v62c0 16-18 24-44 24s-44-8-44-24z" fill="#7d8b96"/><path d="M56 100c0-16 16-26 44-26s44 10 44 26v62c0 16-18 24-44 24s-44-8-44-24z" fill="url(#sh2)"/>
+  <path d="M74 92h52v52c0 12-12 20-26 20s-26-8-26-20z" fill="#9aa7b1" opacity=".55"/>
+  <rect x="56" y="136" width="88" height="12" fill="#4a3a2a"/><rect x="92" y="133" width="16" height="18" rx="3" fill="#e6b35c"/>
+  <rect x="146" y="30" width="12" height="96" rx="4" fill="#dcd5c4" transform="rotate(8 152 78)"/><rect x="134" y="120" width="34" height="9" rx="4" fill="#e6b35c" transform="rotate(8 151 124)"/><rect x="148" y="128" width="10" height="20" rx="4" fill="#5b4433" transform="rotate(8 153 138)"/>
+  <path d="M28 96h56v40c0 20-14 34-28 40-14-6-28-20-28-40z" fill="#b87a69"/><path d="M28 96h56v40c0 20-14 34-28 40-14-6-28-20-28-40z" fill="url(#sh2)"/>
+  <path d="M52 100v66M32 120h48" stroke="#eddebf" stroke-width="7" stroke-linecap="round"/><circle cx="56" cy="122" r="7" fill="#e6b35c"/>
+  <circle cx="100" cy="58" r="34" fill="#d9d4c4"/><path d="M66 58a34 34 0 0 1 68 0z" fill="#e4e0d3"/>
+  <path d="M68 60h64v10c0 6-4 10-10 10H78c-6 0-10-4-10-10z" fill="#3f3630"/><rect x="96" y="60" width="8" height="20" fill="#d9d4c4"/>
+  <path d="M100 26c-4-10-2-18 6-22 6 8 6 16 0 24z" fill="#c7614f"/><path d="M100 26c4-10 12-14 20-10-4 8-10 12-20 12z" fill="#c7614f"/>
+  <circle cx="86" cy="40" r="10" fill="#fff" opacity=".2"/>
+</svg>`;
+const DUSKARA = `<svg viewBox="0 0 220 240" xmlns="http://www.w3.org/2000/svg">
+  <defs><radialGradient id="sunD" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffd58a"/><stop offset=".7" stop-color="#f0a64f"/><stop offset="1" stop-color="#d9783a"/></radialGradient>
+  <radialGradient id="sh3" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></radialGradient></defs>
+  <circle cx="72" cy="112" r="52" fill="url(#sunD)"/>
+  <ellipse cx="110" cy="206" rx="98" ry="26" fill="#f3e8d3" opacity=".9"/><ellipse cx="110" cy="206" rx="88" ry="21" fill="#8fc4c8"/>
+  <path d="M40 186l70-30 70 30-70 30z" fill="#4f4a66"/><path d="M40 186v10l70 30v-10z" fill="#3a3650"/><path d="M180 186v10l-70 30v-10z" fill="#2c293e"/>
+  <ellipse cx="110" cy="188" rx="60" ry="24" fill="rgba(0,0,0,.18)"/>
+  <rect x="58" y="140" width="24" height="44" rx="4" fill="#6a5f8c"/><rect x="138" y="140" width="24" height="44" rx="4" fill="#6a5f8c"/>
+  <g fill="#7b6fa0"><rect x="58" y="134" width="6" height="10" rx="1.5"/><rect x="67" y="134" width="6" height="10" rx="1.5"/><rect x="76" y="134" width="6" height="10" rx="1.5"/><rect x="138" y="134" width="6" height="10" rx="1.5"/><rect x="147" y="134" width="6" height="10" rx="1.5"/><rect x="156" y="134" width="6" height="10" rx="1.5"/></g>
+  <rect x="84" y="90" width="52" height="96" rx="10" fill="#5c4f7a"/><rect x="84" y="90" width="52" height="96" rx="10" fill="url(#sh3)"/>
+  <path d="M78 92l32-40 32 40z" fill="#3c3258"/><path d="M78 92l32-40 8 10-40 30z" fill="#4b4070"/>
+  <rect x="104" y="150" width="12" height="20" rx="6" fill="#2a2440"/>
+  <rect x="97" y="112" width="8" height="12" rx="3" fill="#ffb85c"/><rect x="115" y="112" width="8" height="12" rx="3" fill="#ffb85c"/>
+  <path d="M96 52l4-16 6 8 4-12 4 12 6-8 4 16z" fill="#e6b35c"/><rect x="96" y="50" width="28" height="6" rx="2" fill="#d59f43"/><circle cx="110" cy="42" r="2.4" fill="#c7614f"/>
+  <rect x="109" y="30" width="2" height="8" fill="#eddebf"/><path d="M111 30l10 3-10 3z" fill="#7057b8"/>
+  <circle cx="98" cy="102" r="7" fill="#fff" opacity=".12"/>
+</svg>`;
+
+// ---------- boot ----------
+function mount(id, svg){ const el = document.getElementById(id); if (el) el.insertAdjacentHTML('beforeend', svg); }
+mount('art-build', boardSVG());
+mount('art-sail', sailSVG());
+for (const k of ['house','pier','farm','factory','barracks']) mount('art-'+k, tileCardSVG(k));
+mount('fig-archer', ARCHER); mount('fig-knight', KNIGHT); mount('fig-duskara', DUSKARA);
+
+const mapSvg = $('#worldmap');
+if (mapSvg){
+  mapSvg.innerHTML = worldMapSVG();
+  const tip = $('#mapTip'), map = $('#map');
+  const FL = { player:'Your city', neutral:'Free city', enemy:'Banner city', duskara:'The stronghold' };
+  function showTip(g){
+    const t = TOWNS[+g.dataset.i];
+    const gb = g.querySelector('.glyph').getBoundingClientRect(), mb = map.getBoundingClientRect();
+    tip.innerHTML = `<div class="n">${t.n}</div><div class="f" style="color:${FACTION[t.f]}">${FL[t.f]}${t.steps>0?` · ${t.steps} lane${t.steps>1?'s':''} from Duskara`:''}</div>
+      <div class="h">${t.f==='player' ? 'Your capital. Visit to build and train here.' : `Garrison <b>${t.g}</b> · defense <b>${t.def}</b>. ${t.f==='duskara' ? 'Beat that and the campaign is won.' : 'Sail with more than that and it is yours.'}`}</div>
+      <span class="act${t.f!=='player' && t.def>=48 ? ' off':''}">${t.f==='player'?'Visit':'Attack'}</span>`;
+    tip.style.left = (gb.left + gb.width/2 - mb.left) + 'px';
+    tip.style.top = (gb.top - mb.top) + 'px';
+    tip.classList.add('show');
+  }
+  const hideTip = () => tip.classList.remove('show');
+  const scroller = $('#mapScroll');
+  // when the map pans (small screens), start on Hearthglen's corner and drop the tooltip on scroll
+  if (scroller.scrollWidth > scroller.clientWidth){ scroller.scrollLeft = 0; scroller.scrollTop = scroller.scrollHeight; }
+  scroller.addEventListener('scroll', hideTip, {passive:true});
+  $$('.town', mapSvg).forEach(g=>{
+    g.addEventListener('mouseenter', ()=>showTip(g));
+    g.addEventListener('focus', ()=>showTip(g));
+    g.addEventListener('mouseleave', hideTip);
+    g.addEventListener('blur', hideTip);
+    g.addEventListener('click', ()=>showTip(g));
+    g.addEventListener('keydown', e=>{
+      if (e.key==='Enter' || e.key===' '){ e.preventDefault(); showTip(g); }
+      else if (e.key==='Escape') hideTip();
+    });
+  });
+}
+
+// nav
+const nav = $('#nav'), toggle = $('#navToggle'), links = $('#navLinks');
+const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 24);
+onScroll(); addEventListener('scroll', onScroll, {passive:true});
+toggle.addEventListener('click', ()=>{
+  const open = links.classList.toggle('open');
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  toggle.innerHTML = `<svg><use href="${open?'#i-close':'#i-menu'}"/></svg>`;
+});
+links.addEventListener('click', e=>{ if (e.target.closest('a')){ links.classList.remove('open'); toggle.setAttribute('aria-expanded','false'); toggle.innerHTML='<svg><use href="#i-menu"/></svg>'; } });
+
+// active section link
+const sections = $$('main section[id]');
+const navAnchors = $$('.nav-links a');
+if ('IntersectionObserver' in window){
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(en=>{ if (en.isIntersecting){ navAnchors.forEach(a=>a.classList.toggle('active', a.getAttribute('href')==='#'+en.target.id)); } });
+  }, {rootMargin:'-40% 0px -55% 0px'});
+  sections.forEach(s=>io.observe(s));
+  // reveal
+  const ro = new IntersectionObserver(entries=>{ entries.forEach(en=>{ if (en.isIntersecting){ en.target.classList.add('in'); ro.unobserve(en.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+  $$('.reveal').forEach(el=>ro.observe(el));
+  // in-game footage: only spin up the second decoder when it's on screen
+  const gv = $('#gameVideo');
+  if (gv){
+    const vo = new IntersectionObserver(entries=>{ entries.forEach(en=>{ if (en.isIntersecting){ gv.play().catch(()=>{}); } else { gv.pause(); } }); }, {threshold:.25});
+    vo.observe(gv);
+    gv.addEventListener('error', ()=>{ gv.remove(); }, true);
+  }
+} else {
+  $$('.reveal').forEach(el=>el.classList.add('in'));
+}
+
+// hero video fades in once frames are actually decoding; if it fails, the gradient stays
+const hv = $('#heroVideo');
+if (hv){
+  const ready = () => hv.classList.add('ready');
+  hv.addEventListener('playing', ready, {once:true});
+  hv.addEventListener('error', ()=>hv.remove(), true);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ hv.removeAttribute('autoplay'); hv.pause(); }
+  else hv.play().catch(()=>{});
+}
+})();
+</script>
+</body>
+</html>
