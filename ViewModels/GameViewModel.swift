@@ -35,6 +35,7 @@ final class GameViewModel {
     var buildingPresentation: BuildingPresentation?
     var isBuildMenuPresented = false
     var isWorldMapPresented = false
+    var isTransferPresented = false
     var feedback: GameMessage?
 
     var clockTask: Task<Void, Never>?
@@ -91,6 +92,10 @@ final class GameViewModel {
         state.updateTown(id: state.activeTownID) {
             var resources = ResourceWallet(balance.baseStartingResources)
             resources.apply(bonusAllocation)
+            // Difficulty tops up the balance table, and neither has people in
+            // it — those came with the town's founding buildings, so they carry
+            // across rather than being reset to the table's zero.
+            resources[.people] = $0.resources[.people]
             $0.resources = resources
         }
         phase = .town
@@ -167,6 +172,7 @@ final class GameViewModel {
     }
 
     func advanceDayManually() {
+        guard phase == .town else { return }
         GameRules.advanceDay(state: &state, balance: balance)
         sanitizeSelection()
         saveCurrentGame()
@@ -211,6 +217,19 @@ final class GameViewModel {
 
     func effectiveDefenseStrength(for town: Town) -> Int {
         GameRules.defense(town, in: state, balance: balance)
+    }
+
+    /// Towns a transfer could reach: everything the player holds except the one
+    /// sending. Empty until a second town is captured, which is what gates the
+    /// Send button — there is nowhere to send before then.
+    var transferDestinations: [Town] {
+        state.towns.filter { $0.isPlayerControlled && $0.id != state.activeTownID }
+    }
+
+    /// Soldiers are counted by army strength rather than the resource wallet,
+    /// which only mirrors it for towns that have fought.
+    func availableToSend(_ kind: ResourceKind) -> Int {
+        kind == .soldiers ? activeTown.armyStrength : activeTown.resources[kind]
     }
 
     func transfer(_ kind: ResourceKind, amount: Int, to destinationID: UUID) {
@@ -287,7 +306,7 @@ final class GameViewModel {
         let now = Date()
         state.elapsedSecondsInDay += max(0, now.timeIntervalSince(lastTick))
         lastTick = now
-        while state.elapsedSecondsInDay >= balance.dayDuration {
+        while phase == .town, state.elapsedSecondsInDay >= balance.dayDuration {
             let carry = state.elapsedSecondsInDay - balance.dayDuration
             GameRules.advanceDay(state: &state, balance: balance)
             state.elapsedSecondsInDay = carry
@@ -297,6 +316,13 @@ final class GameViewModel {
     }
 
     func sanitizeSelection() {
+        // Enemy captures are the only way the player loses towns, and every
+        // one of them lands here via advanceDay — so this is the single place
+        // that can notice the empire is gone.
+        guard state.towns.contains(where: \.isPlayerControlled) else {
+            concedeCampaign()
+            return
+        }
         if state.town(id: state.activeTownID)?.isPlayerControlled != true,
            let next = state.towns.first(where: \.isPlayerControlled) {
             state.activeTownID = next.id
@@ -306,6 +332,19 @@ final class GameViewModel {
             self.selectedBuildingID = nil
             buildingPresentation = nil
         }
+    }
+
+    /// Terminal loss. Sheets are dismissed explicitly because a day can roll
+    /// over — and the last town fall — while the build menu is open.
+    private func concedeCampaign() {
+        guard phase == .town else { return }
+        phase = .defeat
+        isWorldMapPresented = false
+        isBuildMenuPresented = false
+        isTransferPresented = false
+        buildingPresentation = nil
+        placementBuildingKind = nil
+        stopClock()
     }
 
     func show(_ text: String) {

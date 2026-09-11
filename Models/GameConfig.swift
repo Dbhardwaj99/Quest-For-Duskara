@@ -73,7 +73,9 @@ struct GameBalance {
             .factory: BuildingDefinition(
                 kind: .factory,
                 summary: "Generates technology for upgrades and soldiers.",
-                baseCost: [.gold: 45, .skill: 10],
+                // No skill cost: the Factory is what produces skill, so charging
+                // it gates the only way out of having none.
+                baseCost: [.gold: 45],
                 baseProduction: [.skill: 7],
                 peopleRequired: 3,
                 peopleOnBuild: 0,

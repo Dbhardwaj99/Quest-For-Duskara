@@ -60,7 +60,12 @@ extension World3DTileEntity {
     }
 
     static func template(kind: TemplateKind, tileSize: Float) -> Entity {
-        let key = TemplateKey(kind: kind, tileSizeBucket: Int((tileSize * 10_000).rounded()), theme: WorldTheme.current)
+        let key = TemplateKey(
+            kind: kind,
+            tileSizeBucket: Int((tileSize * 10_000).rounded()),
+            theme: WorldTheme.current,
+            contrast: WorldContrast.level
+        )
         if let cached = templateCache[key] {
             return cached.clone(recursive: true)
         }

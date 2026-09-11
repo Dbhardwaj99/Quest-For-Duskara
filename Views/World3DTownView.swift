@@ -8,6 +8,9 @@ struct World3DTownView: NSViewControllerRepresentable {
     /// directly so that a slider change makes this value differ, which is what
     /// gets SwiftUI to re-run the update and push the new scales into the scene.
     var buildingScales: [BuildingKind: Float] = [:]
+    /// Same reason as `buildingScales`: held here rather than read off
+    /// `WorldContrast` so a slider change differs and drives the update.
+    var contrast: Double = WorldContrast.standard
 
     func makeNSViewController(context: Context) -> World3DTownViewController {
         World3DTownViewController(sourceViewModel: sourceViewModel)

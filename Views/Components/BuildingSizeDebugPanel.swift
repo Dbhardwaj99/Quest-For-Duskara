@@ -43,7 +43,7 @@ struct BuildingSizeDebugPanel: View {
 
     private func binding(for kind: BuildingKind) -> Binding<Float> {
         Binding(
-            get: { scales[kind] ?? BuildingScale.standard },
+            get: { scales[kind] ?? BuildingScale.standard(for: kind) },
             set: { newValue in
                 scales[kind] = newValue
                 BuildingScale.overrides[kind] = newValue

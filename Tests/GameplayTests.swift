@@ -118,6 +118,53 @@ struct GameplayTests {
         #expect(knight.dailyFoodUpkeep == 4)
     }
 
+    @Test func contrastKnobPushesColorWithoutEscapingTheChannelRange() {
+        // A mid-blue like the open sea, in HSB.
+        let water = (saturation: 0.68, brightness: 0.47)
+
+        let shipped = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: WorldContrast.neutral)
+        // At neutral the curve is the pastel pass and nothing more: 0.76
+        // desaturation and the brightness lift, with the knob contributing nothing.
+        #expect(abs(shipped.saturation - water.saturation * 0.76) < 0.0001)
+        #expect(abs(shipped.brightness - water.brightness * 1.06) < 0.0001)
+
+        // The world ships above neutral, so the default is deliberately punchier
+        // than the plain pastel pass — that is the whole point of the preset.
+        #expect(WorldContrast.standard > WorldContrast.neutral)
+        #expect(WorldContrast.range.contains(WorldContrast.standard))
+        let byDefault = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: WorldContrast.standard)
+        #expect(byDefault.saturation > shipped.saturation)
+
+        // Turning it up saturates (bluer water, greener grass) and pushes the
+        // sub-midpoint tones darker, which is what makes buildings pop.
+        let vivid = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: 1.8)
+        #expect(vivid.saturation > shipped.saturation)
+        #expect(vivid.brightness < shipped.brightness)
+
+        // Turning it down flattens both toward grey and mid.
+        let flat = WorldContrast.adjust(saturation: water.saturation, brightness: water.brightness, level: 0.4)
+        #expect(flat.saturation < shipped.saturation)
+        #expect(flat.brightness > shipped.brightness)
+
+        // Bright tones move the other way — the spread pivots on mid-grey. Kept
+        // clear of 1.0, where both sides would clamp and compare equal.
+        let litNeutral = WorldContrast.adjust(saturation: 0.1, brightness: 0.7, level: WorldContrast.neutral)
+        let litVivid = WorldContrast.adjust(saturation: 0.1, brightness: 0.7, level: 1.8)
+        #expect(litVivid.brightness > litNeutral.brightness)
+
+        // NSColor(hue:saturation:brightness:) traps outside 0...1, and the
+        // extremes of the slider are exactly where the curve wants to overshoot.
+        for level in [WorldContrast.range.lowerBound, WorldContrast.standard, WorldContrast.range.upperBound] {
+            for saturation in [0.0, 0.5, 1.0] {
+                for brightness in [0.0, 0.5, 1.0] {
+                    let adjusted = WorldContrast.adjust(saturation: saturation, brightness: brightness, level: level)
+                    #expect((0...1).contains(adjusted.saturation))
+                    #expect((0...1).contains(adjusted.brightness))
+                }
+            }
+        }
+    }
+
     @Test func campaignUsesFifteenLargeIslandsAndKeepsThreeByThreeTowns() {
         let balance = GameBalance.duskDefault
         let state = makeNewGame(balance: balance)
@@ -132,6 +179,78 @@ struct GameplayTests {
         #expect(generated.nodes.first(where: { $0.townID == state.towns[0].id })?.y == 1 - generated.world.layout.playableInset)
         #expect(generated.nodes.first(where: { $0.townID == state.towns.last?.id })?.x == 1 - generated.world.layout.playableInset)
         #expect(generated.nodes.first(where: { $0.townID == state.towns.last?.id })?.y == generated.world.layout.playableInset)
+    }
+
+    @MainActor
+    @Test func foundingBuildingsStockTheirOwnPopulationForPlayerAndAI() throws {
+        let balance = GameBalance.duskDefault
+        let house = try #require(balance.buildingDefinitions[.house])
+        let expected = house.peopleOnBuild
+        let state = makeNewGame(balance: balance)
+
+        // The player's wallet is rebuilt from `baseStartingResources`, which has
+        // no people in it — the regression was that rebuild wiping the founding
+        // population and leaving the town at zero under a House built for eight.
+        #expect(state.towns[0].isPlayerControlled)
+        #expect(state.towns[0].resources[.people] == expected)
+        for town in state.towns {
+            #expect(town.resources[.people] == expected)
+        }
+
+        // Starting the campaign rebuilds that wallet a second time, with the
+        // difficulty bonus on top. People have to survive that pass too.
+        let viewModel = GameViewModel()
+        viewModel.adjustBonusPresets(for: .easy)
+        viewModel.startGame()
+        defer { viewModel.stopClock() }
+        #expect(viewModel.activeTown.resources[.people] == expected)
+        #expect(viewModel.activeTown.resources[.gold] > (balance.baseStartingResources[.gold] ?? 0))
+
+        // The Pier is staffed out of that population, so free people is what is
+        // left over — not the zero a starved town reports.
+        let pierWorkers = try #require(balance.buildingDefinitions[.pier]).peopleRequired
+        #expect(viewModel.freePeople == expected - pierWorkers)
+        #expect(viewModel.freePeople > 0)
+    }
+
+    @MainActor
+    @Test func sendingIsOfferedOnlyOnceASecondTownIsHeld() throws {
+        let viewModel = GameViewModel()
+        viewModel.startGame()
+        defer { viewModel.stopClock() }
+
+        // One town: nowhere to send, so the button is not offered at all.
+        #expect(viewModel.transferDestinations.isEmpty)
+
+        let second = try #require(viewModel.state.towns.firstIndex { $0.isPlayerControlled == false })
+        let secondID = viewModel.state.towns[second].id
+        viewModel.state.towns[second].faction = .player
+
+        let destinations = viewModel.transferDestinations
+        #expect(destinations.count == 1)
+        #expect(destinations.first?.id == secondID)
+        // The town doing the sending is never its own destination.
+        #expect(destinations.contains { $0.id == viewModel.state.activeTownID } == false)
+
+        // Soldiers are read from army strength, not the wallet, which only
+        // mirrors it for towns that have fought.
+        viewModel.state.updateTown(id: viewModel.state.activeTownID) {
+            $0.resources[.gold] = 120
+            $0.armyStrength = 40
+            $0.resources[.soldiers] = 0
+        }
+        #expect(viewModel.availableToSend(.gold) == 120)
+        #expect(viewModel.availableToSend(.soldiers) == 40)
+
+        // Towns are founded holding gold, so this is a delta, not a total.
+        let destinationGold = try #require(viewModel.state.town(id: secondID)).resources[.gold]
+        viewModel.transfer(.gold, amount: 50, to: secondID)
+        #expect(viewModel.activeTown.resources[.gold] == 70)
+        #expect(viewModel.state.town(id: secondID)?.resources[.gold] == destinationGold + 50)
+
+        // People are not offered: shipping them out would strand the workforce
+        // its buildings already claim.
+        #expect(GameRules.transferableKinds.contains(.people) == false)
     }
 
     @Test func buildTrainAndTransfer() {
@@ -149,6 +268,79 @@ struct GameplayTests {
         let order = TransferOrder(fromTownID: state.towns[0].id, toTownID: second.id, amounts: [.gold: 10])
         #expect(GameRules.transfer(order, state: &state, balance: balance) == nil)
         #expect(state.towns[1].resources[.gold] >= 10)
+    }
+
+    @Test func workforceStarvedEnemyTownRecoversAndKeepsDeveloping() {
+        let balance = GameBalance.duskDefault
+        var state = makeNewGame(balance: balance)
+        guard let enemy = state.towns.first(where: { $0.faction == .enemy }) else {
+            Issue.record("New game needs an enemy town.")
+            return
+        }
+        // Two towns and no sea routes: the AI has no attack targets, so this
+        // fixture is only ever exercising development.
+        state.towns = [state.towns[0], enemy]
+        state.connections = []
+        let enemyID = enemy.id
+        // Resources are deliberately abundant so workforce is the only blocker.
+        state.updateTown(id: enemyID) {
+            $0.resources = ResourceWallet([.gold: 5_000, .skill: 5_000, .food: 500, .people: 4])
+            $0.soldierRoster = SoldierRoster()
+            $0.armyStrength = 0
+        }
+
+        // Turn one builds the Farm and spends the last free person. This is
+        // where development used to stop for good.
+        GameRules.runEnemyTurn(state: &state, balance: balance)
+        #expect(state.town(id: enemyID)?.buildings.contains { $0.kind == .farm } == true)
+        #expect(GameRules.freePeople(state.town(id: enemyID) ?? enemy, balance: balance) == 0)
+
+        for _ in 0..<11 { GameRules.runEnemyTurn(state: &state, balance: balance) }
+
+        guard let developed = state.town(id: enemyID) else {
+            Issue.record("Enemy town disappeared.")
+            return
+        }
+        #expect(developed.buildings.filter { $0.kind == .house }.count > 1)
+        #expect(developed.buildings.contains { $0.kind == .barracks })
+        #expect(developed.buildings.contains { $0.kind == .factory })
+        #expect(developed.armyStrength > 0)
+    }
+
+    @MainActor
+    @Test func losingTheLastTownEndsTheCampaign() {
+        let viewModel = GameViewModel()
+        let balance = viewModel.balance
+        viewModel.startGame()
+
+        guard let player = viewModel.state.towns.firstIndex(where: \.isPlayerControlled),
+              let raider = viewModel.state.towns.firstIndex(where: { $0.faction == .enemy }) else {
+            Issue.record("New game needs a player town and an enemy town.")
+            return
+        }
+        viewModel.state.towns[raider].soldierRoster = SoldierRoster.decompose(strength: 5_000, using: balance.soldierDefinitions)
+        GameRules.syncArmy(&viewModel.state.towns[raider], balance: balance)
+
+        #expect(GameRules.resolveAttack(
+            source: raider,
+            target: player,
+            faction: .enemy,
+            realmID: viewModel.state.towns[raider].realmID,
+            strength: viewModel.state.towns[raider].armyStrength,
+            state: &viewModel.state,
+            balance: balance
+        ))
+        #expect(viewModel.state.towns.contains(where: \.isPlayerControlled) == false)
+
+        viewModel.sanitizeSelection()
+        #expect(viewModel.phase == .defeat)
+
+        // A terminal campaign must not keep ticking over.
+        let terminal = viewModel.state
+        viewModel.advanceDayManually()
+        viewModel.tick()
+        #expect(viewModel.state == terminal)
+        #expect(viewModel.phase == .defeat)
     }
 }
 

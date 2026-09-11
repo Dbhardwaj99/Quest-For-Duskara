@@ -12,7 +12,7 @@ extension World3DRenderer {
         let archers = min(town.soldierRoster[.archer], 3)
         let knights = min(town.soldierRoster[.knight], 3)
         let anchor = soldierAnchorCoordinate(town: town, snapshots: snapshots)
-        let signature = "\(archers)|\(knights)|\(anchor?.x ?? -1),\(anchor?.y ?? -1)|\(WorldTheme.current.rawValue)"
+        let signature = "\(archers)|\(knights)|\(anchor?.x ?? -1),\(anchor?.y ?? -1)|\(WorldTheme.current.rawValue)|\(WorldContrast.level)"
         guard signature != soldierSignature else { return }
         soldierSignature = signature
 

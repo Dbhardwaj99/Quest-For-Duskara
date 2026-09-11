@@ -18,21 +18,30 @@ func makeNewGame(balance: GameBalance) -> GameState {
     let center = GridCoordinate(x: balance.gridSize.columns / 2, y: balance.gridSize.rows / 2)
     let shoreline = GridCoordinate(x: center.x, y: balance.gridSize.rows - 1)
 
+    // One list, so the founding buildings and the population they bring can
+    // never disagree. Instances are made per town — they carry identity.
+    let startingPlots: [(kind: BuildingKind, coordinate: GridCoordinate)] = [
+        (.house, center),
+        (.pier, shoreline)
+    ]
+    let startingPeople = GameRules.startingPeople(for: startingPlots.map(\.kind), balance: balance)
+
     var towns = names.enumerated().map { index, name in
         Town(
             name: name,
-            resources: ResourceWallet([.gold: 60 + index * 6, .skill: 20 + index, .food: 30, .people: 4]),
-            buildings: [
-                BuildingInstance(kind: .house, coordinate: center),
-                BuildingInstance(kind: .pier, coordinate: shoreline)
-            ],
+            resources: ResourceWallet([.gold: 60 + index * 6, .skill: 20 + index, .food: 30, .people: startingPeople]),
+            buildings: startingPlots.map { BuildingInstance(kind: $0.kind, coordinate: $0.coordinate) },
             biomeLayout: layouts[index % layouts.count],
             faction: name == "Duskara" ? .duskara : (enemies.contains(name) ? .enemy : .neutral),
             isDuskara: name == "Duskara"
         )
     }
     towns[0].faction = .player
-    towns[0].resources = ResourceWallet(balance.baseStartingResources)
+    // The player's stockpile comes from the balance table, which is about what
+    // the campaign grants — the people came with the buildings, not the table.
+    var playerResources = ResourceWallet(balance.baseStartingResources)
+    playerResources[.people] = startingPeople
+    towns[0].resources = playerResources
 
     let generated = WorldGenerator().generate(towns: towns)
     if let duskara = towns.first(where: \.isDuskara)?.id {
