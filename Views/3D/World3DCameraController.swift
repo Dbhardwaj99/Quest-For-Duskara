@@ -23,9 +23,9 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     // Zoom tuning — `defaultDistance` is the starting zoom; min/max clamp
     // pinch zoom. Watch the "Camera zoom" console log to pick values.
-    static let defaultDistance: Float = 3.0
-    static let minDistance: Float = 2.4
-    static let maxDistance: Float = 3.2
+    static let defaultDistance: Float = 5.2
+    static let minDistance: Float = 2.7
+    static let maxDistance: Float = 6.4
     static let zoomSensitivity: Float = 0.45
 
     private let target = SIMD3<Float>(0, 0, 0)

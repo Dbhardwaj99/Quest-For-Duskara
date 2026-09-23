@@ -24,15 +24,19 @@ extension World3DRenderer {
         sun.light.color = palette.sun
     }
 
-    func rebuildScaffold(gridSize: GridSize) {
+    func rebuildScaffold(gridSize: GridSize, town: Town) {
         applyEnvironment()
         staticRoot.children.forEach { $0.removeFromParent() }
-        addDuskBackdrop(for: gridSize)
-        addGroundPlate(for: gridSize)
+        let seed = World3DOcean.seed(for: town.id)
+        addDuskBackdrop(for: gridSize, seed: seed)
+        addGroundPlate(for: gridSize, seed: seed)
+        addIslandAccents(for: town, gridSize: gridSize, seed: seed)
     }
 
     func clearTiles() {
         tileRoot.children.forEach { $0.removeFromParent() }
+        pathRoot.children.forEach { $0.removeFromParent() }
+        pathSignature = ""
         tileEntities.removeAll()
         tileSnapshots.removeAll()
         lastPlacementStates.removeAll()
@@ -41,98 +45,72 @@ extension World3DRenderer {
             .forEach { $0.removeFromParent() }
     }
 
-    func addGroundPlate(for gridSize: GridSize) {
+    func addGroundPlate(for gridSize: GridSize, seed: Int) {
         let boardWidth = terrainWidth(for: gridSize)
         let boardDepth = terrainDepth(for: gridSize)
-
-        // Dark soil core under the tiles: a thin visible band between the
-        // grass overhang and the sand, like a cut through real earth.
-        let soil = World3DRenderResources.makeBox(
-            size: SIMD3<Float>(boardWidth - 0.02, 0.22, boardDepth - 0.02),
-            material: matte(palette.rootSoil, roughness: 0.97),
-            cornerRadius: 0.10
-        )
-        soil.position.y = -0.16
-        staticRoot.addChild(soil)
-
-        // Organic sand mound with a wobbling coastline; the shape is shared
-        // with World3DOcean so shader foam hugs the actual shore.
-        let beach = World3DOcean.makeBeach(
-            islandHalfExtents: SIMD2<Float>(boardWidth / 2, boardDepth / 2),
+        let halfExtents = SIMD2<Float>(boardWidth / 2, boardDepth / 2)
+        staticRoot.addChild(World3DOcean.makeLand(
+            islandHalfExtents: halfExtents,
             tileSize: tileSize,
-            material: matte(palette.skirt, roughness: 0.97)
+            seed: seed,
+            grass: matte(palette.tileGround, roughness: 0.94),
+            soil: matte(palette.fieldDirt, roughness: 0.97)
+        ))
+        let beach = World3DOcean.makeBeach(
+            islandHalfExtents: halfExtents,
+            tileSize: tileSize,
+            material: matte(palette.skirt, roughness: 0.97),
+            seed: seed
         )
         staticRoot.addChild(beach)
-
-        addGravelSkirt(boardWidth: boardWidth, boardDepth: boardDepth)
+        addShoreStones(halfExtents: halfExtents, seed: seed)
     }
 
-    // The rim used to end in a machined vertical cut poking out of the beach.
-    // Now loose gravel packs against it all the way round — half-buried in the
-    // earth band up near the grass, thinning out onto the sand below — so the
-    // island reads as a weathered shore rather than a slab set into the beach.
-    // ponytail: a continuous apron ring was tried first and read as a concrete
-    // kerb; scattered pebbles are both cheaper and softer.
-    func addGravelSkirt(boardWidth: Float, boardDepth: Float) {
-        // Sand and soil tones with a couple of stones for contrast — a purely
-        // grey mix reads as roadbase, not shingle.
-        let stones = [palette.warmStone, palette.stoneDust, palette.rootSoil, palette.paleStone, palette.fieldDirt, palette.skirt]
-        let step = tileSize * 0.055 / World3DRenderResources.visualQuality.terrainDecorationMultiplier
-        // Each rim: how far it runs, the fixed cross-axis offset, and whether
-        // the run is along x. Corners get covered twice, which is where the
-        // clutter helps most.
-        let rims: [(run: Float, offset: Float, alongX: Bool)] = [
-            (boardWidth, -boardDepth / 2, true),
-            (boardWidth, boardDepth / 2, true),
-            (boardDepth, -boardWidth / 2, false),
-            (boardDepth, boardWidth / 2, false)
-        ]
+    func addShoreStones(halfExtents: SIMD2<Float>, seed: Int) {
+        let colors = [palette.warmStone, palette.stoneDust, palette.rootSoil, palette.paleStone]
+        for index in 0..<48 {
+            let angle = (Float(index) + Float(seed % 17) / 17) / 48 * .pi * 2
+            let coordinate = GridCoordinate(x: index, y: seed % 997)
+            let coast = World3DOcean.coastRadius(angle: angle, islandHalfExtents: halfExtents, tileSize: tileSize, seed: seed)
+            let offset = Float(stablePercent(coordinate, salt: 823) - 50) / 100 * tileSize * 0.22
+            let point = SIMD2<Float>(sin(angle), cos(angle)) * (coast - tileSize * 0.17 + offset)
+            let stone = World3DRenderResources.makeSphere(
+                radius: tileSize * (0.025 + Float(index % 3) * 0.007),
+                material: matte(colors[index % colors.count], roughness: 0.97),
+                scale: SIMD3<Float>(1.25, 0.55, 0.9)
+            )
+            stone.position = SIMD3<Float>(point.x, -0.10, point.y)
+            staticRoot.addChild(stone)
+        }
+    }
 
-        var seed = 0
-        for rim in rims {
-            let outward: Float = rim.offset < 0 ? -1 : 1
-            let span = rim.run + tileSize * 0.14
-            let count = min(38, max(10, Int((rim.run / step).rounded())))
-
-            for index in 0..<count {
-                seed += 1
-                let stone = GridCoordinate(x: seed, y: 0)
-                // Full-step jitter, so stones clump and touch instead of
-                // beading out along the rim at even spacing.
-                let along = (Float(index) + 0.5) / Float(count) * span - span / 2
-                    + Float(stablePercent(stone, salt: 811) - 50) / 50 * step
-                // Squared falloff: most stones pack against the earth band,
-                // just proud of it so they break its silhouette rather than
-                // vanishing inside it, and a few stray out onto the sand.
-                let spill = Float(stablePercent(stone, salt: 823)) / 100
-                let across = rim.offset + outward * (spill * spill * tileSize * 0.15 - tileSize * 0.012)
-                // Higher up the band the earth has only shed chips; the coarse
-                // stuff has rolled to the foot.
-                let depth = Float(stablePercent(stone, salt: 839)) / 100
-                let radius = tileSize * (0.014 + depth * 0.026)
-
-                let pebble = World3DRenderResources.makeSphere(
-                    radius: radius,
-                    material: matte(stones[seed % stones.count], roughness: 0.97),
-                    scale: SIMD3<Float>(1.30, 0.62, 0.95)
-                )
-                // Spread up the exposed earth band, not just along its foot.
-                pebble.position = rim.alongX
-                    ? SIMD3<Float>(along, -0.048 - depth * 0.057, across)
-                    : SIMD3<Float>(across, -0.048 - depth * 0.057, along)
-                pebble.orientation = simd_quatf(
-                    angle: Float(stablePercent(stone, salt: 853)) / 100 * .pi,
-                    axis: SIMD3<Float>(0, 1, 0)
-                )
-                staticRoot.addChild(pebble)
+    func addIslandAccents(for town: Town, gridSize: GridSize, seed: Int) {
+        let halfExtents = SIMD2<Float>(terrainWidth(for: gridSize) / 2, terrainDepth(for: gridSize) / 2)
+        let sides: [(BiomeSide, Float)] = [(.bottom, 0), (.right, .pi / 2), (.top, .pi), (.left, -.pi / 2)]
+        for (side, direction) in sides {
+            for index in 0..<3 {
+                let coordinate = GridCoordinate(x: index, y: seed % 997)
+                let angle = direction + (Float(index) - 1) * 0.28
+                    + Float(stablePercent(coordinate, salt: 1391) - 50) * 0.0015
+                let coast = World3DOcean.coastRadius(angle: angle, islandHalfExtents: halfExtents, tileSize: tileSize, seed: seed)
+                let point = SIMD2<Float>(sin(angle), cos(angle)) * (coast - tileSize * 0.39)
+                let root = Entity()
+                root.position = SIMD3<Float>(point.x, 0, point.y)
+                staticRoot.addChild(root)
+                if town.biomeLayout.biome(on: side) == .forest {
+                    World3DTileEntity.addTree(to: root, tileSize: tileSize * 0.62, coordinate: coordinate)
+                } else {
+                    World3DTileEntity.addRockCluster(to: root, tileSize: tileSize * 0.7,
+                        coordinate: coordinate, center: .zero, radius: 0.25, count: 5, scale: 1)
+                }
             }
         }
     }
 
-    func addDuskBackdrop(for gridSize: GridSize) {
+    func addDuskBackdrop(for gridSize: GridSize, seed: Int) {
         let boardWidth = terrainWidth(for: gridSize)
         let boardDepth = terrainDepth(for: gridSize)
-        addOpenSea(boardWidth: boardWidth, boardDepth: boardDepth)
+        addOpenSea(boardWidth: boardWidth, boardDepth: boardDepth, seed: seed)
 
         // A few translucent clouds scattered around the island at varied
         // heights and depths — not a row on the horizon.
@@ -141,7 +119,7 @@ extension World3DRenderer {
         addCloudCluster(center: SIMD3<Float>(boardWidth * 0.30, tileSize * 2.2, -boardDepth * 1.10), scale: 0.48)
     }
 
-    func addOpenSea(boardWidth: Float, boardDepth: Float) {
+    func addOpenSea(boardWidth: Float, boardDepth: Float, seed: Int) {
         // Sized independently of the board so the sea has no visible edge at
         // any yaw/zoom; the visible ground region stays inside the camera far
         // plane (28) even at max zoom-out on ultra-wide windows.
@@ -157,7 +135,8 @@ extension World3DRenderer {
             islandHalfExtents: SIMD2<Float>(boardWidth / 2, boardDepth / 2),
             tileSize: tileSize,
             span: seaSpan,
-            deepColor: palette.waterDeep
+            deepColor: palette.waterDeep,
+            seed: seed
         )
         ocean.entity.position.y = surfaceY
         staticRoot.addChild(ocean.entity)
