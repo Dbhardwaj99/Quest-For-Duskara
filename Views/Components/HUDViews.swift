@@ -8,18 +8,24 @@ struct TopHUDView: View {
     let armyStrength: Int
     let freePeople: Int
     let capacity: Int
+    /// Every island the player holds; more than one turns the name into a switcher.
+    var islands: [Town] = []
+    var onSelectIsland: (UUID) -> Void = { _ in }
+    var secondsUntilRaid: Int?
 
     var body: some View {
         VStack(spacing: 10) {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(town.name)
-                        .font(DuskaraTheme.Fonts.heading)
-                        .foregroundStyle(.white.opacity(0.96))
+                    islandName
                     HStack(spacing: 12) {
                         HUDMetric(systemImage: "sun.max.fill", value: "Day \(day)")
                         HUDMetric(systemImage: "shield.fill", value: "\(armyStrength)")
                         HUDMetric(systemImage: "person.2.fill", value: "\(freePeople)/\(capacity)")
+                        if let secondsUntilRaid {
+                            HUDMetric(systemImage: "flame.fill", value: "\(secondsUntilRaid)s")
+                                .help("Enemy islands build, train and attack in \(secondsUntilRaid) seconds")
+                        }
                     }
                 }
                 Spacer(minLength: 10)
@@ -29,15 +35,18 @@ struct TopHUDView: View {
             ProgressView(value: progress)
                 .tint(DuskaraTheme.warmGold)
                 .scaleEffect(x: 1, y: 0.72)
+                .animation(dayAnimation, value: progress)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 7) {
                     ForEach(ResourceKind.allCases) { kind in
-                        ResourcePill(kind: kind, amount: town.resources[kind], income: income[kind])
+                        ResourcePill(kind: kind, amount: town.resources[kind], income: income[kind], tick: day)
                     }
                 }
                 .padding(.vertical, 1)
             }
+            // The day's gains float up out of the pills.
+            .scrollClipDisabled()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -48,6 +57,33 @@ struct TopHUDView: View {
         )
         .shadow(color: .black.opacity(0.28), radius: 18, x: 0, y: 10)
     }
+
+    @ViewBuilder
+    private var islandName: some View {
+        let title = Text(town.name)
+            .font(DuskaraTheme.Fonts.heading)
+            .foregroundStyle(.white.opacity(0.96))
+        if islands.count > 1 {
+            Menu {
+                ForEach(islands) { island in
+                    Button(island.name) { onSelectIsland(island.id) }
+                        .disabled(island.id == town.id)
+                }
+            } label: {
+                title
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Switch island")
+            .accessibilityLabel("Switch island, now \(town.name)")
+        } else {
+            title
+        }
+    }
+
+    /// Ticks land once a second, so a ten-second day would step round in
+    /// tenths; ease across each second instead, and snap back at dawn.
+    private var dayAnimation: Animation? { progress < 0.1 ? nil : .linear(duration: 1) }
 
     private var dayDial: some View {
         ZStack {
@@ -62,7 +98,7 @@ struct TopHUDView: View {
                 .foregroundStyle(DuskaraTheme.warmGold)
         }
         .frame(width: 34, height: 34)
-        .animation(.smooth(duration: 0.28), value: progress)
+        .animation(dayAnimation, value: progress)
     }
 }
 // Icon stays small and dim; the number carries the weight.
@@ -84,36 +120,51 @@ private struct HUDMetric: View {
 }
 
 struct BottomBarView: View {
-    let onBuild: () -> Void
-    let onWorld: () -> Void
-    let onNextDay: () -> Void
-    /// Nil until the player holds a second town — with nowhere to send, the
-    /// button would only ever open a sheet with an empty destination list.
-    var onSend: (() -> Void)?
+    @Bindable var viewModel: GameViewModel
 
     // Compact floating panel: the buttons hug their labels instead of
     // stretching across the window.
     var body: some View {
         HStack(spacing: 8) {
-            Button(action: onBuild) {
+            Button { viewModel.openBuildMenu() } label: {
                 Label("Build", systemImage: "hammer.fill")
             }
             .buttonStyle(DuskaraButtonStyle())
 
-            if let onSend {
-                Button(action: onSend) {
-                    Label("Send", systemImage: "shippingbox.fill")
+            // Hidden until a second island is held: there is nowhere to move
+            // troops before then.
+            if viewModel.transferDestinations.isEmpty == false {
+                Button { viewModel.isTroopsPresented = true } label: {
+                    Label("Troops", systemImage: "shield.lefthalf.filled")
                 }
                 .buttonStyle(DuskaraButtonStyle())
-                .accessibilityLabel("Send resources to another town")
+                .accessibilityLabel("Move troops between islands")
+                .popover(isPresented: $viewModel.isTroopsPresented, arrowEdge: .top) {
+                    TroopsView(viewModel: viewModel)
+                }
             }
 
-            Button(action: onNextDay) {
+            if viewModel.isMarketOpen {
+                Button { viewModel.isMarketPresented = true } label: {
+                    Label("Trade", systemImage: "sailboat.fill")
+                }
+                .buttonStyle(DuskaraButtonStyle())
+                .accessibilityLabel("Open the Harbor Market")
+                .popover(isPresented: $viewModel.isMarketPresented, arrowEdge: .top) {
+                    MarketView(viewModel: viewModel)
+                        .padding(DuskaraTheme.spacingL)
+                        .frame(width: 400)
+                        .background(DuskaraTheme.sheetBackground)
+                        .environment(\.colorScheme, .dark)
+                }
+            }
+
+            Button(action: viewModel.advanceDayManually) {
                 Label("Next", systemImage: "forward.end.fill")
             }
             .buttonStyle(DuskaraButtonStyle())
 
-            Button(action: onWorld) {
+            Button { viewModel.isWorldMapPresented = true } label: {
                 Label("World", systemImage: "map.fill")
             }
             .buttonStyle(DuskaraButtonStyle(prominent: true))

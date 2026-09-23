@@ -18,16 +18,30 @@ struct BuildMenuView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14, pinnedViews: [.sectionHeaders]) {
                     Section {
-                        Text("Choose a building, then place it on a highlighted town plot.")
-                            .font(DuskaraTheme.Fonts.subheading)
-                            .foregroundStyle(DuskaraTheme.ink)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 14)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(viewModel.buildPlot == nil
+                                 ? "Choose a building, then place it on a highlighted town plot."
+                                 : "Choose a building for the plot you picked.")
+                                .font(DuskaraTheme.Fonts.subheading)
+                                .foregroundStyle(DuskaraTheme.ink)
+                            if viewModel.priceScale > 1 {
+                                Text("Prices ×\(viewModel.priceScale.formatted(.number.precision(.fractionLength(0...2)))) across your \(viewModel.playerTowns.count) islands — each beyond the first adds \(Int((viewModel.balance.priceStepPerIsland * 100).rounded()))%.")
+                                    .font(DuskaraTheme.Fonts.caption)
+                                    .foregroundStyle(DuskaraTheme.mutedInk)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 14)
 
                         ForEach(buildableKinds) { kind in
                             if let definition = viewModel.definition(for: kind) {
-                                BuildingMenuCard(kind: kind, definition: definition) {
-                                    viewModel.beginPlacement(for: kind)
+                                BuildingMenuCard(
+                                    kind: kind,
+                                    definition: definition,
+                                    shortfall: viewModel.shortfall(for: definition.cost(for: 1)),
+                                    hasWorkers: viewModel.freePeople >= definition.peopleRequired
+                                ) {
+                                    viewModel.chooseFromBuildMenu(kind)
                                 }
                                 .padding(.horizontal, 16)
                             }
@@ -41,8 +55,8 @@ struct BuildMenuView: View {
             .toolbar {
                 ToolbarItem(placement: .status) {
                     BuildResourcesHeader(
-                        town: viewModel.activeTown,
-                        income: viewModel.activeTownIncome
+                        town: viewModel.spendingTown,
+                        income: viewModel.empireIncome
                     )
                 }
                 // .keyboard never renders on macOS; use the sheet's action slot.
@@ -80,7 +94,12 @@ private struct BuildResourcesHeader: View {
 private struct BuildingMenuCard: View {
     let kind: BuildingKind
     let definition: BuildingDefinition
+    /// What the shared stockpile still lacks; empty when the player can pay.
+    let shortfall: [ResourceKind: Int]
+    let hasWorkers: Bool
     let onBuild: () -> Void
+
+    private static let blockedRed = Color(red: 0.96, green: 0.52, blue: 0.44)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -104,13 +123,22 @@ private struct BuildingMenuCard: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(DuskaraTheme.accent)
+                .disabled(shortfall.isEmpty == false)
+                .opacity(shortfall.isEmpty ? 1 : 0.4)
+                .accessibilityLabel("Build \(kind.title)")
             }
 
             ResourceCostRow(title: "Cost", values: definition.cost(for: 1))
+            if shortfall.isEmpty == false {
+                Label("Need \(shortfall.positiveEntries.map { "\($1) more \($0.title.lowercased())" }.joined(separator: " · "))",
+                      systemImage: "hourglass")
+                    .font(DuskaraTheme.Fonts.caption)
+                    .foregroundStyle(Self.blockedRed)
+            }
             if definition.peopleRequired > 0 {
                 Label("Requires \(definition.peopleRequired) free people", systemImage: "person.fill")
                     .font(DuskaraTheme.Fonts.caption)
-                    .foregroundStyle(Color(red: 0.96, green: 0.52, blue: 0.44))
+                    .foregroundStyle(hasWorkers ? DuskaraTheme.mutedInk : Self.blockedRed)
             }
             if definition.production(for: 1).isEmpty == false {
                 ResourceCostRow(title: "Daily Production", values: definition.production(for: 1))

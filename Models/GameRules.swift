@@ -17,14 +17,6 @@ struct NewsEvent: Identifiable, Codable, Equatable {
     var message: String
 }
 
-struct TownTradeOffer: Identifiable, Codable, Equatable {
-    var id = UUID()
-    var townID: UUID
-    var partnerTownID: UUID
-    var wants: [ResourceKind: Int]
-    var gives: [ResourceKind: Int]
-}
-
 extension GameState {
     mutating func updateTown(id: UUID, _ update: (inout Town) -> Void) {
         guard let index = towns.firstIndex(where: { $0.id == id }) else { return }
@@ -42,10 +34,11 @@ extension GameState {
 }
 
 extension GameRules {
-    /// People are deliberately absent: they are tied to the housing that
-    /// supports them, so shipping them out would strand a town's workforce
-    /// below what its buildings already claim.
-    static let transferableKinds: [ResourceKind] = [.gold, .food, .skill, .soldiers]
+    /// One stockpile across the player's islands. Each island still keeps its
+    /// own wallet — so an island lost to raiders takes its stores with it — but
+    /// whatever one spends is shipped in from the others first (`supply`).
+    /// People stay put: they are tied to the housing that supports them.
+    static let sharedKinds: [ResourceKind] = [.gold, .food, .skill]
 
     enum TransferFailure: String {
         case sourceNotOwned = "Source town is not controlled."
@@ -96,36 +89,98 @@ extension GameRules {
         return nil
     }
 
+    static func empireStock(_ state: GameState) -> ResourceWallet {
+        var stock = ResourceWallet()
+        for town in state.towns where town.isPlayerControlled {
+            for kind in sharedKinds { stock.add(kind, amount: town.resources[kind]) }
+        }
+        return stock
+    }
+
+    /// Ships whatever `townID` lacks of `cost` in from the player's other
+    /// islands, richest first. The town stays short only if the empire is.
+    static func supply(_ cost: [ResourceKind: Int], to townID: UUID, state: inout GameState, balance: GameBalance) {
+        guard let town = state.town(id: townID), town.isPlayerControlled else { return }
+        for kind in sharedKinds {
+            var shortfall = (cost[kind] ?? 0) - town.resources[kind]
+            let donors = state.towns
+                .filter { $0.isPlayerControlled && $0.id != townID && $0.resources[kind] > 0 }
+                .sorted { $0.resources[kind] > $1.resources[kind] }
+            for donor in donors where shortfall > 0 {
+                let amount = min(shortfall, donor.resources[kind])
+                let order = TransferOrder(fromTownID: donor.id, toTownID: townID, amounts: [kind: amount])
+                if transfer(order, state: &state, balance: balance) == nil { shortfall -= amount }
+            }
+        }
+    }
+
     static func advanceDay(state: inout GameState, balance: GameBalance) {
         state.day += 1
         state.elapsedSecondsInDay = 0
         for index in state.towns.indices {
             state.towns[index].resources.apply(income(state.towns[index], balance: balance))
-            applyUpkeep(to: &state.towns[index], balance: balance)
         }
-        if state.day.isMultiple(of: 20) { runEnemyTurn(state: &state, balance: balance) }
-        makeTradeOffers(state: &state)
+        // Only the player pays upkeep, out of the shared stockpile. Enemy
+        // garrisons are fed by their own islands: charging them starved every
+        // one out within days — Duskara's on the very first.
+        for town in state.towns where town.isPlayerControlled {
+            supply([.food: dailyFood(town, balance: balance)], to: town.id, state: &state, balance: balance)
+            state.updateTown(id: town.id) {
+                applyUpkeep(to: &$0, balance: balance)
+                growPopulation(&$0, balance: balance)
+            }
+        }
+        if state.day.isMultiple(of: balance.enemyTurnInterval) { runEnemyTurn(state: &state, balance: balance) }
     }
 
-    static func makeTradeOffers(state: inout GameState) {
-        state.tradeOffers.removeAll()
-        for town in state.towns where town.isPlayerControlled && town.buildings.contains(where: { $0.kind == .pier }) {
-            let partnerIDs = state.connections.compactMap { connection -> UUID? in
-                if connection.from == town.id { return connection.to }
-                if connection.to == town.id { return connection.from }
-                return nil
+    // MARK: - Harbor Market
+
+    /// A player island with a Pier and a sea lane to a free (neutral) city
+    /// trades with it — the gold lanes the World map draws.
+    static func isTradeLane(_ pierTown: Town, _ partner: Town) -> Bool {
+        pierTown.isPlayerControlled
+            && pierTown.buildings.contains { $0.kind == .pier }
+            && partner.faction == .neutral
+    }
+
+    static func tradePartners(_ state: GameState) -> [Town] {
+        state.towns.filter { partner in
+            state.connections.contains { lane in
+                guard lane.contains(partner.id),
+                      let other = state.town(id: lane.from == partner.id ? lane.to : lane.from) else { return false }
+                return isTradeLane(other, partner)
             }
-            guard let partner = partnerIDs.compactMap(state.town).filter({ !$0.isPlayerControlled }).randomElement() else { continue }
-            let resources: [ResourceKind] = [.gold, .food, .skill]
-            guard let wanted = resources.randomElement(),
-                  let offered = resources.filter({ $0 != wanted }).randomElement() else { continue }
-            let ranges: [ResourceKind: ClosedRange<Int>] = [.gold: 15...45, .food: 10...32, .skill: 8...26]
-            state.tradeOffers.append(TownTradeOffer(
-                townID: town.id,
-                partnerTownID: partner.id,
-                wants: [wanted: Int.random(in: ranges[wanted] ?? 10...20)],
-                gives: [offered: Int.random(in: ranges[offered] ?? 10...20)]
-            ))
         }
+    }
+
+    /// Market fee in percent for a number of partners; nil when none trade.
+    static func marketFee(partners: Int, balance: GameBalance) -> Int? {
+        guard partners > 0, let lastFee = balance.marketFeePercents.last else { return nil }
+        return balance.marketFeePercents.indices.contains(partners - 1) ? balance.marketFeePercents[partners - 1] : lastFee
+    }
+
+    /// Gold for `lot` units: buying pays value plus the fee (rounded up),
+    /// selling earns value minus the fee (rounded down) — so no round trip
+    /// ever makes gold.
+    static func marketPrice(of kind: ResourceKind, lot: Int, buying: Bool, partners: Int, balance: GameBalance) -> Int? {
+        guard lot > 0, let fee = marketFee(partners: partners, balance: balance),
+              let value = balance.marketValuePer100[kind] else { return nil }
+        let percent = buying ? 100 + fee : 100 - fee
+        let hundredths = lot * value * percent
+        return buying ? (hundredths + 9_999) / 10_000 : hundredths / 10_000
+    }
+
+    @discardableResult
+    static func trade(_ kind: ResourceKind, lot: Int, buying: Bool, at townID: UUID, state: inout GameState, balance: GameBalance) -> Bool {
+        guard let price = marketPrice(of: kind, lot: lot, buying: buying, partners: tradePartners(state).count, balance: balance)
+        else { return false }
+        let paid: [ResourceKind: Int] = buying ? [.gold: price] : [kind: lot]
+        let received: [ResourceKind: Int] = buying ? [kind: lot] : [.gold: price]
+        supply(paid, to: townID, state: &state, balance: balance)
+        guard let index = state.towns.firstIndex(where: { $0.id == townID }),
+              state.towns[index].isPlayerControlled,
+              state.towns[index].resources.spend(paid) else { return false }
+        state.towns[index].resources.apply(received)
+        return true
     }
 }

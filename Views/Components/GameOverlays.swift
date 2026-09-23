@@ -2,15 +2,23 @@ import SwiftUI
 
 struct VictoryView: View {
     let day: Int
+    let islands: Int
+    let onNewCampaign: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
             Text("Victory")
                 .font(DuskaraTheme.Fonts.title)
                 .foregroundStyle(.white)
-            Text("Duskara fell on Day \(day).")
+            Text("Duskara fell on Day \(day), with \(islands) islands under your banner.")
                 .font(DuskaraTheme.Fonts.heading)
                 .foregroundStyle(.white.opacity(0.82))
+            Button(action: onNewCampaign) {
+                Label("New Campaign", systemImage: "sparkles")
+            }
+            .buttonStyle(DuskaraButtonStyle(prominent: true))
+            .frame(width: 240)
+            .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DuskaraTheme.background.ignoresSafeArea())
@@ -42,19 +50,36 @@ struct DefeatView: View {
 }
 
 struct GameFeedbackToastView: View {
-    let message: String
+    let message: GameMessage
+
+    /// Captures and losses carry a detail line and a colored rim, so they read
+    /// as events rather than routine confirmations.
+    private var rim: Color {
+        switch message.tone {
+        case .info: .white.opacity(0.20)
+        case .success: TownFaction.player.mapColor
+        case .danger: TownFaction.enemy.mapColor
+        }
+    }
 
     var body: some View {
-        Text(message)
-            .font(DuskaraTheme.Fonts.subheading)
-            .foregroundStyle(.white)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(DuskaraTheme.hudFill, in: Capsule())
-            .overlay(Capsule().stroke(.white.opacity(0.20), lineWidth: 1))
-            .shadow(color: .black.opacity(0.26), radius: 14, y: 7)
-            .padding(.horizontal, 18)
+        VStack(spacing: 3) {
+            Text(message.text)
+                .font(message.detail == nil ? DuskaraTheme.Fonts.subheading : DuskaraTheme.Fonts.heading)
+            if let detail = message.detail {
+                Text(detail)
+                    .font(DuskaraTheme.Fonts.body)
+                    .foregroundStyle(.white.opacity(0.82))
+            }
+        }
+        .foregroundStyle(.white)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, message.detail == nil ? 16 : 22)
+        .padding(.vertical, message.detail == nil ? 10 : 12)
+        .background(DuskaraTheme.hudFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(rim, lineWidth: message.tone == .info ? 1 : 2))
+        .shadow(color: .black.opacity(0.26), radius: 14, y: 7)
+        .padding(.horizontal, 18)
     }
 }
 

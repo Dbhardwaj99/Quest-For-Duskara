@@ -14,6 +14,13 @@ struct TerritoryRenderer: View {
     let onSelectTown: (UUID) -> Void
     let canActOnTown: (UUID) -> Bool
     let onActOnTown: (UUID) -> Void
+    /// The number on each shield: effective defense for islands you could
+    /// attack — what an attack actually has to beat — and garrison for yours.
+    var badgeValue: (Town) -> Int = \.armyStrength
+    /// A line under a selected target's button comparing your armies.
+    var attackNote: (UUID) -> String? = { _ in nil }
+    var canRally: (UUID) -> Bool = { _ in false }
+    var onRally: (UUID) -> Void = { _ in }
 
     var townByID: [UUID: Town] {
         Dictionary(uniqueKeysWithValues: towns.map { ($0.id, $0) })
@@ -29,7 +36,7 @@ struct TerritoryRenderer: View {
                   let to = nodeByTown[connection.to],
                   let townA = byID[connection.from],
                   let townB = byID[connection.to] else { return nil }
-            let isTrade = SeaRoute.isTradeRoute(townA, townB) || SeaRoute.isTradeRoute(townB, townA)
+            let isTrade = GameRules.isTradeLane(townA, townB) || GameRules.isTradeLane(townB, townA)
             let seed = SeaRoute.stableHash(connection.id)
             return SeaRoute(
                 id: connection.id,
@@ -93,12 +100,16 @@ struct TerritoryRenderer: View {
         ZStack {
             ForEach(nodes) { node in
                 if let town = townByID[node.townID] {
+                    let isSelected = node.townID == selectedTownID
                     WorldTownMarkerView(
                         town: town,
+                        badge: badgeValue(town),
                         isActive: node.townID == activeTownID,
-                        isSelected: node.townID == selectedTownID,
+                        isSelected: isSelected,
                         canAct: canActOnTown(node.townID),
-                        onAction: { onActOnTown(node.townID) }
+                        onAction: { onActOnTown(node.townID) },
+                        note: isSelected ? attackNote(node.townID) : nil,
+                        onRally: isSelected && canRally(node.townID) ? { onRally(node.townID) } : nil
                     )
                     .scaleEffect(markerScale)
                     .position(projection.point(for: MapPoint(x: node.x, y: node.y)))

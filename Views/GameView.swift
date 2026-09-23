@@ -12,6 +12,7 @@ struct GameView: View {
     /// change has to be visible to SwiftUI to reach the 3D scene.
     @State private var contrast = WorldContrast.level
     @State private var isContrastPanelPresented = false
+    @AppStorage(GameSound.mutedKey) private var isSoundMuted = false
     #if DEBUG
     @State private var isBuildingSizePanelPresented = false
     #endif
@@ -32,7 +33,7 @@ struct GameView: View {
                         .transition(.opacity)
                 }
             case .victory:
-                VictoryView(day: viewModel.state.day)
+                VictoryView(day: viewModel.state.day, islands: viewModel.playerTowns.count, onNewCampaign: onNewCampaign)
             case .defeat:
                 DefeatView(day: viewModel.state.day, onNewCampaign: onNewCampaign)
             }
@@ -81,7 +82,7 @@ struct GameView: View {
             }
 
             if let feedback = viewModel.feedback, isCameraOrbiting == false {
-                GameFeedbackToastView(message: feedback.text)
+                GameFeedbackToastView(message: feedback)
                     .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(10)
@@ -98,10 +99,6 @@ struct GameView: View {
             // macOS sheets ignore presentation detents, so size them explicitly.
             BuildMenuView(viewModel: viewModel)
                 .frame(minWidth: 430, idealWidth: 460, maxWidth: 520, minHeight: 520, idealHeight: 640)
-        }
-        .sheet(isPresented: $viewModel.isTransferPresented) {
-            TransferView(viewModel: viewModel)
-                .frame(minWidth: 420, idealWidth: 460, maxWidth: 520, minHeight: 440, idealHeight: 560)
         }
         .sheet(item: $viewModel.buildingPresentation) { presentation in
             BuildingDetailsSheetView(viewModel: viewModel, buildingID: presentation.id)
@@ -127,14 +124,19 @@ struct GameView: View {
     // whole window.
     private var topHUD: some View {
         HStack(alignment: .top, spacing: DuskaraTheme.spacingS) {
+            // Gold, food and skill show the empire's shared stock; people and
+            // soldiers are the active island's own.
             TopHUDView(
-                town: viewModel.activeTown,
+                town: viewModel.spendingTown,
                 day: viewModel.state.day,
                 progress: viewModel.dayProgress,
-                income: viewModel.activeTownIncome,
+                income: viewModel.empireIncome,
                 armyStrength: viewModel.activeArmyStrength,
                 freePeople: viewModel.freePeople,
-                capacity: viewModel.populationCapacity
+                capacity: viewModel.populationCapacity,
+                islands: viewModel.playerTowns,
+                onSelectIsland: viewModel.switchToTown,
+                secondsUntilRaid: viewModel.secondsUntilRaid
             )
             .frame(maxWidth: DuskaraTheme.maxTopHUDWidth)
             Button {
@@ -149,6 +151,19 @@ struct GameView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("World news")
+
+            Button {
+                isSoundMuted.toggle()
+            } label: {
+                Image(systemName: isSoundMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.94))
+                    .frame(width: 38, height: 38)
+                    .background(DuskaraTheme.hudFill, in: Circle())
+                    .overlay(Circle().stroke(.white.opacity(0.20), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSoundMuted ? "Turn sound on" : "Mute sound")
 
             themeCycleButton
             contrastButton
@@ -309,14 +324,7 @@ struct GameView: View {
     }
 
     private var bottomBar: some View {
-        BottomBarView(
-            onBuild: { viewModel.isBuildMenuPresented = true },
-            onWorld: { viewModel.isWorldMapPresented = true },
-            onNextDay: viewModel.advanceDayManually,
-            onSend: viewModel.transferDestinations.isEmpty
-                ? nil
-                : { viewModel.isTransferPresented = true }
-        )
+        BottomBarView(viewModel: viewModel)
     }
 
     @ViewBuilder

@@ -29,7 +29,7 @@ func makeNewGame(balance: GameBalance) -> GameState {
     var towns = names.enumerated().map { index, name in
         Town(
             name: name,
-            resources: ResourceWallet([.gold: 60 + index * 6, .skill: 20 + index, .food: 30, .people: startingPeople]),
+            resources: ResourceWallet([.gold: 600 + index * 60, .skill: 200 + index * 10, .food: 300, .people: startingPeople]),
             buildings: startingPlots.map { BuildingInstance(kind: $0.kind, coordinate: $0.coordinate) },
             biomeLayout: layouts[index % layouts.count],
             faction: name == "Duskara" ? .duskara : (enemies.contains(name) ? .enemy : .neutral),

@@ -4,6 +4,12 @@ struct ResourcePill: View {
     let kind: ResourceKind
     let amount: Int?
     var income: Int? = nil
+    /// Changes once per day; each change floats the day's `income` up off the
+    /// pill, so the tick reads as a payout rather than a silent number change.
+    var tick: Int? = nil
+
+    private static let gain = Color(red: 0.56, green: 0.84, blue: 0.44)
+    private static let loss = Color(red: 0.94, green: 0.48, blue: 0.40)
 
     var body: some View {
         HStack(spacing: 6) {
@@ -29,11 +35,31 @@ struct ResourcePill: View {
             if let income, income != 0 {
                 Text(income > 0 ? "+\(income)" : "\(income)")
                     .font(DuskaraTheme.Fonts.numberSmall)
-                    .foregroundStyle(income > 0 ? Color(red: 0.56, green: 0.84, blue: 0.44) : Color(red: 0.94, green: 0.48, blue: 0.40))
+                    .foregroundStyle(income > 0 ? Self.gain : Self.loss)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
                     .background(.black.opacity(0.32), in: Capsule())
                     .contentTransition(.numericText())
+            }
+        }
+        .overlay(alignment: .top) {
+            if let tick, let income, income != 0 {
+                Text(income > 0 ? "+\(income)" : "\(income)")
+                    .font(DuskaraTheme.Fonts.number)
+                    .foregroundStyle(income > 0 ? Self.gain : Self.loss)
+                    .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                    // Starts spent (risen and clear), so nothing shows until the first tick.
+                    .keyframeAnimator(initialValue: 1.0, trigger: tick) { content, rise in
+                        content
+                            .offset(y: -20 * rise)
+                            .opacity(1 - rise)
+                    } keyframes: { _ in
+                        KeyframeTrack {
+                            MoveKeyframe(0.0)
+                            LinearKeyframe(1.0, duration: 1.2)
+                        }
+                    }
+                    .allowsHitTesting(false)
             }
         }
         .padding(.horizontal, 8)

@@ -71,7 +71,6 @@ struct GameState: Codable, Equatable {
     var territory: TerritoryState
     var activeTownID: UUID
     var newsEvents: [NewsEvent] = []
-    var tradeOffers: [TownTradeOffer] = []
 
     var activeTown: Town? {
         towns.first { $0.id == activeTownID }
