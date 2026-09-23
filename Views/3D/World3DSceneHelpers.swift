@@ -52,7 +52,10 @@ extension World3DRenderer {
         for tile in tileEntities.values {
             for child in tile.children {
                 guard let kind = World3DTileEntity.buildingKind(fromName: child.name) else { continue }
-                child.scale = SIMD3<Float>(repeating: tileSize * BuildingScale.scale(for: kind))
+                let scale = child.name.hasPrefix("world3d_district_")
+                    ? BuildingScale.scale(for: kind) / BuildingScale.standard(for: kind)
+                    : tileSize * BuildingScale.scale(for: kind)
+                child.scale = SIMD3<Float>(repeating: scale)
             }
         }
     }
@@ -100,7 +103,7 @@ extension World3DRenderer {
     }
 
     func tileElevation(for coordinate: GridCoordinate) -> Float {
-        Float(stablePercent(coordinate, salt: 509)) / 100 * 0.018
+        0
     }
 
     func terrainWidth(for gridSize: GridSize) -> Float {

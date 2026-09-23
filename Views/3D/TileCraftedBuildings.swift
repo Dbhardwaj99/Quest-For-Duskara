@@ -3,10 +3,15 @@ import AppKit
 
 
 extension World3DTileEntity {
-    static func addBuilding(_ kind: BuildingKind, level: Int, to root: Entity, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize) {
-        // Handcrafted Blender models (Assets/building_*.usdz) are the primary
-        // visuals; the procedural builders below stay as a fallback so a
-        // missing or broken asset can never leave an empty tile.
+    static func addBuilding(_ kind: BuildingKind, level: Int, to root: Entity, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize, townID: UUID) {
+        if let district = makeSettlementDistrict(kind, level: level, tileSize: tileSize,
+                                                 coordinate: coordinate, gridSize: gridSize, townID: townID) {
+            root.addChild(district)
+            return
+        }
+
+        // The original single-building assets remain a fallback if a new
+        // modular asset is missing or fails to load.
         if let crafted = makeCraftedBuilding(kind, tileSize: tileSize, coordinate: coordinate, gridSize: gridSize) {
             if kind != .pier {
                 addGroundPatch(
@@ -70,9 +75,10 @@ extension World3DTileEntity {
     }
 
     static func buildingKind(fromName name: String) -> BuildingKind? {
-        let prefix = "world3d_building_"
-        guard name.hasPrefix(prefix) else { return nil }
-        return BuildingKind(rawValue: String(name.dropFirst(prefix.count)))
+        for prefix in ["world3d_district_", "world3d_building_"] where name.hasPrefix(prefix) {
+            return BuildingKind(rawValue: String(name.dropFirst(prefix.count)))
+        }
+        return nil
     }
 
     static func makeCraftedBuilding(_ kind: BuildingKind, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize) -> Entity? {
@@ -110,6 +116,24 @@ extension World3DTileEntity {
 
     static func craftedColor(for name: String, fallback: NSColor) -> NSColor {
         let name = name.lowercased()
+        if name.contains("warmwindow") { return Palette.warmWindow }
+        if name.contains("roofhighlight") { return Palette.roofHighlight }
+        if name.contains("roofclay") { return Palette.terracotta }
+        if name.contains("roofstraw") { return Palette.strawRoof }
+        if name.contains("roofslate") { return Palette.slateRoof }
+        if name.contains("terracottadark") { return Palette.terracottaDark }
+        if name.contains("strawshadow") { return Palette.strawShadow }
+        if name.contains("darktimber") { return Palette.darkTimber }
+        if name.contains("doorwood") { return Palette.doorWood }
+        if name.contains("smokestone") { return Palette.smokeStone }
+        if name.contains("labstone") { return Palette.labStone }
+        if name.contains("strawroof") { return Palette.strawRoof }
+        if name.contains("slateroof") { return Palette.slateRoof }
+        if name.contains("fortifiedclay") { return Palette.fortifiedClay }
+        if name.contains("bannerred") { return Palette.bannerRed }
+        if name.contains("cropgold") { return Palette.cropGold }
+        if name.contains("cropgreen") { return Palette.cropGreen }
+        if name.contains("plaster") { return Palette.plaster }
         if name.contains("glow") || name.contains("lantern") || name.contains("gold") { return Palette.warmGold }
         if name.contains("straw") || name.contains("hay") { return Palette.strawRoof }
         if name.contains("slate") || name.contains("vault") || name.contains("keep_roof") { return Palette.slateRoof }

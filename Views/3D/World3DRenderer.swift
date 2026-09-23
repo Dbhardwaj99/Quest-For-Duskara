@@ -8,6 +8,7 @@ final class World3DRenderer {
     let anchor = AnchorEntity(world: .zero)
     let boardRoot = Entity()
     let staticRoot = Entity()
+    let pathRoot = Entity()
     let tileRoot = Entity()
     let overlayRoot = Entity()
     let soldierRoot = Entity()
@@ -18,6 +19,7 @@ final class World3DRenderer {
     var tileEntities: [GridCoordinate: Entity] = [:]
     var tileSnapshots: [GridCoordinate: World3DTileSnapshot] = [:]
     var scaffoldSignature = ""
+    var pathSignature = ""
     var visualQuality = World3DVisualQuality.adaptive
     var lastQualityCheckTime = Date.distantPast
     var pendingQuality: World3DVisualQuality?
@@ -32,9 +34,8 @@ final class World3DRenderer {
     var pierDockPoint: SIMD3<Float>?
 
     let tileSize: Float = 0.46
-    // Flush board: neighbouring tiles share an edge, so the grid reads as one
-    // carved slab of land. Raise it to pull the plots apart again.
-    let tileGap: Float = 0
+    // Space the hidden plots apart; the land mesh fills the gaps without seams.
+    let tileGap: Float = 0.13
     let tileHeight: Float = 0.085
     let sun = DirectionalLight()
     let fillLight = DirectionalLight()
@@ -53,6 +54,7 @@ final class World3DRenderer {
         World3DDiagnostics.rendererDidInit()
         configureView()
         boardRoot.addChild(staticRoot)
+        boardRoot.addChild(pathRoot)
         boardRoot.addChild(tileRoot)
         boardRoot.addChild(overlayRoot)
         boardRoot.addChild(soldierRoot)
@@ -73,12 +75,13 @@ final class World3DRenderer {
         let nextSignature = signature(townID: adapter.town.id, gridSize: nextGridSize, layout: adapter.town.biomeLayout)
         if nextSignature != scaffoldSignature {
             gridSize = nextGridSize
-            rebuildScaffold(gridSize: nextGridSize)
+            rebuildScaffold(gridSize: nextGridSize, town: adapter.town)
             clearTiles()
             scaffoldSignature = nextSignature
         }
 
         let snapshots = adapter.allTileSnapshots()
+        updateSettlementPaths(town: adapter.town)
         let coordinates = Set(snapshots.map(\.coordinate))
         for staleCoordinate in Set(tileEntities.keys).subtracting(coordinates) {
             tileEntities[staleCoordinate]?.removeFromParent()
@@ -102,9 +105,10 @@ final class World3DRenderer {
             let entity = World3DTileEntity.makeTile(
                 snapshot: snapshot,
                 tileSize: tileSize,
+                tileGap: tileGap,
                 tileHeight: tileHeight,
-                material: material(for: snapshot.content, coordinate: snapshot.coordinate),
-                gridSize: gridSize
+                gridSize: gridSize,
+                townID: adapter.town.id
             )
             entity.position = position(for: snapshot.coordinate)
             entity.position.y += tileElevation(for: snapshot.coordinate)
