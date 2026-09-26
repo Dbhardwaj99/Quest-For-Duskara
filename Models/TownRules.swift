@@ -41,6 +41,12 @@ enum GameRules {
         return max(0, town.resources[.people] - workers)
     }
 
+    private static func capResidents(_ town: inout Town, balance: GameBalance) {
+        let room = max(0, populationCapacity(town, balance: balance)
+            - town.soldierRoster.manpowerCommitted(using: balance.soldierDefinitions))
+        town.resources[.people] = min(town.resources[.people], room)
+    }
+
     static func income(_ town: Town, balance: GameBalance) -> [ResourceKind: Int] {
         town.buildings.reduce(into: [:]) { total, building in
             for (kind, amount) in production(building, in: town, balance: balance) {
@@ -89,6 +95,7 @@ enum GameRules {
         _ = town.resources.spend(definition.cost(for: 1))
         town.buildings.append(BuildingInstance(kind: kind, coordinate: coordinate))
         town.resources.add(.people, amount: definition.peopleOnBuild)
+        capResidents(&town, balance: balance)
         return nil
     }
 
@@ -100,6 +107,7 @@ enum GameRules {
         guard town.resources.spend(cost) else { return .insufficientResources }
         town.buildings[index].level += 1
         town.resources.add(.people, amount: definition.peopleOnBuild(for: town.buildings[index].level))
+        capResidents(&town, balance: balance)
         return nil
     }
 
@@ -185,6 +193,7 @@ enum GameRules {
         town.resources.add(.gold, amount: (definition.cost(for: 1)[.gold] ?? 0) / 2)
         let residents = (1...max(1, building.level)).reduce(0) { $0 + definition.peopleOnBuild(for: $1) }
         town.resources.add(.people, amount: -residents)
+        capResidents(&town, balance: balance)
     }
 
     static func hasStableEconomy(_ town: Town, balance: GameBalance) -> Bool {

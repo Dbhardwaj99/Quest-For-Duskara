@@ -443,6 +443,21 @@ struct GameplayTests {
         #expect(GameRules.placementFailure(for: .house, at: house.coordinate, in: town, balance: balance) == nil)
     }
 
+    @Test func houseUpgradesAndDemolitionRespectHousingCapacity() throws {
+        let balance = GameBalance.duskDefault
+        var town = makeNewGame(balance: balance).towns[0]
+        let house = try #require(town.buildings.first { $0.kind == .house })
+        town.resources[.gold] = 10_000
+        town.resources[.people] = GameRules.populationCapacity(town, balance: balance)
+
+        #expect(GameRules.upgrade(house.id, in: &town, balance: balance) == nil)
+        #expect(GameRules.upgrade(house.id, in: &town, balance: balance) == nil)
+        #expect(town.resources[.people] == GameRules.populationCapacity(town, balance: balance))
+
+        GameRules.demolish(house.id, in: &town, balance: balance)
+        #expect(town.resources[.people] <= GameRules.populationCapacity(town, balance: balance))
+    }
+
     /// The pacing target: a Medium opening takes its first island inside a
     /// minute and a half of ten-second days.
     @Test func mediumOpeningTakesAnIslandWithinNinetySeconds() throws {
