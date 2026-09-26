@@ -55,7 +55,11 @@ extension World3DRenderer {
                 let scale = child.name.hasPrefix("world3d_district_")
                     ? BuildingScale.scale(for: kind) / BuildingScale.standard(for: kind)
                     : tileSize * BuildingScale.scale(for: kind)
-                child.scale = SIMD3<Float>(repeating: scale)
+                // Runs on every SwiftUI update; an unchanged write still dirties
+                // the whole building's transforms for RealityKit.
+                if child.scale != SIMD3<Float>(repeating: scale) {
+                    child.scale = SIMD3<Float>(repeating: scale)
+                }
             }
         }
     }

@@ -36,6 +36,7 @@ extension World3DRenderer {
         ]
         for spec in specs {
             let boat = makeBoat(scale: spec.scale)
+            boat.name = World3DMeshBatcher.animatedName
             boat.position = cruiseWaypoint(angle: spec.angle, radiusScale: spec.radiusScale)
             staticRoot.addChild(boat)
             boatCruisers.append(BoatCruiser(

@@ -23,14 +23,17 @@ struct GameView: View {
             case .setup:
                 StartSetupView(viewModel: viewModel)
             case .town:
-                // The world map replaces the town entirely — no popup, and
-                // the 3D scene is not rendered behind it.
-                if viewModel.isWorldMapPresented {
-                    WorldMapView(viewModel: viewModel)
-                        .transition(.opacity)
-                } else {
+                // The world map covers the town entirely — no popup. The town
+                // stays mounted underneath with its 3D view paused, so closing
+                // the map doesn't rebuild the whole scene.
+                ZStack {
                     townBody
-                        .transition(.opacity)
+                        .allowsHitTesting(viewModel.isWorldMapPresented == false)
+                        .accessibilityHidden(viewModel.isWorldMapPresented)
+                    if viewModel.isWorldMapPresented {
+                        WorldMapView(viewModel: viewModel)
+                            .transition(.opacity)
+                    }
                 }
             case .victory:
                 VictoryView(day: viewModel.state.day, islands: viewModel.playerTowns.count, onNewCampaign: onNewCampaign)
@@ -130,6 +133,8 @@ struct GameView: View {
                 town: viewModel.spendingTown,
                 day: viewModel.state.day,
                 progress: viewModel.dayProgress,
+                progressSampledAt: viewModel.lastTick,
+                progressPerSecond: 1 / viewModel.balance.dayDuration,
                 income: viewModel.empireIncome,
                 armyStrength: viewModel.activeArmyStrength,
                 freePeople: viewModel.freePeople,
@@ -300,6 +305,7 @@ struct GameView: View {
     private var townView3D: some View {
         World3DTownView(
             sourceViewModel: viewModel,
+            isActive: viewModel.isWorldMapPresented == false,
             isCameraOrbiting: isCameraOrbiting,
             buildingScales: buildingScales,
             contrast: contrast

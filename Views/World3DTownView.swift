@@ -3,6 +3,8 @@ import AppKit
 
 struct World3DTownView: NSViewControllerRepresentable {
     let sourceViewModel: GameViewModel
+    /// False while something covers the town; the scene stops drawing.
+    var isActive = true
     var isCameraOrbiting = false
     /// Debug size overrides. Stored here rather than read from `BuildingScale`
     /// directly so that a slider change makes this value differ, which is what
@@ -17,6 +19,7 @@ struct World3DTownView: NSViewControllerRepresentable {
     }
 
     func updateNSViewController(_ nsViewController: World3DTownViewController, context: Context) {
+        nsViewController.setActive(isActive)
         nsViewController.setCameraOrbiting(isCameraOrbiting)
         nsViewController.syncFromGameState()
         // After the sync: a rebuilt tile already carries the current scale, and

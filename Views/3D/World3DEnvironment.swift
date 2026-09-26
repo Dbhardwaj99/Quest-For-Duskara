@@ -20,7 +20,8 @@ extension World3DRenderer {
     }
 
     func applyEnvironment() {
-        arView.environment.background = .color(palette.sky)
+        let sky = palette.sky.usingColorSpace(.sRGB) ?? palette.sky
+        renderView.renderer.cameraSettings.colorBackground = .color(sky.cgColor)
         sun.light.color = palette.sun
     }
 
@@ -31,6 +32,7 @@ extension World3DRenderer {
         addDuskBackdrop(for: gridSize, seed: seed)
         addGroundPlate(for: gridSize, seed: seed)
         addIslandAccents(for: town, gridSize: gridSize, seed: seed)
+        World3DMeshBatcher.flatten(staticRoot)
     }
 
     func clearTiles() {
@@ -153,6 +155,7 @@ extension World3DRenderer {
         let plumage = NSColor(red: 0.36, green: 0.42, blue: 0.53, alpha: 1)
         for index in 0..<3 {
             let bird = Entity()
+            bird.name = World3DMeshBatcher.animatedName
             for side: Float in [-1, 1] {
                 let wing = World3DRenderResources.makeBox(
                     size: SIMD3<Float>(tileSize * 0.085, 0.006, tileSize * 0.024),

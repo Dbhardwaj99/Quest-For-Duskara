@@ -83,14 +83,6 @@ extension World3DTileEntity {
         return root.clone(recursive: true)
     }
 
-    static func coordinate(fromName name: String) -> GridCoordinate? {
-        let prefix = "world3d_tile_"
-        guard name.hasPrefix(prefix) else { return nil }
-        let parts = name.dropFirst(prefix.count).split(separator: "_")
-        guard parts.count == 2, let x = Int(parts[0]), let y = Int(parts[1]) else { return nil }
-        return GridCoordinate(x: x, y: y)
-    }
-
     static func addGroundDetail(for snapshot: World3DTileSnapshot, to root: Entity, tileSize: Float) {
         guard snapshot.content != .water else {
             addWaterSheen(to: root, tileSize: tileSize, coordinate: snapshot.coordinate)
@@ -144,6 +136,8 @@ extension World3DTileEntity {
     // Gentle autoreversing loop used by ambient details (smoke, animals,
     // boats). GPU-side, so no per-frame CPU work.
     static func addAmbientDrift(to entity: Entity, offset: SIMD3<Float>, scaleTo: Float = 1, duration: TimeInterval) {
+        // Keeps static batching from freezing it into the tile's mesh.
+        entity.name = World3DMeshBatcher.animatedName
         var to = entity.transform
         to.translation += offset
         to.scale *= SIMD3<Float>(repeating: scaleTo)

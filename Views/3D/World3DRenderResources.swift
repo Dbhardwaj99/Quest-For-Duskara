@@ -6,11 +6,9 @@ enum World3DVisualQuality: String {
     case medium
     case high
 
+    /// Thermal state and memory only: frame rate is capped on purpose (and
+    /// halves in the background), so it no longer signals a struggling Mac.
     static var adaptive: World3DVisualQuality {
-        adaptive(recentFPS: World3DDiagnostics.lastFPS)
-    }
-
-    static func adaptive(recentFPS: Double) -> World3DVisualQuality {
         let thermalQuality: World3DVisualQuality
         switch ProcessInfo.processInfo.thermalState {
         case .serious, .critical:
@@ -24,14 +22,6 @@ enum World3DVisualQuality: String {
         }
 
         if ProcessInfo.processInfo.physicalMemory < 3_500_000_000 {
-            return lower(thermalQuality, .medium)
-        }
-
-        guard recentFPS > 1 else { return thermalQuality }
-        if recentFPS < 42 {
-            return .low
-        }
-        if recentFPS < 54 {
             return lower(thermalQuality, .medium)
         }
         return thermalQuality

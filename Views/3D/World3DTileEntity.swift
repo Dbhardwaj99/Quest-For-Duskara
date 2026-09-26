@@ -21,22 +21,13 @@ struct World3DTileEntity {
     static func makeTile(
         snapshot: World3DTileSnapshot,
         tileSize: Float,
-        tileGap: Float,
-        tileHeight: Float,
         gridSize: GridSize,
         townID: UUID
     ) -> Entity {
         let root = Entity()
+        // Plots are picked with plane math (World3DRenderer.coordinate(along:)),
+        // so tiles carry no hit boxes.
         root.name = entityName(for: snapshot.coordinate)
-        // Plot hit targets stay in the RealityKit scene, but their boxes are
-        // invisible. The only visible ground is the continuous island mesh.
-        let hitTarget = Entity()
-        hitTarget.name = root.name
-        hitTarget.position.y = -tileHeight * 0.25
-        hitTarget.components.set(CollisionComponent(shapes: [World3DRenderResources.collisionBox(
-            size: SIMD3<Float>(tileSize + tileGap, tileHeight, tileSize + tileGap)
-        )]))
-        root.addChild(hitTarget)
 
         if case .building = snapshot.content {
             // The district and shared paths supply its ground detail.
@@ -60,17 +51,6 @@ struct World3DTileEntity {
 
     static func entityName(for coordinate: GridCoordinate) -> String {
         "world3d_tile_\(coordinate.x)_\(coordinate.y)"
-    }
-
-    static func coordinate(from entity: Entity?) -> GridCoordinate? {
-        var cursor = entity
-        while let current = cursor {
-            if let coordinate = coordinate(fromName: current.name) {
-                return coordinate
-            }
-            cursor = current.parent
-        }
-        return nil
     }
 
 }

@@ -3,7 +3,7 @@ import AppKit
 
 @MainActor
 final class World3DRenderer {
-    let arView: ARView
+    let renderView: World3DRenderView
 
     let anchor = AnchorEntity(world: .zero)
     let boardRoot = Entity()
@@ -48,8 +48,8 @@ final class World3DRenderer {
         anchor
     }
 
-    init(arView: ARView) {
-        self.arView = arView
+    init(renderView: World3DRenderView) {
+        self.renderView = renderView
         World3DRenderResources.configureVisualQuality(visualQuality)
         World3DDiagnostics.rendererDidInit()
         configureView()
@@ -59,7 +59,7 @@ final class World3DRenderer {
         boardRoot.addChild(overlayRoot)
         boardRoot.addChild(soldierRoot)
         anchor.addChild(boardRoot)
-        arView.scene.anchors.append(anchor)
+        renderView.renderer.entities.append(anchor)
     }
 
     deinit {
@@ -105,11 +105,10 @@ final class World3DRenderer {
             let entity = World3DTileEntity.makeTile(
                 snapshot: snapshot,
                 tileSize: tileSize,
-                tileGap: tileGap,
-                tileHeight: tileHeight,
                 gridSize: gridSize,
                 townID: adapter.town.id
             )
+            World3DMeshBatcher.flatten(entity)
             entity.position = position(for: snapshot.coordinate)
             entity.position.y += tileElevation(for: snapshot.coordinate)
             tileRoot.addChild(entity)
@@ -200,8 +199,19 @@ final class World3DRenderer {
         return group
     }
 
-    func coordinate(for entity: Entity?) -> GridCoordinate? {
-        World3DTileEntity.coordinate(from: entity)
+    /// The plot a camera ray lands on. Plots cover the board edge to edge, so
+    /// this is the old invisible hit boxes' test, done as plane math at their
+    /// top face.
+    func coordinate(along ray: (origin: SIMD3<Float>, direction: SIMD3<Float>)) -> GridCoordinate? {
+        guard ray.direction.y < -0.0001 else { return nil }
+        let top = tileHeight * 0.25
+        let hit = ray.origin + ray.direction * ((top - ray.origin.y) / ray.direction.y)
+        let spacing = tileSize + tileGap
+        let coordinate = GridCoordinate(
+            x: Int((hit.x / spacing + Float(gridSize.columns - 1) / 2).rounded()),
+            y: Int((hit.z / spacing + Float(gridSize.rows - 1) / 2).rounded())
+        )
+        return gridSize.contains(coordinate) ? coordinate : nil
     }
 
     func cameraBounds(for gridSize: GridSize) -> World3DCameraBounds {

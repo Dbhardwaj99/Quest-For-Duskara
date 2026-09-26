@@ -30,6 +30,7 @@ extension World3DRenderer {
             addPathSegment(from: .zero, to: mid, material: material)
             addPathSegment(from: mid, to: SIMD2<Float>(end.x, end.z), material: material)
         }
+        World3DMeshBatcher.flatten(pathRoot)
     }
 
     private func addPathSegment(from start: SIMD2<Float>, to end: SIMD2<Float>, material: SimpleMaterial) {

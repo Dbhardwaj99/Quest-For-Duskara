@@ -74,7 +74,9 @@ struct WorldMapView: View {
         )
         let scaled = CGSize(width: outer.width * zoomScale, height: outer.height * zoomScale)
         return ZStack {
+            // Static, so kept out of the layer the ships animate in.
             SeaWavesLayer()
+                .compositingGroup()
             TerritoryRenderer(
                 world: viewModel.state.world,
                 territory: viewModel.state.territory,

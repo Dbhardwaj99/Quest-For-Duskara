@@ -54,14 +54,21 @@ struct TerritoryRenderer: View {
             let projection = WorldMapProjection(size: proxy.size)
 
             ZStack {
-                WorldTerrainLayer(world: world, nodes: nodes)
-                TerritoryRegionLayer(
-                    world: world,
-                    territory: territory,
-                    selectedTownID: selectedTownID,
-                    activeTownID: activeTownID
-                )
-                laneLayer
+                // Its own compositing group: the ships and the pulsing marker
+                // animate every frame, and sharing a layer with them made
+                // SwiftUI re-run every blur and shadow filter of the clay
+                // islands each time (~70% GPU). Grouped, it is drawn once.
+                ZStack {
+                    WorldTerrainLayer(world: world, nodes: nodes)
+                    TerritoryRegionLayer(
+                        world: world,
+                        territory: territory,
+                        selectedTownID: selectedTownID,
+                        activeTownID: activeTownID
+                    )
+                    laneLayer
+                }
+                .compositingGroup()
                 SeaTrafficLayer(routes: seaRoutes)
                 landmarkLayer(projection: projection)
                 townMarkerLayer(projection: projection)

@@ -35,6 +35,7 @@ extension World3DRenderer {
                 soldierRoot.addChild(piece)
             }
         }
+        World3DMeshBatcher.flatten(soldierRoot)
     }
 
     func soldierAnchorCoordinate(town: Town, snapshots: [World3DTileSnapshot]) -> GridCoordinate? {
@@ -231,6 +232,8 @@ extension World3DRenderer {
 
     // Slow autoreversing drift; GPU-side, so no per-frame CPU work.
     func addDriftAnimation(to entity: Entity, offset: SIMD3<Float>, duration: TimeInterval) {
+        // Keeps static batching from freezing it into the scaffold's mesh.
+        entity.name = World3DMeshBatcher.animatedName
         var to = entity.transform
         to.translation += offset
         let animation = FromToByAnimation<Transform>(
