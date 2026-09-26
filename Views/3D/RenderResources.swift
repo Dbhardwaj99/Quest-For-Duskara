@@ -49,6 +49,7 @@ enum World3DRenderResources {
     private static var sphereMeshes: [Int: MeshResource] = [:]
     private static var unitConeMesh: MeshResource?
     private static var unitCylinderMesh: MeshResource?
+    private static var boulderMesh: MeshResource?
     private static var materialCache: [MaterialKey: SimpleMaterial] = [:]
     private(set) static var visualQuality: World3DVisualQuality = .high
 
@@ -117,6 +118,47 @@ enum World3DRenderResources {
         }
         let entity = ModelEntity(mesh: mesh, materials: [material])
         entity.scale = SIMD3<Float>(radius * 2, height, radius * 2)
+        return entity
+    }
+
+    static func makeBoulder(size: SIMD3<Float>, material: SimpleMaterial) -> ModelEntity {
+        if boulderMesh == nil {
+            let count = 9
+            let radii: [Float] = [0.81, 0.96, 0.85, 1.0, 0.88, 0.94, 0.82, 0.98, 0.86]
+            var rings: [[SIMD3<Float>]] = []
+            for (height, width) in [(Float(0), Float(0.43)), (0.43, 0.52), (0.81, 0.27)] {
+                rings.append((0..<count).map { index in
+                    let angle = Float(index) / Float(count) * .pi * 2
+                    let radius = width * radii[index]
+                    return SIMD3<Float>(sin(angle) * radius, height + Float(index % 3) * 0.025, cos(angle) * radius)
+                })
+            }
+            var positions: [SIMD3<Float>] = []
+            var normals: [SIMD3<Float>] = []
+            func face(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>) {
+                let normal = simd_normalize(simd_cross(b - a, c - a))
+                positions.append(contentsOf: [a, b, c])
+                normals.append(contentsOf: [normal, normal, normal])
+            }
+            for ring in 0..<2 {
+                for index in 0..<count {
+                    let next = (index + 1) % count
+                    face(rings[ring][index], rings[ring][next], rings[ring + 1][index])
+                    face(rings[ring][next], rings[ring + 1][next], rings[ring + 1][index])
+                }
+            }
+            let crown = SIMD3<Float>(0.07, 1, -0.05)
+            for index in 0..<count {
+                face(rings[2][index], rings[2][(index + 1) % count], crown)
+            }
+            var mesh = MeshDescriptor(name: "world3d_faceted_boulder")
+            mesh.positions = MeshBuffer(positions)
+            mesh.normals = MeshBuffer(normals)
+            mesh.primitives = .triangles(Array(0..<UInt32(positions.count)))
+            boulderMesh = try! MeshResource.generate(from: [mesh])
+        }
+        let entity = ModelEntity(mesh: boulderMesh!, materials: [material])
+        entity.scale = size
         return entity
     }
 

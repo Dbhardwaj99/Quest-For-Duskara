@@ -23,7 +23,8 @@ extension World3DTileEntity {
 
     static func makeSettlementDistrict(
         _ kind: BuildingKind, level: Int, tileSize: Float,
-        coordinate: GridCoordinate, gridSize: GridSize, townID: UUID
+        coordinate: GridCoordinate, gridSize: GridSize, townID: UUID,
+        elevationAt: (SIMD2<Float>) -> Float
     ) -> Entity? {
         let pieces = districtPieces(for: kind).filter { $0.appearsAt <= level }
         let root = Entity()
@@ -38,13 +39,21 @@ extension World3DTileEntity {
             let dx = jitter(seedCoordinate, salt: 1301) * 0.025
             let dz = jitter(seedCoordinate, salt: 1309) * 0.025
             let center = SIMD2<Float>((piece.x + dx) * tileSize, (piece.z + dz) * tileSize)
+            let elevation = kind == .pier ? 0 : elevationAt(center)
             if piece.asset != "jetty" {
+                let foundation = World3DRenderResources.makeCylinder(
+                    radius: piece.size * tileSize * 0.76,
+                    height: tileSize * 0.055,
+                    material: material(Palette.plinthStone, roughness: 0.96)
+                )
+                foundation.position = SIMD3<Float>(center.x, elevation - tileSize * 0.005, center.y)
+                root.addChild(foundation)
                 let pad = makeGroundPad(kind: kind, radius: piece.size * tileSize,
                                         coordinate: seedCoordinate)
-                pad.position = SIMD3<Float>(center.x, 0, center.y)
+                pad.position = SIMD3<Float>(center.x, elevation + tileSize * 0.019, center.y)
                 root.addChild(pad)
             }
-            model.position = SIMD3<Float>(center.x, piece.asset == "jetty" ? 0 : 0.007, center.y)
+            model.position = SIMD3<Float>(center.x, piece.asset == "jetty" ? 0 : elevation + tileSize * 0.025, center.y)
             model.scale = SIMD3<Float>(repeating: piece.size * tileSize * 1.15)
             let yaw = kind == .pier
                 ? (piece.asset == "jetty" ? Float.pi : 0)

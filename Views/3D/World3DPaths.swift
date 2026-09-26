@@ -16,7 +16,7 @@ extension World3DRenderer {
             material: material,
             scale: SIMD3<Float>(1.3, 0.025, 1.1)
         )
-        plaza.position.y = 0.010
+        plaza.position.y = groundHeight(at: .zero) + 0.010
         pathRoot.addChild(plaza)
 
         for building in town.buildings {
@@ -37,13 +37,24 @@ extension World3DRenderer {
         let delta = end - start
         let length = simd_length(delta)
         guard length > 0.01 else { return }
-        let path = World3DRenderResources.makeBox(
-            size: SIMD3<Float>(tileSize * 0.08, 0.006, length + tileSize * 0.08),
-            material: material,
-            cornerRadius: tileSize * 0.025
-        )
-        path.position = SIMD3<Float>((start.x + end.x) / 2, 0.008, (start.y + end.y) / 2)
-        path.orientation = simd_quatf(angle: atan2(delta.x, delta.y), axis: SIMD3<Float>(0, 1, 0))
-        pathRoot.addChild(path)
+        let side = SIMD2<Float>(-delta.y, delta.x) / length * (tileSize * 0.045)
+        let steps = max(2, Int(ceil(length / (tileSize * 0.25))))
+        var positions: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        for index in 0...steps {
+            let point = start + delta * (Float(index) / Float(steps))
+            for edge in [point + side, point - side] {
+                positions.append(SIMD3<Float>(edge.x, groundHeight(at: edge) + 0.007, edge.y))
+            }
+            if index < steps {
+                let i = UInt32(index * 2)
+                indices.append(contentsOf: [i, i + 2, i + 1, i + 1, i + 2, i + 3])
+            }
+        }
+        var mesh = MeshDescriptor(name: "world3d_terrain_path")
+        mesh.positions = MeshBuffer(positions)
+        mesh.normals = MeshBuffer(Array(repeating: SIMD3<Float>(0, 1, 0), count: positions.count))
+        mesh.primitives = .triangles(indices)
+        pathRoot.addChild(ModelEntity(mesh: try! MeshResource.generate(from: [mesh]), materials: [material]))
     }
 }

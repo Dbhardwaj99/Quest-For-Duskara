@@ -107,7 +107,17 @@ extension World3DRenderer {
     }
 
     func tileElevation(for coordinate: GridCoordinate) -> Float {
-        0
+        let point = position(for: coordinate)
+        return groundHeight(at: SIMD2<Float>(point.x, point.z))
+    }
+
+    func groundHeight(at point: SIMD2<Float>) -> Float {
+        World3DOcean.landHeight(
+            at: point,
+            islandHalfExtents: SIMD2<Float>(terrainWidth(for: gridSize) / 2, terrainDepth(for: gridSize) / 2),
+            tileSize: tileSize,
+            seed: terrainSeed
+        )
     }
 
     func terrainWidth(for gridSize: GridSize) -> Float {

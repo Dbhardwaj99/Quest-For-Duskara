@@ -20,6 +20,7 @@ final class World3DRenderer {
     var tileSnapshots: [GridCoordinate: World3DTileSnapshot] = [:]
     var scaffoldSignature = ""
     var pathSignature = ""
+    var terrainSeed = 0
     var visualQuality = World3DVisualQuality.adaptive
     var lastQualityCheckTime = Date.distantPast
     var pendingQuality: World3DVisualQuality?
@@ -102,15 +103,20 @@ final class World3DRenderer {
             let previousContent = tileSnapshots[snapshot.coordinate]?.content
             tileEntities[snapshot.coordinate]?.removeFromParent()
             World3DDiagnostics.tileDidRebuild()
+            let tilePosition = position(for: snapshot.coordinate)
+            let elevation = tileElevation(for: snapshot.coordinate)
             let entity = World3DTileEntity.makeTile(
                 snapshot: snapshot,
                 tileSize: tileSize,
                 gridSize: gridSize,
-                townID: adapter.town.id
+                townID: adapter.town.id,
+                elevationAt: { offset in
+                    self.groundHeight(at: SIMD2<Float>(tilePosition.x, tilePosition.z) + offset) - elevation
+                }
             )
             World3DMeshBatcher.flatten(entity)
-            entity.position = position(for: snapshot.coordinate)
-            entity.position.y += tileElevation(for: snapshot.coordinate)
+            entity.position = tilePosition
+            entity.position.y += elevation
             tileRoot.addChild(entity)
             tileEntities[snapshot.coordinate] = entity
             tileSnapshots[snapshot.coordinate] = snapshot
@@ -199,19 +205,26 @@ final class World3DRenderer {
         return group
     }
 
-    /// The plot a camera ray lands on. Plots cover the board edge to edge, so
-    /// this is the old invisible hit boxes' test, done as plane math at their
-    /// top face.
+    /// The plot a camera ray lands on. Plots cover the board edge to edge,
+    /// each at its own terrain height, so this is the old invisible hit
+    /// boxes' test as plane math: aim at flat ground, then re-aim once at
+    /// that plot's top face.
     func coordinate(along ray: (origin: SIMD3<Float>, direction: SIMD3<Float>)) -> GridCoordinate? {
         guard ray.direction.y < -0.0001 else { return nil }
-        let top = tileHeight * 0.25
-        let hit = ray.origin + ray.direction * ((top - ray.origin.y) / ray.direction.y)
         let spacing = tileSize + tileGap
-        let coordinate = GridCoordinate(
-            x: Int((hit.x / spacing + Float(gridSize.columns - 1) / 2).rounded()),
-            y: Int((hit.z / spacing + Float(gridSize.rows - 1) / 2).rounded())
-        )
-        return gridSize.contains(coordinate) ? coordinate : nil
+        var top = tileHeight * 0.25
+        var coordinate: GridCoordinate?
+        for _ in 0..<2 {
+            let hit = ray.origin + ray.direction * ((top - ray.origin.y) / ray.direction.y)
+            let candidate = GridCoordinate(
+                x: Int((hit.x / spacing + Float(gridSize.columns - 1) / 2).rounded()),
+                y: Int((hit.z / spacing + Float(gridSize.rows - 1) / 2).rounded())
+            )
+            guard gridSize.contains(candidate) else { return coordinate }
+            coordinate = candidate
+            top = tileElevation(for: candidate) + tileHeight * 0.25
+        }
+        return coordinate
     }
 
     func cameraBounds(for gridSize: GridSize) -> World3DCameraBounds {

@@ -114,19 +114,30 @@ final class World3DOcean {
         townID.uuidString.utf8.reduce(0) { ($0 &* 31 &+ Int($1)) % 1_000_003 }
     }
 
-    /// Flat where plots sit, then gently falling to an exposed soil edge.
+    /// The same height field positions the mesh, paths, and buildings.
+    static func landHeight(at point: SIMD2<Float>, islandHalfExtents: SIMD2<Float>, tileSize: Float, seed: Int) -> Float {
+        let angle = atan2(point.x, point.y)
+        let coast = coastRadius(angle: angle, islandHalfExtents: islandHalfExtents, tileSize: tileSize, seed: seed) - tileSize * 0.23
+        let margin = max(0, min(1, (coast - simd_length(point)) / (tileSize * 0.58)))
+        let shore = margin * margin * (3 - 2 * margin)
+        let phase = Float(seed % 997) / 997 * .pi * 2
+        let hill = 0.026
+            + 0.028 * sin(point.x / tileSize * 0.62 + phase) * cos(point.y / tileSize * 0.54 - phase * 0.7)
+            + 0.009 * sin((point.x + point.y) / tileSize * 0.96 + phase * 1.9)
+        return -0.055 * (1 - shore) + hill * shore
+    }
+
     static func makeLand(islandHalfExtents: SIMD2<Float>, tileSize: Float, seed: Int, grass: RealityKit.Material, soil: RealityKit.Material) -> Entity {
         let segments = 160
         let root = Entity()
-        var topPositions = [SIMD3<Float>(0, 0.004, 0)]
-        var topNormals = [SIMD3<Float>(0, 1, 0)]
-        for fraction in [Float(0.40), 0.72, 0.97, 1.0] {
+        var topPositions = [SIMD3<Float>(0, landHeight(at: .zero, islandHalfExtents: islandHalfExtents, tileSize: tileSize, seed: seed), 0)]
+        let fractions = (1...16).map { Float($0) / 16 }
+        for fraction in fractions {
             for segment in 0..<segments {
                 let angle = Float(segment) / Float(segments) * .pi * 2
                 let radius = coastRadius(angle: angle, islandHalfExtents: islandHalfExtents, tileSize: tileSize, seed: seed) - tileSize * 0.23
                 let point = SIMD2<Float>(sin(angle), cos(angle)) * radius * fraction
-                topPositions.append(SIMD3<Float>(point.x, fraction == 1 ? -0.055 : 0.004, point.y))
-                topNormals.append(SIMD3<Float>(0, 1, 0))
+                topPositions.append(SIMD3<Float>(point.x, landHeight(at: point, islandHalfExtents: islandHalfExtents, tileSize: tileSize, seed: seed), point.y))
             }
         }
         var topIndices: [UInt32] = []
@@ -134,7 +145,7 @@ final class World3DOcean {
             let next = (segment + 1) % segments
             topIndices.append(contentsOf: [0, UInt32(1 + segment), UInt32(1 + next)])
         }
-        for ring in 0..<3 {
+        for ring in 0..<(fractions.count - 1) {
             let start = 1 + ring * segments
             let outer = start + segments
             for segment in 0..<segments {
@@ -143,6 +154,15 @@ final class World3DOcean {
                                                UInt32(start + next), UInt32(outer + segment), UInt32(outer + next)])
             }
         }
+        var topNormals = Array(repeating: SIMD3<Float>(0, 0, 0), count: topPositions.count)
+        for index in stride(from: 0, to: topIndices.count, by: 3) {
+            let a = Int(topIndices[index]), b = Int(topIndices[index + 1]), c = Int(topIndices[index + 2])
+            let normal = simd_cross(topPositions[b] - topPositions[a], topPositions[c] - topPositions[a])
+            topNormals[a] += normal
+            topNormals[b] += normal
+            topNormals[c] += normal
+        }
+        topNormals = topNormals.map { simd_normalize($0) }
         var top = MeshDescriptor(name: "world3d_island_land")
         top.positions = MeshBuffer(topPositions)
         top.normals = MeshBuffer(topNormals)

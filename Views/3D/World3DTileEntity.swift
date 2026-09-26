@@ -22,7 +22,8 @@ struct World3DTileEntity {
         snapshot: World3DTileSnapshot,
         tileSize: Float,
         gridSize: GridSize,
-        townID: UUID
+        townID: UUID,
+        elevationAt: @escaping (SIMD2<Float>) -> Float
     ) -> Entity {
         let root = Entity()
         // Plots are picked with plane math (World3DRenderer.coordinate(along:)),
@@ -32,7 +33,7 @@ struct World3DTileEntity {
         if case .building = snapshot.content {
             // The district and shared paths supply its ground detail.
         } else {
-            addGroundDetail(for: snapshot, to: root, tileSize: tileSize)
+            addGroundDetail(for: snapshot, to: root, tileSize: tileSize, elevationAt: elevationAt)
         }
 
         switch snapshot.content {
@@ -43,7 +44,7 @@ struct World3DTileEntity {
         case .mountain:
             addMountain(to: root, tileSize: tileSize, coordinate: snapshot.coordinate)
         case .building(let kind, let level):
-            addBuilding(kind, level: level, to: root, tileSize: tileSize, coordinate: snapshot.coordinate, gridSize: gridSize, townID: townID)
+            addBuilding(kind, level: level, to: root, tileSize: tileSize, coordinate: snapshot.coordinate, gridSize: gridSize, townID: townID, elevationAt: elevationAt)
         }
 
         return root

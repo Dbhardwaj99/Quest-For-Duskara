@@ -25,41 +25,42 @@ extension World3DTileEntity {
         patch.orientation = simd_quatf(angle: rotation, axis: SIMD3<Float>(0, 1, 0))
     }
 
-    static func addGrassClumps(to root: Entity, tileSize: Float, coordinate: GridCoordinate, count: Int, around: SIMD2<Float>, radius: Float) {
+    static func addGrassClumps(to root: Entity, tileSize: Float, coordinate: GridCoordinate, count: Int, around: SIMD2<Float>, radius: Float, elevationAt: ((SIMD2<Float>) -> Float)? = nil) {
         for index in 0..<detailCount(count, minimum: 1) {
             let x = around.x + jitter(coordinate, salt: 401 + index * 3) * radius
             let z = around.y + jitter(coordinate, salt: 405 + index * 5) * radius
             guard abs(x) < 0.46, abs(z) < 0.46 else { continue }
             let bladeCount = detailCount(2 + stablePercent(coordinate, salt: 409 + index) % 2, minimum: 1)
             for blade in 0..<bladeCount {
-                // Oversized, softly rounded tufts — toy grass, not turf.
-                let bladeEntity = addBox(
+                let height = (0.065 + randomFloat(coordinate, salt: 412 + blade + index) * 0.06) * tileSize
+                let spot = SIMD2<Float>(x + Float(blade) * 0.025, z + jitter(coordinate, salt: 417 + blade + index) * 0.024)
+                let groundY = elevationAt?(spot * tileSize) ?? 0
+                let bladeEntity = addCone(
                     to: root,
-                    size: SIMD3<Float>(0.032, 0.075 + randomFloat(coordinate, salt: 412 + blade + index) * 0.05, 0.032) * tileSize,
-                    position: SIMD3<Float>(x + Float(blade) * 0.026, 0.042, z + jitter(coordinate, salt: 417 + blade + index) * 0.024) * tileSize,
+                    radius: tileSize * 0.020,
+                    height: height,
+                    position: SIMD3<Float>(spot.x * tileSize, groundY + tileSize * 0.007 + height / 2, spot.y * tileSize),
                     color: blade.isMultiple(of: 2) ? Palette.grassLight : Palette.grassShadow,
-                    roughness: 0.96,
-                    cornerRadius: tileSize * 0.012
+                    roughness: 0.96
                 )
-                bladeEntity.orientation = simd_quatf(angle: jitter(coordinate, salt: 421 + blade + index) * 0.28, axis: SIMD3<Float>(0, 0, 1))
+                bladeEntity.orientation = simd_quatf(angle: jitter(coordinate, salt: 421 + blade + index) * 0.35, axis: SIMD3<Float>(0, 0, 1))
             }
         }
     }
 
-    static func addRockCluster(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD2<Float>, radius: Float, count: Int, scale: Float) {
+    static func addRockCluster(to root: Entity, tileSize: Float, coordinate: GridCoordinate, center: SIMD2<Float>, radius: Float, count: Int, scale: Float, elevationAt: ((SIMD2<Float>) -> Float)? = nil) {
         for index in 0..<detailCount(count, minimum: 1) {
             let x = center.x + jitter(coordinate, salt: 501 + index * 7) * radius
             let z = center.y + jitter(coordinate, salt: 507 + index * 9) * radius
             guard abs(x) < 0.47, abs(z) < 0.47 else { continue }
             let height = (0.045 + randomFloat(coordinate, salt: 513 + index) * 0.075) * scale
-            let rock = addBox(
-                to: root,
-                size: SIMD3<Float>(height * 1.3, height, height * (1.0 + randomFloat(coordinate, salt: 519 + index) * 0.8)) * tileSize,
-                position: SIMD3<Float>(x, 0.018 + height * 0.5, z) * tileSize,
-                color: index.isMultiple(of: 3) ? Palette.paleStone : (index.isMultiple(of: 2) ? Palette.warmStone : Palette.deepStone),
-                roughness: 0.96,
-                cornerRadius: tileSize * 0.006
+            let color = index.isMultiple(of: 3) ? Palette.paleStone : (index.isMultiple(of: 2) ? Palette.warmStone : Palette.deepStone)
+            let rock = World3DRenderResources.makeBoulder(
+                size: SIMD3<Float>(height * 1.5, height, height * (1.2 + randomFloat(coordinate, salt: 519 + index) * 0.7)) * tileSize,
+                material: material(color, roughness: 0.96)
             )
+            rock.position = SIMD3<Float>(x * tileSize, (elevationAt?(SIMD2<Float>(x, z) * tileSize) ?? 0) + tileSize * 0.002, z * tileSize)
+            root.addChild(rock)
             rock.orientation = simd_quatf(angle: randomAngle(coordinate, salt: 523 + index), axis: SIMD3<Float>(0, 1, 0))
         }
     }

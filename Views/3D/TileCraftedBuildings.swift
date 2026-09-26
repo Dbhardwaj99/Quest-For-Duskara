@@ -3,9 +3,9 @@ import AppKit
 
 
 extension World3DTileEntity {
-    static func addBuilding(_ kind: BuildingKind, level: Int, to root: Entity, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize, townID: UUID) {
+    static func addBuilding(_ kind: BuildingKind, level: Int, to root: Entity, tileSize: Float, coordinate: GridCoordinate, gridSize: GridSize, townID: UUID, elevationAt: (SIMD2<Float>) -> Float) {
         if let district = makeSettlementDistrict(kind, level: level, tileSize: tileSize,
-                                                 coordinate: coordinate, gridSize: gridSize, townID: townID) {
+                                                 coordinate: coordinate, gridSize: gridSize, townID: townID, elevationAt: elevationAt) {
             root.addChild(district)
             return
         }

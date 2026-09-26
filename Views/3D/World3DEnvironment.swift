@@ -29,6 +29,7 @@ extension World3DRenderer {
         applyEnvironment()
         staticRoot.children.forEach { $0.removeFromParent() }
         let seed = World3DOcean.seed(for: town.id)
+        terrainSeed = seed
         addDuskBackdrop(for: gridSize, seed: seed)
         addGroundPlate(for: gridSize, seed: seed)
         addIslandAccents(for: town, gridSize: gridSize, seed: seed)
