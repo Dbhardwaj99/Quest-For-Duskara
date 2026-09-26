@@ -7,10 +7,8 @@ final class World3DTownViewController: NSViewController {
     private let sourceViewModel: GameViewModel
     private var adapter: World3DStateAdapter
     private var renderer: World3DRenderer?
+    private var renderView: World3DRenderView?
     private let cameraController = World3DCameraController()
-    private var fpsTimer: Timer?
-    private var fpsFrameCount = 0
-    private var fpsStartTime: TimeInterval = 0
     private var didCountActiveARView = false
 
     init(sourceViewModel: GameViewModel) {
@@ -57,19 +55,16 @@ final class World3DTownViewController: NSViewController {
         guard didCountActiveARView == false else { return }
         didCountActiveARView = true
         World3DDiagnostics.arViewDidAppear()
-        startFPSReporting()
     }
 
     override func viewDidDisappear() {
         super.viewDidDisappear()
         guard didCountActiveARView else { return }
         didCountActiveARView = false
-        stopFPSReporting()
         World3DDiagnostics.arViewDidDisappear()
     }
 
     deinit {
-        fpsTimer?.invalidate()
         if didCountActiveARView {
             Task { @MainActor in
                 World3DDiagnostics.arViewDidDisappear()
@@ -79,6 +74,11 @@ final class World3DTownViewController: NSViewController {
 
     func setCameraOrbiting(_ enabled: Bool) {
         cameraController.setOrbiting(enabled)
+    }
+
+    /// Stops drawing while something else covers the town (the world map).
+    func setActive(_ active: Bool) {
+        renderView?.isPaused = !active
     }
 
     func applyBuildingScales() {
@@ -91,58 +91,49 @@ final class World3DTownViewController: NSViewController {
     }
 
     private func configureScene() {
-        let arView = ARView(frame: view.bounds)
-        arView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(arView)
+        let renderView: World3DRenderView
+        do {
+            renderView = World3DRenderView(renderer: try RealityRenderer())
+        } catch {
+            // ponytail: no Metal/RealityKit renderer means no town view; the
+            // HUD and world map still work.
+            debugPrint("World3D: renderer unavailable:", error)
+            return
+        }
+        renderView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(renderView)
 
         NSLayoutConstraint.activate([
-            arView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            arView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            arView.topAnchor.constraint(equalTo: view.topAnchor),
-            arView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            renderView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            renderView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            renderView.topAnchor.constraint(equalTo: view.topAnchor),
+            renderView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        let renderer = World3DRenderer(arView: arView)
+        let renderer = World3DRenderer(renderView: renderView)
         cameraController.install(
-            in: arView,
+            in: renderView,
             bounds: renderer.cameraBounds(for: sourceViewModel.balance.gridSize),
             parent: renderer.cameraParent
         )
+        renderView.renderer.activeCamera = cameraController.camera
+        renderView.onFrame = { [weak cameraController] deltaTime in
+            cameraController?.advance(by: deltaTime)
+        }
         cameraController.onInteractionEnded = { [weak self] in
             self?.syncFromGameState()
         }
         self.renderer = renderer
+        self.renderView = renderView
 
         let tap = NSClickGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        arView.addGestureRecognizer(tap)
-    }
-
-    private func startFPSReporting() {
-        fpsTimer?.invalidate()
-        fpsFrameCount = 0
-        fpsStartTime = ProcessInfo.processInfo.systemUptime
-        fpsTimer = Timer.scheduledTimer(timeInterval: 1 / 60, target: self, selector: #selector(stepFPS(_:)), userInfo: nil, repeats: true)
-    }
-
-    private func stopFPSReporting() {
-        fpsTimer?.invalidate()
-        fpsTimer = nil
-    }
-
-    @objc private func stepFPS(_ timer: Timer) {
-        fpsFrameCount += 1
-        let now = ProcessInfo.processInfo.systemUptime
-        let elapsed = now - fpsStartTime
-        guard elapsed >= 2 else { return }
-        World3DDiagnostics.recordFPS(Double(fpsFrameCount) / elapsed)
-        fpsFrameCount = 0
-        fpsStartTime = now
+        renderView.addGestureRecognizer(tap)
     }
 
     @objc private func handleTap(_ recognizer: NSClickGestureRecognizer) {
-        guard let arView = recognizer.view as? ARView, let renderer else { return }
-        let location = recognizer.location(in: arView)
-        guard let coordinate = renderer.coordinate(for: arView.entity(at: location)) else { return }
+        guard let renderView, let renderer,
+              let ray = renderView.ray(through: recognizer.location(in: renderView)),
+              let coordinate = renderer.coordinate(along: ray) else { return }
 
         sourceViewModel.selectCell(coordinate)
         renderer.render(adapter: adapter)

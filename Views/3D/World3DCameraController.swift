@@ -1,6 +1,5 @@
 import RealityKit
 import AppKit
-import Combine
 
 struct World3DCameraBounds {
     let halfWidth: Float
@@ -18,14 +17,14 @@ struct World3DCameraBounds {
 
 @MainActor
 final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
-    private let camera = PerspectiveCamera()
+    let camera = PerspectiveCamera()
     private weak var view: NSView?
 
     // Zoom tuning — `defaultDistance` is the starting zoom; min/max clamp
     // pinch zoom. Watch the "Camera zoom" console log to pick values.
-    static let defaultDistance: Float = 3.0
-    static let minDistance: Float = 2.4
-    static let maxDistance: Float = 3.2
+    static let defaultDistance: Float = 5.2
+    static let minDistance: Float = 2.7
+    static let maxDistance: Float = 6.4
     static let zoomSensitivity: Float = 0.45
 
     private let target = SIMD3<Float>(0, 0, 0)
@@ -36,8 +35,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private var rotateStartPitch: Float = 0.74
     private var pinchStartDistance: Float = World3DCameraController.defaultDistance
     private var activeGestureIDs: Set<ObjectIdentifier> = []
-    private var inertiaTimer: Timer?
-    private var orbitSubscription: Cancellable?
+    private var isCoasting = false
     private var orbitSpeed: Float = 0
     // Slow cinematic showcase: one full revolution in ~75 seconds.
     private let orbitTargetSpeed: Float = 2 * .pi / 75
@@ -56,24 +54,31 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private let minPitch: Float = 0.56
     private let maxPitch: Float = 1.02
 
-    deinit {
-        inertiaTimer?.invalidate()
-        orbitSubscription?.cancel()
-    }
-
-    func install(in arView: ARView, bounds _: World3DCameraBounds, parent: Entity) {
-        view = arView
+    func install(in view: NSView, bounds _: World3DCameraBounds, parent: Entity) {
+        self.view = view
         camera.camera = PerspectiveCameraComponent(near: 0.01, far: 28, fieldOfViewInDegrees: 35)
         parent.addChild(camera)
         sanitizeState()
         updateCamera()
         let rotate = NSPanGestureRecognizer(target: self, action: #selector(handleRotate(_:)))
         rotate.delegate = self
-        arView.addGestureRecognizer(rotate)
+        view.addGestureRecognizer(rotate)
 
         let pinch = NSMagnificationGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         pinch.delegate = self
-        arView.addGestureRecognizer(pinch)
+        view.addGestureRecognizer(pinch)
+    }
+
+    /// Called once per rendered frame: coasts after a flick and advances the
+    /// debug orbit, both paced by the (≤ 60 fps) render loop.
+    func advance(by deltaTime: Float) {
+        guard deltaTime > 0, deltaTime < 1 else { return }
+        if isCoasting {
+            stepInertia(deltaTime)
+        }
+        if isOrbiting {
+            stepOrbit(deltaTime: deltaTime)
+        }
     }
 
     @objc private func handleRotate(_ recognizer: NSPanGestureRecognizer) {
@@ -118,29 +123,17 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     }
 
     /// Debug-only cinematic orbit around the island. Keeps the current pitch
-    /// and distance, only advancing yaw, driven by the RealityKit frame loop.
+    /// and distance, only advancing yaw, driven by the render loop.
     func setOrbiting(_ enabled: Bool) {
         guard enabled != isOrbiting else { return }
         isOrbiting = enabled
         orbitSpeed = 0
-        if enabled, let arView = view as? ARView {
-            orbitSubscription = arView.scene.subscribe(to: SceneEvents.Update.self) { [weak self] event in
-                let dt = Float(event.deltaTime)
-                MainActor.assumeIsolated {
-                    self?.stepOrbit(deltaTime: dt)
-                }
-            }
-        } else {
-            orbitSubscription?.cancel()
-            orbitSubscription = nil
-            isOrbiting = false
-        }
     }
 
     private func stepOrbit(deltaTime dt: Float) {
         // User gestures (and their inertia) win; orbit resumes from wherever
         // the camera lands.
-        guard isInteracting == false, dt > 0, dt < 1 else { return }
+        guard isInteracting == false else { return }
         // Ease angular speed up from rest so the orbit starts without a jump.
         orbitSpeed += (orbitTargetSpeed - orbitSpeed) * min(1, dt * 1.2)
         yaw += orbitSpeed * dt
@@ -181,20 +174,17 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     private func startInertia() {
         isInteracting = true
-        inertiaTimer?.invalidate()
-        inertiaTimer = Timer.scheduledTimer(timeInterval: 1 / 60, target: self, selector: #selector(stepInertia(_:)), userInfo: nil, repeats: true)
+        isCoasting = true
     }
 
     private func stopInertia() {
-        inertiaTimer?.invalidate()
-        inertiaTimer = nil
+        isCoasting = false
         yawVelocity = 0
         pitchVelocity = 0
         distanceVelocity = 0
     }
 
-    @objc private func stepInertia(_ timer: Timer) {
-        let dt: Float = 1 / 60
+    private func stepInertia(_ dt: Float) {
         yaw += yawVelocity * dt
         pitch += pitchVelocity * dt
         distance += distanceVelocity * dt

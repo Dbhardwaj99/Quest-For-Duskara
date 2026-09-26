@@ -3,9 +3,17 @@ import SwiftUI
 struct BuildingDetailsSheetView: View {
     @Bindable var viewModel: GameViewModel
     let buildingID: UUID
+    @State private var isConfirmingDemolish = false
 
     private var building: BuildingInstance? {
         viewModel.activeTown.buildings.first { $0.id == buildingID }
+    }
+
+    private func demolishMessage(for building: BuildingInstance) -> String {
+        guard let definition = viewModel.definition(for: building.kind) else { return "" }
+        let refund = "\((definition.cost(for: 1)[.gold] ?? 0) / 2) gold comes back."
+        let residents = (1...max(1, building.level)).reduce(0) { $0 + definition.peopleOnBuild(for: $1) }
+        return residents > 0 ? "\(refund) Its \(residents) residents leave with it." : refund
     }
 
     var body: some View {
@@ -56,7 +64,24 @@ struct BuildingDetailsSheetView: View {
                         }
 
                         if building.kind == .pier {
-                            PierTradingSection(viewModel: viewModel)
+                            MarketView(viewModel: viewModel)
+                                .padding(12)
+                                .background(DuskaraTheme.card, in: RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
+                        }
+
+                        Button(role: .destructive) {
+                            isConfirmingDemolish = true
+                        } label: {
+                            Label("Demolish", systemImage: "hammer.circle")
+                                .font(DuskaraTheme.Fonts.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(DuskaraTheme.mutedInk)
+                        .confirmationDialog("Demolish this \(building.kind.title)?", isPresented: $isConfirmingDemolish) {
+                            Button("Demolish", role: .destructive, action: viewModel.demolishSelectedBuilding)
+                        } message: {
+                            Text(demolishMessage(for: building))
                         }
                     }
                     .padding(16)
@@ -78,73 +103,6 @@ struct BuildingDetailsSheetView: View {
             .accessibilityLabel("Close building details")
             .padding(.top, 4)
             .padding(.trailing, 10)
-        }
-    }
-}
-
-private struct PierTradingSection: View {
-    @Bindable var viewModel: GameViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DuskaraTheme.spacingM) {
-            Text("Harbor Trade")
-                .font(DuskaraTheme.Fonts.heading)
-                .foregroundStyle(DuskaraTheme.ink)
-            Text("Trade ships arrive from neighboring free cities.")
-                .font(DuskaraTheme.Fonts.caption)
-                .foregroundStyle(DuskaraTheme.mutedInk)
-
-            if let offer = viewModel.currentTradeOffer {
-                offerCard(offer)
-            } else if viewModel.hasTradePartners == false {
-                Label("No free cities neighbor this island.", systemImage: "slash.circle")
-                    .font(DuskaraTheme.Fonts.subheading)
-                    .foregroundStyle(DuskaraTheme.mutedInk)
-            } else if viewModel.tradeCooldownSecondsRemaining > 0 {
-                Label("Next trade ship arrives in \(viewModel.tradeCooldownSecondsRemaining)s", systemImage: "clock")
-                    .font(DuskaraTheme.Fonts.subheading.monospacedDigit())
-                    .foregroundStyle(DuskaraTheme.mutedInk)
-            } else {
-                Label("Awaiting the next trade ship…", systemImage: "sailboat")
-                    .font(DuskaraTheme.Fonts.subheading)
-                    .foregroundStyle(DuskaraTheme.mutedInk)
-            }
-        }
-        .padding(12)
-        .background(DuskaraTheme.card, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 1))
-    }
-
-    private func offerCard(_ offer: TradeOffer) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label(offer.cityName, systemImage: "sailboat.fill")
-                    .font(DuskaraTheme.Fonts.subheading)
-                    .foregroundStyle(DuskaraTheme.ink)
-                Spacer()
-                Label("\(viewModel.tradeOfferSecondsRemaining)s", systemImage: "hourglass")
-                    .font(DuskaraTheme.Fonts.numberSmall)
-                    .foregroundStyle(DuskaraTheme.warmGold)
-                    .accessibilityLabel("Offer expires in \(viewModel.tradeOfferSecondsRemaining) seconds")
-            }
-
-            ResourceCostRow(title: "They ask", values: offer.wants)
-            ResourceCostRow(title: "You receive", values: offer.gives)
-
-            HStack(spacing: 10) {
-                Button("Accept") { viewModel.acceptTradeOffer() }
-                    .buttonStyle(DuskaraButtonStyle(prominent: true))
-                    .disabled(viewModel.canAcceptCurrentTrade == false)
-                    .opacity(viewModel.canAcceptCurrentTrade ? 1 : 0.5)
-                Button("Decline") { viewModel.declineTradeOffer() }
-                    .buttonStyle(DuskaraButtonStyle())
-            }
-
-            if viewModel.canAcceptCurrentTrade == false {
-                Text("Not enough resources to accept this offer.")
-                    .font(DuskaraTheme.Fonts.caption)
-                    .foregroundStyle(Color(red: 0.96, green: 0.52, blue: 0.44))
-            }
         }
     }
 }
@@ -172,7 +130,7 @@ private struct BarracksTrainingSheetSection: View {
                     .foregroundStyle(DuskaraTheme.mutedInk)
                 FlowLayout(spacing: 6) {
                     ForEach([ResourceKind.gold, .skill, .food], id: \.self) { kind in
-                        ResourcePill(kind: kind, amount: viewModel.activeTown.resources[kind])
+                        ResourcePill(kind: kind, amount: viewModel.spendingTown.resources[kind])
                     }
                 }
             }

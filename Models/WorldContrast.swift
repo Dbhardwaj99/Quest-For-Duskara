@@ -9,7 +9,7 @@ enum WorldContrast {
     /// The point where the curve is the plain pastel pass and nothing more.
     /// Not the default — the world ships punchier than neutral.
     static let neutral = 1.0
-    static let standard = 1.35
+    static let standard = 1.45
     static let range: ClosedRange<Double> = 0.4...1.8
 
     /// The renderer caches materials by colour, so the slider steps instead of

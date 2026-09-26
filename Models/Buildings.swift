@@ -45,9 +45,13 @@ struct BuildingDefinition: Identifiable, Codable, Equatable {
     var maxLevel: Int
     var placementRules: [PlacementRule]
 
+    /// Gold climbs with the level (×1, ×2, ×3); skill climbs faster (×1, ×3, ×6),
+    /// so top-tier upgrades lean on Factories.
     func cost(for level: Int) -> [ResourceKind: Int] {
-        let multiplier = max(1, level)
-        return baseCost.mapValues { $0 * multiplier }
+        let level = max(1, level)
+        var cost = baseCost.mapValues { $0 * level }
+        if let skill = baseCost[.skill] { cost[.skill] = skill * level * (level + 1) / 2 }
+        return cost
     }
 
     func production(for level: Int) -> [ResourceKind: Int] {

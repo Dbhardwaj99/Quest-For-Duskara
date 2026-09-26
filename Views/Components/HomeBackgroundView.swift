@@ -46,6 +46,7 @@ final class LoopingVideoNSView: NSView {
     private let playerLayer = AVPlayerLayer()
     private let player = AVQueuePlayer()
     private var looper: AVPlayerLooper?
+    private var templateItem: AVPlayerItem?
     /// A gaussian blur samples past the edges and returns transparent there, so
     /// the layer is drawn oversized and the soft border falls outside the view.
     private let overscan: CGFloat
@@ -67,13 +68,11 @@ final class LoopingVideoNSView: NSView {
         layer?.addSublayer(playerLayer)
 
         guard let url = Bundle.main.url(forResource: resource, withExtension: fileExtension) else { return }
-        let item = AVPlayerItem(url: url)
+        templateItem = AVPlayerItem(url: url)
         // Ambient background: never audible, and never the reason a game's
         // audio session gets taken over.
         player.isMuted = true
         player.actionAtItemEnd = .advance
-        looper = AVPlayerLooper(player: player, templateItem: item)
-        player.play()
     }
 
     required init?(coder: NSCoder) {
@@ -90,16 +89,24 @@ final class LoopingVideoNSView: NSView {
         CATransaction.commit()
     }
 
-    // Decoding a 4K loop nobody can see is pure battery, and the window can be
-    // hidden without this view being torn down.
+    // Decoding a loop nobody can see is pure battery, and the menu stays alive
+    // under the game (it leaves the window, it isn't torn down). Pausing isn't
+    // enough — AVPlayerLooper resumes the player — so the loop goes entirely.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        window == nil ? player.pause() : player.play()
+        window == nil ? stop() : start()
+    }
+
+    private func start() {
+        guard looper == nil, let templateItem else { return }
+        looper = AVPlayerLooper(player: player, templateItem: templateItem)
+        player.play()
     }
 
     func stop() {
+        looper?.disableLooping()
+        looper = nil
         player.pause()
         player.removeAllItems()
-        looper = nil
     }
 }

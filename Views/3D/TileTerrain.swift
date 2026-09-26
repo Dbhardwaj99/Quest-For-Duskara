@@ -83,15 +83,7 @@ extension World3DTileEntity {
         return root.clone(recursive: true)
     }
 
-    static func coordinate(fromName name: String) -> GridCoordinate? {
-        let prefix = "world3d_tile_"
-        guard name.hasPrefix(prefix) else { return nil }
-        let parts = name.dropFirst(prefix.count).split(separator: "_")
-        guard parts.count == 2, let x = Int(parts[0]), let y = Int(parts[1]) else { return nil }
-        return GridCoordinate(x: x, y: y)
-    }
-
-    static func addGroundDetail(for snapshot: World3DTileSnapshot, to root: Entity, tileSize: Float) {
+    static func addGroundDetail(for snapshot: World3DTileSnapshot, to root: Entity, tileSize: Float, elevationAt: @escaping (SIMD2<Float>) -> Float) {
         guard snapshot.content != .water else {
             addWaterSheen(to: root, tileSize: tileSize, coordinate: snapshot.coordinate)
             return
@@ -113,7 +105,24 @@ extension World3DTileEntity {
         }
 
         if snapshot.content == .grass {
-            addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 4, around: SIMD2<Float>(0, 0), radius: 0.42)
+            for index in 0..<2 {
+                let spot = SIMD2<Float>(jitter(coordinate, salt: 31 + index * 2) * 0.29,
+                                        jitter(coordinate, salt: 32 + index * 2) * 0.29)
+                let patch = World3DRenderResources.makeSphere(
+                    radius: tileSize * (0.13 + Float(index) * 0.025),
+                    material: material(index == 0 ? Palette.grassLight : Palette.grassShadow, roughness: 0.98),
+                    scale: SIMD3<Float>(1.55, 0.045, 1.05)
+                )
+                patch.position = SIMD3<Float>(spot.x * tileSize, elevationAt(spot * tileSize) + tileSize * 0.003, spot.y * tileSize)
+                patch.orientation = simd_quatf(angle: randomAngle(coordinate, salt: 36 + index), axis: SIMD3<Float>(0, 1, 0))
+                root.addChild(patch)
+            }
+            addGrassClumps(to: root, tileSize: tileSize, coordinate: coordinate, count: 5, around: .zero, radius: 0.42, elevationAt: elevationAt)
+            if stablePercent(coordinate, salt: 43) < 32 {
+                addRockCluster(to: root, tileSize: tileSize, coordinate: coordinate,
+                               center: SIMD2<Float>(0.17, -0.13), radius: 0.16, count: 3, scale: 0.55,
+                               elevationAt: elevationAt)
+            }
         } else {
             addGroundPatch(
                 to: root,
@@ -144,6 +153,8 @@ extension World3DTileEntity {
     // Gentle autoreversing loop used by ambient details (smoke, animals,
     // boats). GPU-side, so no per-frame CPU work.
     static func addAmbientDrift(to entity: Entity, offset: SIMD3<Float>, scaleTo: Float = 1, duration: TimeInterval) {
+        // Keeps static batching from freezing it into the tile's mesh.
+        entity.name = World3DMeshBatcher.animatedName
         var to = entity.transform
         to.translation += offset
         to.scale *= SIMD3<Float>(repeating: scaleTo)

@@ -49,8 +49,8 @@ enum World3DRenderResources {
     private static var sphereMeshes: [Int: MeshResource] = [:]
     private static var unitConeMesh: MeshResource?
     private static var unitCylinderMesh: MeshResource?
+    private static var boulderMesh: MeshResource?
     private static var materialCache: [MaterialKey: SimpleMaterial] = [:]
-    private static var collisionBoxes: [SIMD3<Float>: ShapeResource] = [:]
     private(set) static var visualQuality: World3DVisualQuality = .high
 
     static var cachedMaterialCount: Int {
@@ -77,7 +77,12 @@ enum World3DRenderResources {
         material: SimpleMaterial,
         scale: SIMD3<Float> = SIMD3<Float>(repeating: 1)
     ) -> ModelEntity {
-        let entity = ModelEntity(mesh: sphereMesh(segmentBudget: 12), materials: [material])
+        // Detail by size: RealityKit's sphere is 8k triangles whatever its
+        // size. These keep every outline within a fraction of a pixel of a
+        // true circle even at the closest camera zoom.
+        let reach = radius * max(scale.x, max(scale.y, scale.z))
+        let segments = reach <= 0.02 ? 24 : (reach <= 0.06 ? 40 : 64)
+        let entity = ModelEntity(mesh: sphereMesh(segments: segments), materials: [material])
         entity.scale = SIMD3<Float>(repeating: radius * 2) * scale
         return entity
     }
@@ -116,6 +121,47 @@ enum World3DRenderResources {
         return entity
     }
 
+    static func makeBoulder(size: SIMD3<Float>, material: SimpleMaterial) -> ModelEntity {
+        if boulderMesh == nil {
+            let count = 9
+            let radii: [Float] = [0.81, 0.96, 0.85, 1.0, 0.88, 0.94, 0.82, 0.98, 0.86]
+            var rings: [[SIMD3<Float>]] = []
+            for (height, width) in [(Float(0), Float(0.43)), (0.43, 0.52), (0.81, 0.27)] {
+                rings.append((0..<count).map { index in
+                    let angle = Float(index) / Float(count) * .pi * 2
+                    let radius = width * radii[index]
+                    return SIMD3<Float>(sin(angle) * radius, height + Float(index % 3) * 0.025, cos(angle) * radius)
+                })
+            }
+            var positions: [SIMD3<Float>] = []
+            var normals: [SIMD3<Float>] = []
+            func face(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ c: SIMD3<Float>) {
+                let normal = simd_normalize(simd_cross(b - a, c - a))
+                positions.append(contentsOf: [a, b, c])
+                normals.append(contentsOf: [normal, normal, normal])
+            }
+            for ring in 0..<2 {
+                for index in 0..<count {
+                    let next = (index + 1) % count
+                    face(rings[ring][index], rings[ring][next], rings[ring + 1][index])
+                    face(rings[ring][next], rings[ring + 1][next], rings[ring + 1][index])
+                }
+            }
+            let crown = SIMD3<Float>(0.07, 1, -0.05)
+            for index in 0..<count {
+                face(rings[2][index], rings[2][(index + 1) % count], crown)
+            }
+            var mesh = MeshDescriptor(name: "world3d_faceted_boulder")
+            mesh.positions = MeshBuffer(positions)
+            mesh.normals = MeshBuffer(normals)
+            mesh.primitives = .triangles(Array(0..<UInt32(positions.count)))
+            boulderMesh = try! MeshResource.generate(from: [mesh])
+        }
+        let entity = ModelEntity(mesh: boulderMesh!, materials: [material])
+        entity.scale = size
+        return entity
+    }
+
     static func material(_ color: NSColor, roughness: Float, metallic: Bool = false) -> SimpleMaterial {
         let key = MaterialKey(color: color, roughness: roughness, metallic: metallic)
         if let cached = materialCache[key] {
@@ -131,36 +177,110 @@ enum World3DRenderResources {
         return material
     }
 
-    static func collisionBox(size: SIMD3<Float>) -> ShapeResource {
-        if let cached = collisionBoxes[size] {
-            return cached
-        }
-        let shape = ShapeResource.generateBox(size: size)
-        collisionBoxes[size] = shape
-        return shape
-    }
-
     private static func boxMesh(detail: BoxDetail) -> MeshResource {
         if let cached = boxMeshes[detail] {
             return cached
         }
 
-        let mesh = MeshResource.generateBox(
-            size: SIMD3<Float>(repeating: 1),
-            cornerRadius: detail.cornerRadius
-        )
+        let mesh = detail == .sharp
+            ? MeshResource.generateBox(size: SIMD3<Float>(repeating: 1))
+            : roundedBoxMesh(cornerRadius: detail.cornerRadius)
         boxMeshes[detail] = mesh
         return mesh
     }
 
-    private static func sphereMesh(segmentBudget: Int) -> MeshResource {
-        if let cached = sphereMeshes[segmentBudget] {
+    private static func sphereMesh(segments: Int) -> MeshResource {
+        if let cached = sphereMeshes[segments] {
             return cached
         }
 
-        let mesh = MeshResource.generateSphere(radius: 0.5)
-        sphereMeshes[segmentBudget] = mesh
+        let mesh = uvSphereMesh(segments: segments)
+        sphereMeshes[segments] = mesh
         return mesh
+    }
+
+    /// Unit sphere with `segments` around and half that pole to pole — the
+    /// same angular step both ways (RealityKit's doubles it top to bottom).
+    private static func uvSphereMesh(segments: Int) -> MeshResource {
+        let rings = segments / 2
+        var positions: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        for ring in 0...rings {
+            let theta = Float(ring) / Float(rings) * .pi
+            for segment in 0...segments {
+                let phi = Float(segment) / Float(segments) * 2 * .pi
+                let normal = SIMD3<Float>(sin(theta) * sin(phi), cos(theta), sin(theta) * cos(phi))
+                normals.append(normal)
+                positions.append(normal * 0.5)
+            }
+        }
+        var indices: [UInt32] = []
+        for ring in 0..<rings {
+            for segment in 0..<segments {
+                let a = UInt32(ring * (segments + 1) + segment)
+                let b = a + UInt32(segments + 1)
+                indices.append(contentsOf: [a, b, a + 1, a + 1, b, b + 1])
+            }
+        }
+        var descriptor = MeshDescriptor(name: "world3d_sphere")
+        descriptor.positions = MeshBuffer(positions)
+        descriptor.normals = MeshBuffer(normals)
+        descriptor.primitives = .triangles(indices)
+        return try! MeshResource.generate(from: [descriptor])
+    }
+
+    /// Unit box with rounded edges and corners: each surface point is the
+    /// inner box's nearest point pushed out by `cornerRadius`. Eight segments
+    /// per quarter arc hold every edge within a fraction of a pixel of a true
+    /// arc at the closest zoom; RealityKit's own rounded box spends 13k
+    /// triangles on the same shape.
+    private static func roundedBoxMesh(cornerRadius radius: Float) -> MeshResource {
+        let inner = 0.5 - radius
+        let band = 4 // grid lines per rounded band: each face holds half an edge's quarter arc
+        // Face grid lines, spaced evenly in angle through the rounded bands.
+        var stops: [Float] = []
+        for step in 0...band {
+            stops.append(-inner - radius * tan(Float(band - step) / Float(band) * .pi / 4))
+        }
+        for step in 0...band {
+            stops.append(inner + radius * tan(Float(step) / Float(band) * .pi / 4))
+        }
+
+        var positions: [SIMD3<Float>] = []
+        var normals: [SIMD3<Float>] = []
+        var indices: [UInt32] = []
+        for axis in 0..<3 {
+            for side: Float in [-1, 1] {
+                let u = (axis + 1) % 3, v = (axis + 2) % 3
+                let base = UInt32(positions.count)
+                for su in stops {
+                    for sv in stops {
+                        var point = SIMD3<Float>(repeating: 0)
+                        point[axis] = side * 0.5
+                        point[u] = su
+                        point[v] = sv
+                        let core = simd_clamp(point, SIMD3(repeating: -inner), SIMD3(repeating: inner))
+                        let normal = simd_normalize(point - core)
+                        normals.append(normal)
+                        positions.append(core + normal * radius)
+                    }
+                }
+                // (u, v, axis) is right-handed, so counterclockwise in (u, v)
+                // faces +axis; flip the winding for the -axis face.
+                let count = UInt32(stops.count)
+                for i in 0..<(count - 1) {
+                    for j in 0..<(count - 1) {
+                        let a = base + i * count + j, b = a + count, c = b + 1, d = a + 1
+                        indices.append(contentsOf: side > 0 ? [a, b, c, a, c, d] : [a, c, b, a, d, c])
+                    }
+                }
+            }
+        }
+        var descriptor = MeshDescriptor(name: "world3d_rounded_box")
+        descriptor.positions = MeshBuffer(positions)
+        descriptor.normals = MeshBuffer(normals)
+        descriptor.primitives = .triangles(indices)
+        return try! MeshResource.generate(from: [descriptor])
     }
 }
 

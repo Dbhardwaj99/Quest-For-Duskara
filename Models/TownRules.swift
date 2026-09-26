@@ -143,11 +143,14 @@ enum GameRules {
     }
 
     static func applyUpkeep(to town: inout Town, balance: GameBalance) {
-        var shortfall = dailyFood(town, balance: balance)
-        if town.resources[.food] >= shortfall {
-            town.resources.add(.food, amount: -shortfall)
+        let need = dailyFood(town, balance: balance)
+        if town.resources[.food] >= need {
+            town.resources.add(.food, amount: -need)
             return
         }
+        // Only the part the stores can't cover goes unfed. Disbanding for the
+        // whole day's need wiped out any army that was a single ration short.
+        var shortfall = need - town.resources[.food]
         town.resources[.food] = 0
         while shortfall > 0, town.armyStrength > 0 {
             if let kind = town.soldierRoster.removeHighestUpkeepUnit(using: balance.soldierDefinitions) {
@@ -161,6 +164,27 @@ enum GameRules {
             }
         }
         town.resources[.soldiers] = town.armyStrength
+    }
+
+    /// Families move into spare housing each day until the Houses are full;
+    /// soldiers are housed too, so a standing army leaves less room.
+    static func growPopulation(_ town: inout Town, balance: GameBalance) {
+        let capacity = populationCapacity(town, balance: balance)
+        let room = capacity - town.resources[.people] - town.soldierRoster.manpowerCommitted(using: balance.soldierDefinitions)
+        guard room > 0 else { return }
+        let arrivals = max(1, Int((Double(capacity) * balance.populationGrowthRate).rounded()))
+        town.resources.add(.people, amount: min(room, arrivals))
+    }
+
+    /// Clears a plot: half the building's gold price comes back, and a House's
+    /// residents leave with it.
+    static func demolish(_ buildingID: UUID, in town: inout Town, balance: GameBalance) {
+        guard let index = town.buildings.firstIndex(where: { $0.id == buildingID }),
+              let definition = balance.buildingDefinitions[town.buildings[index].kind] else { return }
+        let building = town.buildings.remove(at: index)
+        town.resources.add(.gold, amount: (definition.cost(for: 1)[.gold] ?? 0) / 2)
+        let residents = (1...max(1, building.level)).reduce(0) { $0 + definition.peopleOnBuild(for: $1) }
+        town.resources.add(.people, amount: -residents)
     }
 
     static func hasStableEconomy(_ town: Town, balance: GameBalance) -> Bool {

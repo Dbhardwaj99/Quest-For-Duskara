@@ -2,10 +2,15 @@ import SwiftUI
 
 struct WorldTownMarkerView: View {
     let town: Town
+    /// Defense to beat for a target; garrison for one of your own islands.
+    let badge: Int
     let isActive: Bool
     let isSelected: Bool
     let canAct: Bool
     let onAction: () -> Void
+    var note: String? = nil
+    /// Set when the empire's gathered army could take a target this island can't.
+    var onRally: (() -> Void)? = nil
 
     @State var isHovered = false
 
@@ -34,6 +39,22 @@ struct WorldTownMarkerView: View {
                     .background(DuskaraTheme.accent, in: Capsule())
                     .disabled(!canAct)
                     .opacity(canAct ? 1 : 0.45)
+                if let onRally {
+                    Button("Rally & attack", action: onRally)
+                        .buttonStyle(.plain)
+                        .font(DuskaraTheme.Fonts.caption)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(DuskaraTheme.warmGold.opacity(0.85), in: Capsule())
+                        .help("Gather every island's troops here, then attack. Your other islands are left unguarded.")
+                }
+                if let note {
+                    Text(note)
+                        .font(DuskaraTheme.Fonts.label)
+                        .foregroundStyle(.white.opacity(0.80))
+                        .fixedSize()
+                }
             }
         }
         .padding(5)
@@ -50,12 +71,12 @@ struct WorldTownMarkerView: View {
 
     var helpText: String {
         if town.isPlayerControlled { return "\(town.name) — your city. Click to inspect, Visit to rule it." }
-        if town.isDuskara { return "\(town.name) — the stronghold. Defeat its \(town.armyStrength) soldiers to win." }
-        return "\(town.name) — garrison of \(town.armyStrength). Click to inspect or attack."
+        if town.isDuskara { return "\(town.name) — the stronghold. Beat its defense of \(badge) to win." }
+        return "\(town.name) — defense \(badge) (garrison \(town.armyStrength) plus fortifications). Click to inspect or attack."
     }
 
     var infoBadge: some View {
-        Label("\(town.armyStrength)", systemImage: town.isDuskara ? "crown.fill" : "shield.fill")
+        Label("\(badge)", systemImage: town.isDuskara ? "crown.fill" : "shield.fill")
         .labelStyle(.titleAndIcon)
         .font(DuskaraTheme.Fonts.label)
         .foregroundStyle(.white.opacity(0.92))
@@ -116,18 +137,18 @@ private struct ClayTownGlyph: View {
 // reads at a glance.
 struct PulsingRing: View {
     let color: Color
-    @State var expanded = false
 
+    // The same 2 s ease-out pulse a repeatForever animation gave, but on a
+    // 60 Hz timeline: the animation ran at the display's full 120 Hz.
     var body: some View {
-        Circle()
-            .stroke(color.opacity(expanded ? 0 : 0.75), lineWidth: 2)
-            .frame(width: 38, height: 38)
-            .scaleEffect(expanded ? 1.8 : 0.85)
-            .onAppear {
-                withAnimation(.easeOut(duration: 2.0).repeatForever(autoreverses: false)) {
-                    expanded = true
-                }
-            }
+        TimelineView(.animation(minimumInterval: 1.0 / 60)) { context in
+            let cycle = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2) / 2
+            let expansion = UnitCurve.easeOut.value(at: cycle)
+            Circle()
+                .stroke(color.opacity(0.75 * (1 - expansion)), lineWidth: 2)
+                .frame(width: 38, height: 38)
+                .scaleEffect(0.85 + (1.8 - 0.85) * expansion)
+        }
     }
 }
 

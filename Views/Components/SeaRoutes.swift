@@ -8,12 +8,6 @@ struct SeaRoute: Identifiable {
     let hasShip: Bool
     let seed: Int
 
-    static func isTradeRoute(_ pierTown: Town, _ partner: Town) -> Bool {
-        pierTown.isPlayerControlled
-            && pierTown.buildings.contains { $0.kind == .pier }
-            && partner.faction == .neutral
-    }
-
     // Hasher's per-launch seed would reshuffle ships every run; this stays
     // stable so each lane keeps its curve, pace, and phase.
     static func stableHash(_ value: String) -> Int {

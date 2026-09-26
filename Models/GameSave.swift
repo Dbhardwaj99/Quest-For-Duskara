@@ -1,7 +1,7 @@
 import Foundation
 
 struct SavedGame: Codable, Equatable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     var schemaVersion: Int
     var dayLabel: String
@@ -29,6 +29,14 @@ struct SavedGame: Codable, Equatable {
         dayLabel = try container.decode(String.self, forKey: .dayLabel)
         state = try container.decode(GameState.self, forKey: .state)
         difficulty = try container.decodeIfPresent(Difficulty.self, forKey: .difficulty) ?? .medium
+        if schemaVersion < 2 {
+            // Version 1 ran a tenth of this economy on 60-second days: scale the
+            // stores to match, and restart the day so it can't replay several.
+            for index in state.towns.indices {
+                for kind in GameRules.sharedKinds { state.towns[index].resources[kind] *= 10 }
+            }
+            state.elapsedSecondsInDay = 0
+        }
     }
 }
 
@@ -62,9 +70,8 @@ struct GameSaveStore {
 
     func save(state: GameState, difficulty: Difficulty) throws {
         let savedGame = SavedGame(dayLabel: dayLabel(for: state.day), state: state, difficulty: difficulty)
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(savedGame)
+        // Compact: this runs on the main thread every ten-second day.
+        let data = try JSONEncoder().encode(savedGame)
         try data.write(to: saveURL, options: [.atomic])
     }
 

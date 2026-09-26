@@ -52,7 +52,14 @@ extension World3DRenderer {
         for tile in tileEntities.values {
             for child in tile.children {
                 guard let kind = World3DTileEntity.buildingKind(fromName: child.name) else { continue }
-                child.scale = SIMD3<Float>(repeating: tileSize * BuildingScale.scale(for: kind))
+                let scale = child.name.hasPrefix("world3d_district_")
+                    ? BuildingScale.scale(for: kind) / BuildingScale.standard(for: kind)
+                    : tileSize * BuildingScale.scale(for: kind)
+                // Runs on every SwiftUI update; an unchanged write still dirties
+                // the whole building's transforms for RealityKit.
+                if child.scale != SIMD3<Float>(repeating: scale) {
+                    child.scale = SIMD3<Float>(repeating: scale)
+                }
             }
         }
     }
@@ -100,7 +107,17 @@ extension World3DRenderer {
     }
 
     func tileElevation(for coordinate: GridCoordinate) -> Float {
-        Float(stablePercent(coordinate, salt: 509)) / 100 * 0.018
+        let point = position(for: coordinate)
+        return groundHeight(at: SIMD2<Float>(point.x, point.z))
+    }
+
+    func groundHeight(at point: SIMD2<Float>) -> Float {
+        World3DOcean.landHeight(
+            at: point,
+            islandHalfExtents: SIMD2<Float>(terrainWidth(for: gridSize) / 2, terrainDepth(for: gridSize) / 2),
+            tileSize: tileSize,
+            seed: terrainSeed
+        )
     }
 
     func terrainWidth(for gridSize: GridSize) -> Float {

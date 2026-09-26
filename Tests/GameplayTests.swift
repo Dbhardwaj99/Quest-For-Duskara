@@ -27,12 +27,6 @@ struct GameplayTests {
         state.towns[1].soldierRoster[.knight] = 3
         state.towns[1].armyStrength = 30
         state.newsEvents = [NewsEvent(day: 11, kind: .cityCapture, message: "Captured Ironridge")]
-        state.tradeOffers = [TownTradeOffer(
-            townID: state.towns[0].id,
-            partnerTownID: state.towns[1].id,
-            wants: [.food: 12],
-            gives: [.gold: 18]
-        )]
 
         for difficulty in Difficulty.allCases {
             try store.save(state: state, difficulty: difficulty)
@@ -71,12 +65,23 @@ struct GameplayTests {
         }
         #expect(try Data(contentsOf: directory.appendingPathComponent("duskara-save.json")) == unsupportedData)
         #expect(GameSaveLoadError.invalidData.recoveryMessage.contains(directory.path) == false)
+
+        // Version 1 saves ran a tenth of today's economy on 60-second days:
+        // their stores come back scaled up, and the day restarts rather than
+        // replaying several ten-second days at once.
+        try JSONEncoder().encode(UnsupportedSavedGame(schemaVersion: 1, dayLabel: "Day 12", state: state, difficulty: .easy))
+            .write(to: directory.appendingPathComponent("duskara-save.json"))
+        let migratedGame = try #require(try store.load())
+        #expect(migratedGame.state.towns[0].resources[.gold] == 3_210)
+        #expect(migratedGame.state.towns[1].resources[.gold] == 7_770)
+        #expect(migratedGame.state.towns[0].resources[.people] == state.towns[0].resources[.people])
+        #expect(migratedGame.state.elapsedSecondsInDay == 0)
     }
 
     @Test func resumedGameRestoresStateAndResetsPresentation() {
         var state = makeNewGame(balance: .duskDefault)
         state.day = 8
-        let viewModel = GameViewModel()
+        let viewModel = makeViewModel()
         let destinationViewModel = viewModel
         let buildingID = UUID()
         viewModel.bonusAllocation = [.gold: 100]
@@ -113,9 +118,9 @@ struct GameplayTests {
 
         #expect(knight.power == 24)
         #expect(knight.power > archer.power * 2)
-        #expect(knight.trainingCost == [.gold: 45, .skill: 15, .food: 25])
+        #expect(knight.trainingCost == [.gold: 450, .skill: 150, .food: 250])
         #expect(knight.peopleRequired == 2)
-        #expect(knight.dailyFoodUpkeep == 4)
+        #expect(knight.dailyFoodUpkeep == 40)
     }
 
     @Test func contrastKnobPushesColorWithoutEscapingTheChannelRange() {
@@ -199,7 +204,7 @@ struct GameplayTests {
 
         // Starting the campaign rebuilds that wallet a second time, with the
         // difficulty bonus on top. People have to survive that pass too.
-        let viewModel = GameViewModel()
+        let viewModel = makeViewModel()
         viewModel.adjustBonusPresets(for: .easy)
         viewModel.startGame()
         defer { viewModel.stopClock() }
@@ -214,49 +219,48 @@ struct GameplayTests {
     }
 
     @MainActor
-    @Test func sendingIsOfferedOnlyOnceASecondTownIsHeld() throws {
-        let viewModel = GameViewModel()
+    @Test func troopsMoveByHandWhileTheStockpileIsShared() throws {
+        let viewModel = makeViewModel()
         viewModel.startGame()
         defer { viewModel.stopClock() }
 
-        // One town: nowhere to send, so the button is not offered at all.
+        // One island: nowhere to move troops, so the button is not offered at all.
         #expect(viewModel.transferDestinations.isEmpty)
 
         let second = try #require(viewModel.state.towns.firstIndex { $0.isPlayerControlled == false })
         let secondID = viewModel.state.towns[second].id
         viewModel.state.towns[second].faction = .player
+        // The island doing the moving is never its own destination.
+        #expect(viewModel.transferDestinations.map(\.id) == [secondID])
 
-        let destinations = viewModel.transferDestinations
-        #expect(destinations.count == 1)
-        #expect(destinations.first?.id == secondID)
-        // The town doing the sending is never its own destination.
-        #expect(destinations.contains { $0.id == viewModel.state.activeTownID } == false)
-
-        // Soldiers are read from army strength, not the wallet, which only
-        // mirrors it for towns that have fought.
+        // Troops move in whole units and the report is what actually moved:
+        // half of a knight and an archer (17 of 34) fits only the archer.
+        let balance = viewModel.balance
         viewModel.state.updateTown(id: viewModel.state.activeTownID) {
-            $0.resources[.gold] = 120
-            $0.armyStrength = 40
-            $0.resources[.soldiers] = 0
+            $0.soldierRoster = SoldierRoster(counts: [.knight: 1, .archer: 1])
+            GameRules.syncArmy(&$0, balance: balance)
         }
-        #expect(viewModel.availableToSend(.gold) == 120)
-        #expect(viewModel.availableToSend(.soldiers) == 40)
+        let garrison = try #require(viewModel.state.town(id: secondID)).armyStrength
+        viewModel.moveTroops(from: viewModel.state.activeTownID, to: secondID, fraction: 0.5)
+        #expect(viewModel.activeArmyStrength == 24)
+        #expect(viewModel.state.town(id: secondID)?.armyStrength == garrison + 10)
+        viewModel.pullAllTroops()
+        #expect(viewModel.activeArmyStrength == 34 + garrison)
+        #expect(viewModel.state.town(id: secondID)?.armyStrength == 0)
 
-        // Towns are founded holding gold, so this is a delta, not a total.
-        let destinationGold = try #require(viewModel.state.town(id: secondID)).resources[.gold]
-        viewModel.transfer(.gold, amount: 50, to: secondID)
-        #expect(viewModel.activeTown.resources[.gold] == 70)
-        #expect(viewModel.state.town(id: secondID)?.resources[.gold] == destinationGold + 50)
-
-        // People are not offered: shipping them out would strand the workforce
-        // its buildings already claim.
-        #expect(GameRules.transferableKinds.contains(.people) == false)
+        // Building needs no transfer: the gold ships in from the other island.
+        // Two islands price a Farm at 500 gold.
+        viewModel.state.updateTown(id: viewModel.state.activeTownID) { $0.resources[.gold] = 0 }
+        viewModel.state.towns[second].resources[.gold] = 5_000
+        viewModel.place(.farm, at: GridCoordinate(x: 0, y: 0))
+        #expect(viewModel.activeTown.buildings.contains { $0.kind == .farm })
+        #expect(viewModel.state.town(id: secondID)?.resources[.gold] == 4_500)
     }
 
     @Test func buildTrainAndTransfer() {
         let balance = GameBalance.duskDefault
         var state = makeNewGame(balance: balance)
-        state.towns[0].resources = ResourceWallet([.gold: 1_000, .skill: 1_000, .food: 100, .people: 20])
+        state.towns[0].resources = ResourceWallet([.gold: 2_000, .skill: 1_000, .food: 100, .people: 20])
 
         #expect(GameRules.build(.barracks, at: GridCoordinate(x: 0, y: 0), in: &state.towns[0], balance: balance) == nil)
         #expect(GameRules.train(.archer, in: &state.towns[0], balance: balance) == nil)
@@ -309,7 +313,7 @@ struct GameplayTests {
 
     @MainActor
     @Test func losingTheLastTownEndsTheCampaign() {
-        let viewModel = GameViewModel()
+        let viewModel = makeViewModel()
         let balance = viewModel.balance
         viewModel.startGame()
 
@@ -342,6 +346,152 @@ struct GameplayTests {
         #expect(viewModel.state == terminal)
         #expect(viewModel.phase == .defeat)
     }
+
+    @Test func hungerDisbandsOnlyTheUnfedSoldiers() {
+        let balance = GameBalance.duskDefault
+        var town = makeNewGame(balance: balance).towns[0]
+        town.soldierRoster = SoldierRoster(counts: [.archer: 3])
+        GameRules.syncArmy(&town, balance: balance)
+        town.resources[.food] = 45 // three archers eat 60
+
+        GameRules.applyUpkeep(to: &town, balance: balance)
+
+        // 15 short costs one archer — it used to cost the whole army.
+        #expect(town.soldierRoster[.archer] == 2)
+        #expect(town.armyStrength == 20)
+        #expect(town.resources[.food] == 0)
+    }
+
+    @Test func garrisonsHoldAndEatFromTheSharedStockpile() {
+        let balance = GameBalance.duskDefault
+        var state = makeNewGame(balance: balance)
+        // A captured island with an army and no food of its own.
+        state.towns[1].faction = .player
+        state.towns[1].resources[.food] = 0
+        state.towns[1].soldierRoster = SoldierRoster(counts: [.archer: 2])
+        GameRules.syncArmy(&state.towns[1], balance: balance)
+        state.towns[0].resources[.food] = 1_000
+        let enemyGarrisons = state.towns.filter { $0.isPlayerControlled == false }.map(\.armyStrength)
+
+        // Stay short of the enemy turn, which can train and fight.
+        for _ in 1..<(balance.enemyTurnInterval - 1) { GameRules.advanceDay(state: &state, balance: balance) }
+
+        #expect(state.towns[1].armyStrength == 20)
+        #expect(state.towns[0].resources[.food] == 1_000 - 40 * (balance.enemyTurnInterval - 2))
+        // Enemy garrisons are fed by their islands: Duskara's used to starve on day two.
+        #expect(state.towns.filter { $0.isPlayerControlled == false }.map(\.armyStrength) == enemyGarrisons)
+    }
+
+    @Test func pricesClimbWithEachIslandAndEachLevel() {
+        let balance = GameBalance.duskDefault
+        #expect(balance.priced(forIslands: 1).buildingDefinitions[.farm]?.cost(for: 1) == [.gold: 400, .skill: 200])
+        // Three islands: +25% twice. Food is sized by upkeep and never scales.
+        let threeIslands = balance.priced(forIslands: 3)
+        #expect(threeIslands.buildingDefinitions[.farm]?.cost(for: 1) == [.gold: 600, .skill: 300])
+        #expect(threeIslands.soldierDefinitions[.knight]?.trainingCost == [.gold: 680, .skill: 230, .food: 250])
+        // Skill climbs faster than gold as a building levels up.
+        #expect(balance.buildingDefinitions[.farm]?.cost(for: 3) == [.gold: 1_200, .skill: 1_200])
+        // The House stays gold-only, so an island with no skill can still grow.
+        #expect(balance.buildingDefinitions[.house]?.cost(for: 3) == [.gold: 900])
+    }
+
+    @Test func harborMarketNeedsAFreeCityAndNeverPaysARoundTrip() throws {
+        let balance = GameBalance.duskDefault
+        for partners in 1...5 {
+            for kind in [ResourceKind.food, .skill] {
+                let buy = try #require(GameRules.marketPrice(of: kind, lot: 100, buying: true, partners: partners, balance: balance))
+                let sell = try #require(GameRules.marketPrice(of: kind, lot: 100, buying: false, partners: partners, balance: balance))
+                #expect(buy > sell)
+            }
+        }
+        #expect(GameRules.marketPrice(of: .food, lot: 100, buying: false, partners: 1, balance: balance) == 35)
+        #expect(GameRules.marketPrice(of: .skill, lot: 100, buying: true, partners: 4, balance: balance) == 230)
+
+        // Partners are free cities one sea lane from a player island with a Pier.
+        var state = makeNewGame(balance: balance)
+        let freeCity = try #require(state.towns.first { $0.faction == .neutral })
+        let enemy = try #require(state.towns.first { $0.faction == .enemy })
+        state.connections = [
+            TownConnection(from: state.towns[0].id, to: freeCity.id),
+            TownConnection(from: state.towns[0].id, to: enemy.id)
+        ]
+        #expect(GameRules.tradePartners(state).map(\.id) == [freeCity.id])
+
+        state.towns[0].resources[.food] = 1_000
+        let gold = state.towns[0].resources[.gold]
+        #expect(GameRules.trade(.food, lot: 1_000, buying: false, at: state.towns[0].id, state: &state, balance: balance))
+        #expect(state.towns[0].resources[.food] == 0)
+        #expect(state.towns[0].resources[.gold] == gold + 350)
+
+        // No free city on a sea lane: the market is closed.
+        state.connections = [TownConnection(from: state.towns[0].id, to: enemy.id)]
+        #expect(GameRules.trade(.skill, lot: 100, buying: true, at: state.towns[0].id, state: &state, balance: balance) == false)
+    }
+
+    @Test func demolishingRefundsHalfAndFreesThePlot() throws {
+        let balance = GameBalance.duskDefault
+        var town = makeNewGame(balance: balance).towns[0]
+        let house = try #require(town.buildings.first { $0.kind == .house })
+        let gold = town.resources[.gold]
+
+        GameRules.demolish(house.id, in: &town, balance: balance)
+
+        #expect(town.buildings.contains { $0.id == house.id } == false)
+        #expect(town.resources[.gold] == gold + 150)
+        // Its four residents leave with it.
+        #expect(town.resources[.people] == 0)
+        #expect(GameRules.placementFailure(for: .house, at: house.coordinate, in: town, balance: balance) == nil)
+    }
+
+    /// The pacing target: a Medium opening takes its first island inside a
+    /// minute and a half of ten-second days.
+    @Test func mediumOpeningTakesAnIslandWithinNinetySeconds() throws {
+        let viewModel = makeViewModel()
+        viewModel.adjustBonusPresets(for: .medium)
+        viewModel.startGame()
+        defer { viewModel.stopClock() }
+
+        let house = try #require(viewModel.activeTown.buildings.first { $0.kind == .house })
+        viewModel.place(.farm, at: GridCoordinate(x: 0, y: 0))
+        viewModel.selectedBuildingID = house.id
+        viewModel.upgradeSelectedBuilding()
+        viewModel.place(.factory, at: GridCoordinate(x: 2, y: 0))
+        viewModel.place(.barracks, at: GridCoordinate(x: 0, y: 1))
+        #expect(viewModel.activeTown.buildings.count == 5)
+
+        func weakestTarget() throws -> Town {
+            try #require(viewModel.state.towns.filter { $0.isPlayerControlled == false }
+                .min { viewModel.effectiveDefenseStrength(for: $0) < viewModel.effectiveDefenseStrength(for: $1) })
+        }
+        while try viewModel.canAttack(weakestTarget().id) == false, viewModel.state.day < 9 {
+            viewModel.advanceDayManually()
+            while viewModel.trainingUnavailableReason(for: .archer) == nil { viewModel.train(.archer) }
+        }
+        let target = try weakestTarget()
+        viewModel.attackTown(target.id)
+
+        #expect(viewModel.state.town(id: target.id)?.isPlayerControlled == true)
+        #expect(viewModel.state.day < 9)
+    }
+
+    @Test func housesRefillAfterLosses() {
+        let balance = GameBalance.duskDefault
+        var state = makeNewGame(balance: balance)
+        state.towns[0].resources[.people] = 0
+
+        // A level-1 House holds 8; a quarter of that moves in each day.
+        GameRules.advanceDay(state: &state, balance: balance)
+        #expect(state.towns[0].resources[.people] == 2)
+        for _ in 0..<5 { GameRules.advanceDay(state: &state, balance: balance) }
+        #expect(state.towns[0].resources[.people] == 8)
+    }
+}
+
+/// Autosaves go to a throwaway directory — never the player's real save.
+private func makeViewModel() -> GameViewModel {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    return GameViewModel(saveStore: GameSaveStore(directory: directory))
 }
 
 private struct LegacySavedGame: Encodable {

@@ -33,18 +33,18 @@ enum Difficulty: String, CaseIterable, Identifiable, Codable {
 		switch self {
 		case .easy:
 			return [
-				.gold: 500,
-				.skill: 250,
+				.gold: 5_000,
+				.skill: 2_500,
 			]
 		case .medium:
 			return [
-				.gold: 300,
-				.skill: 150,
+				.gold: 3_000,
+				.skill: 1_500,
 			]
 		case .hard:
 			return [
-				.gold: 100,
-				.skill: 50,
+				.gold: 1_000,
+				.skill: 500,
 			]
 		}
 	}

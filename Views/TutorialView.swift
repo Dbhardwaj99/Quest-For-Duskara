@@ -155,12 +155,12 @@ private struct TutorialPage {
         ),
         TutorialPage(
             title: "Build Your City",
-            body: "Tap Build to place structures on your town board. Houses add people, Piers bring in gold from sea trade, Farms grow food, Factories produce skill, and Barracks unlock soldier training. Buildings can be upgraded to grow stronger.",
+            body: "Click an empty plot, or tap Build, to place structures on your town board. Houses add people, Piers bring in gold from sea trade, Farms grow food, Factories produce skill, and Barracks unlock soldier training. Buildings can be upgraded to grow stronger, or demolished to free the plot.",
             systemImage: "hammer.fill"
         ),
         TutorialPage(
             title: "Resources",
-            body: "Gold and skill pay for construction and training. Food feeds your soldiers every day — run out and your army starts to disband. People staff your buildings, so keep housing ahead of demand.",
+            body: "A day passes every ten seconds. Gold and skill pay for construction and training, and all your islands share one stockpile. Food feeds your soldiers every day — run short and the unfed ones desert. People staff your buildings and fill your Houses over time.",
             systemImage: "leaf.fill"
         ),
         TutorialPage(
@@ -170,7 +170,7 @@ private struct TutorialPage {
         ),
         TutorialPage(
             title: "Expansion",
-            body: "Captured cities join your empire. Visit them to build and train there, and transfer gold, food, or soldiers between your cities to reinforce the front.",
+            body: "Captured cities join your empire and its stockpile, though each new island raises your prices. Soldiers stay where they are — move them with Troops. Free cities your Piers reach trade surplus for gold in the Harbor Market.",
             systemImage: "flag.fill"
         ),
         TutorialPage(

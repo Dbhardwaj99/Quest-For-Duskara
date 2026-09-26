@@ -74,7 +74,9 @@ struct WorldMapView: View {
         )
         let scaled = CGSize(width: outer.width * zoomScale, height: outer.height * zoomScale)
         return ZStack {
+            // Static, so kept out of the layer the ships animate in.
             SeaWavesLayer()
+                .compositingGroup()
             TerritoryRenderer(
                 world: viewModel.state.world,
                 territory: viewModel.state.territory,
@@ -94,7 +96,16 @@ struct WorldMapView: View {
                     } else {
                         viewModel.attackTown(townID)
                     }
-                }
+                },
+                badgeValue: { town in
+                    town.isPlayerControlled ? town.armyStrength : viewModel.effectiveDefenseStrength(for: town)
+                },
+                attackNote: { townID in
+                    guard viewModel.state.town(id: townID)?.isPlayerControlled == false else { return nil }
+                    return "\(viewModel.activeTown.name) \(viewModel.activeArmyStrength) · Empire \(viewModel.empireArmyStrength)"
+                },
+                canRally: viewModel.canRallyAndAttack,
+                onRally: viewModel.rallyAndAttack
             )
             .frame(width: terrain.width, height: terrain.height)
         }

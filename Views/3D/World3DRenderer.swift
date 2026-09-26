@@ -3,11 +3,12 @@ import AppKit
 
 @MainActor
 final class World3DRenderer {
-    let arView: ARView
+    let renderView: World3DRenderView
 
     let anchor = AnchorEntity(world: .zero)
     let boardRoot = Entity()
     let staticRoot = Entity()
+    let pathRoot = Entity()
     let tileRoot = Entity()
     let overlayRoot = Entity()
     let soldierRoot = Entity()
@@ -18,6 +19,8 @@ final class World3DRenderer {
     var tileEntities: [GridCoordinate: Entity] = [:]
     var tileSnapshots: [GridCoordinate: World3DTileSnapshot] = [:]
     var scaffoldSignature = ""
+    var pathSignature = ""
+    var terrainSeed = 0
     var visualQuality = World3DVisualQuality.adaptive
     var lastQualityCheckTime = Date.distantPast
     var pendingQuality: World3DVisualQuality?
@@ -32,9 +35,8 @@ final class World3DRenderer {
     var pierDockPoint: SIMD3<Float>?
 
     let tileSize: Float = 0.46
-    // Flush board: neighbouring tiles share an edge, so the grid reads as one
-    // carved slab of land. Raise it to pull the plots apart again.
-    let tileGap: Float = 0
+    // Space the hidden plots apart; the land mesh fills the gaps without seams.
+    let tileGap: Float = 0.13
     let tileHeight: Float = 0.085
     let sun = DirectionalLight()
     let fillLight = DirectionalLight()
@@ -47,17 +49,18 @@ final class World3DRenderer {
         anchor
     }
 
-    init(arView: ARView) {
-        self.arView = arView
+    init(renderView: World3DRenderView) {
+        self.renderView = renderView
         World3DRenderResources.configureVisualQuality(visualQuality)
         World3DDiagnostics.rendererDidInit()
         configureView()
         boardRoot.addChild(staticRoot)
+        boardRoot.addChild(pathRoot)
         boardRoot.addChild(tileRoot)
         boardRoot.addChild(overlayRoot)
         boardRoot.addChild(soldierRoot)
         anchor.addChild(boardRoot)
-        arView.scene.anchors.append(anchor)
+        renderView.renderer.entities.append(anchor)
     }
 
     deinit {
@@ -73,12 +76,13 @@ final class World3DRenderer {
         let nextSignature = signature(townID: adapter.town.id, gridSize: nextGridSize, layout: adapter.town.biomeLayout)
         if nextSignature != scaffoldSignature {
             gridSize = nextGridSize
-            rebuildScaffold(gridSize: nextGridSize)
+            rebuildScaffold(gridSize: nextGridSize, town: adapter.town)
             clearTiles()
             scaffoldSignature = nextSignature
         }
 
         let snapshots = adapter.allTileSnapshots()
+        updateSettlementPaths(town: adapter.town)
         let coordinates = Set(snapshots.map(\.coordinate))
         for staleCoordinate in Set(tileEntities.keys).subtracting(coordinates) {
             tileEntities[staleCoordinate]?.removeFromParent()
@@ -99,15 +103,20 @@ final class World3DRenderer {
             let previousContent = tileSnapshots[snapshot.coordinate]?.content
             tileEntities[snapshot.coordinate]?.removeFromParent()
             World3DDiagnostics.tileDidRebuild()
+            let tilePosition = position(for: snapshot.coordinate)
+            let elevation = tileElevation(for: snapshot.coordinate)
             let entity = World3DTileEntity.makeTile(
                 snapshot: snapshot,
                 tileSize: tileSize,
-                tileHeight: tileHeight,
-                material: material(for: snapshot.content, coordinate: snapshot.coordinate),
-                gridSize: gridSize
+                gridSize: gridSize,
+                townID: adapter.town.id,
+                elevationAt: { offset in
+                    self.groundHeight(at: SIMD2<Float>(tilePosition.x, tilePosition.z) + offset) - elevation
+                }
             )
-            entity.position = position(for: snapshot.coordinate)
-            entity.position.y += tileElevation(for: snapshot.coordinate)
+            World3DMeshBatcher.flatten(entity)
+            entity.position = tilePosition
+            entity.position.y += elevation
             tileRoot.addChild(entity)
             tileEntities[snapshot.coordinate] = entity
             tileSnapshots[snapshot.coordinate] = snapshot
@@ -196,8 +205,26 @@ final class World3DRenderer {
         return group
     }
 
-    func coordinate(for entity: Entity?) -> GridCoordinate? {
-        World3DTileEntity.coordinate(from: entity)
+    /// The plot a camera ray lands on. Plots cover the board edge to edge,
+    /// each at its own terrain height, so this is the old invisible hit
+    /// boxes' test as plane math: aim at flat ground, then re-aim once at
+    /// that plot's top face.
+    func coordinate(along ray: (origin: SIMD3<Float>, direction: SIMD3<Float>)) -> GridCoordinate? {
+        guard ray.direction.y < -0.0001 else { return nil }
+        let spacing = tileSize + tileGap
+        var top = tileHeight * 0.25
+        var coordinate: GridCoordinate?
+        for _ in 0..<2 {
+            let hit = ray.origin + ray.direction * ((top - ray.origin.y) / ray.direction.y)
+            let candidate = GridCoordinate(
+                x: Int((hit.x / spacing + Float(gridSize.columns - 1) / 2).rounded()),
+                y: Int((hit.z / spacing + Float(gridSize.rows - 1) / 2).rounded())
+            )
+            guard gridSize.contains(candidate) else { return coordinate }
+            coordinate = candidate
+            top = tileElevation(for: candidate) + tileHeight * 0.25
+        }
+        return coordinate
     }
 
     func cameraBounds(for gridSize: GridSize) -> World3DCameraBounds {

@@ -1,59 +1,40 @@
 import Foundation
 
+/// Harbor Market: gold for food and skill with the free cities the player's
+/// Piers reach. Prices are fixed; more partners mean a smaller fee.
 extension GameViewModel {
-    var currentTradeOffer: TradeOffer? {
-        guard let offer = state.tradeOffers.first(where: { $0.townID == state.activeTownID }),
-              let partner = state.town(id: offer.partnerTownID) else { return nil }
-        return TradeOffer(
-            id: offer.id,
-            cityID: partner.id,
-            cityName: partner.name,
-            wants: offer.wants,
-            gives: offer.gives
-        )
+    var tradePartners: [Town] { GameRules.tradePartners(state) }
+    var isMarketOpen: Bool { tradePartners.isEmpty == false }
+    var marketFeePercent: Int? { GameRules.marketFee(partners: tradePartners.count, balance: balance) }
+
+    func marketPrice(of kind: ResourceKind, lot: Int, buying: Bool) -> Int? {
+        GameRules.marketPrice(of: kind, lot: lot, buying: buying, partners: tradePartners.count, balance: balance)
     }
 
-    var tradeOfferSecondsRemaining: Int {
-        currentTradeOffer == nil ? 0 : max(0, Int(balance.dayDuration - state.elapsedSecondsInDay))
+    /// Food above ten days of rations (never less than 1,000 kept back), in
+    /// whole lots of 100.
+    var surplusFood: Int {
+        let upkeep = playerTowns.reduce(0) { $0 + GameRules.dailyFood($1, balance: balance) }
+        let reserve = max(1_000, upkeep * 10)
+        return max(0, spendingTown.resources[.food] - reserve) / 100 * 100
     }
 
-    var tradeCooldownSecondsRemaining: Int {
-        currentTradeOffer == nil ? max(0, Int(balance.dayDuration - state.elapsedSecondsInDay)) : 0
+    func canTrade(_ kind: ResourceKind, lot: Int, buying: Bool) -> Bool {
+        guard let price = marketPrice(of: kind, lot: lot, buying: buying) else { return false }
+        return spendingTown.resources[buying ? .gold : kind] >= (buying ? price : lot)
     }
 
-    var tradePartners: [Town] {
-        state.connections.compactMap { connection -> UUID? in
-            if connection.from == state.activeTownID { return connection.to }
-            if connection.to == state.activeTownID { return connection.from }
-            return nil
-        }.compactMap(state.town).filter { !$0.isPlayerControlled }
-    }
-
-    var hasTradePartners: Bool { !tradePartners.isEmpty }
-
-    var canAcceptCurrentTrade: Bool {
-        currentTradeOffer.map { activeTown.resources.canAfford($0.wants) } ?? false
-    }
-
-    func acceptTradeOffer() {
-        guard let offer = currentTradeOffer, activeTown.resources.canAfford(offer.wants) else {
-            show("Not enough resources for this trade.")
+    // ponytail: no save per trade — trades come in bursts, and the day-end
+    // autosave lands within ten seconds anyway.
+    func trade(_ kind: ResourceKind, lot: Int, buying: Bool) {
+        guard let price = marketPrice(of: kind, lot: lot, buying: buying),
+              GameRules.trade(kind, lot: lot, buying: buying, at: state.activeTownID, state: &state, balance: balance) else {
+            show("Not enough to make that trade.")
             return
         }
-        state.updateTown(id: state.activeTownID) {
-            _ = $0.resources.spend(offer.wants)
-            $0.resources.apply(offer.gives)
-        }
-        state.tradeOffers.removeAll { $0.id == offer.id }
-        state.addNews(.resourceTransfer, "You traded with \(offer.cityName)")
-        show("Trade completed with \(offer.cityName).")
-        saveCurrentGame()
-    }
-
-    func declineTradeOffer() {
-        guard let offer = currentTradeOffer else { return }
-        state.tradeOffers.removeAll { $0.id == offer.id }
-        show("Declined \(offer.cityName)'s offer.")
-        saveCurrentGame()
+        GameSound.trade.play()
+        show(buying
+             ? "Bought \(lot) \(kind.title.lowercased()) for \(price) gold."
+             : "Sold \(lot) \(kind.title.lowercased()) for \(price) gold.")
     }
 }
