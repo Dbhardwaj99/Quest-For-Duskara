@@ -40,7 +40,7 @@ open "Quest For Duskara.xcodeproj"
 
 In Xcode, select the **Quest For Duskara** scheme and **My Mac**, then press **Run** (`⌘R`). If Xcode asks for a signing team, choose your own under **Signing & Capabilities** (a free Personal Team works). This source was built with Xcode 26.6. The game includes a short first-launch tutorial; you can also skip it and start a campaign.
 
-Your first moves: choose a difficulty, build a House for workers, then add a Farm for food and a Factory for skill. Build Barracks when you have enough people to train archers or knights. Open **World** to inspect defenses and launch attacks. **Next** advances a day immediately.
+Your first moves: choose a difficulty, build a House for workers, then add a Farm for food and a Factory for skill. Build Barracks when you have enough people to train archers or knights. Open **World** to inspect defenses and launch attacks.
 
 ## How I made it
 

@@ -272,10 +272,13 @@ struct BottomBarView: View {
                 }
             }
 
+            // Skipping days is a testing shortcut, so Release builds leave it out.
+            #if DEBUG
             Button(action: viewModel.advanceDayManually) {
                 Label("Next", systemImage: "forward.end.fill")
             }
             .buttonStyle(DuskaraButtonStyle())
+            #endif
 
             Button { viewModel.isWorldMapPresented = true } label: {
                 Label("World", systemImage: "map.fill")

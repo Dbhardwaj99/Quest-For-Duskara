@@ -17,6 +17,8 @@ You need a Mac running **macOS 26 or later** with **Xcode 26.6 or later**.
 2. Open `Quest For Duskara.xcodeproj`, select the **Quest For Duskara** scheme and **My Mac**, and press **Run** (`⌘R`).
 3. The project is signed with my team, so Xcode will ask for yours. Under **Signing & Capabilities**, choose your own team (a free Personal Team works) or **Sign to Run Locally**. Please don't commit that change.
 
+**Run** builds the Release configuration, the same build players get. Debug-only tools, such as skipping days and the building-size panel, need the Debug configuration: choose **Product → Scheme → Edit Scheme…**, select **Run**, and set **Build Configuration** to **Debug**. Don't commit that change either.
+
 Run the tests with `⌘U`, or from Terminal:
 
 ```bash
