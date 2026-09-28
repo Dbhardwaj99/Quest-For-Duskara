@@ -8,6 +8,6 @@ Fixes land on `main` and ship in the next release. Older releases don't receive 
 
 ## Reporting a vulnerability
 
-Please don't open a public issue for security problems. Use [private vulnerability reporting](https://github.com/Dbhardwaj99/Quest-For-Duskara/security/advisories/new) instead (**Security** tab → **Report a vulnerability**).
+Please don't open a public issue for security problems. Email divynshh@gmail.com instead.
 
 Include what you found, how to reproduce it, and the release or commit you tested. I'll reply as soon as I can and keep you updated until it's fixed.
