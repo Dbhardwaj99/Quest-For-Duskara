@@ -1,0 +1,37 @@
+name: Bug report
+description: Something in the game doesn't work the way it should.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a new campaign on Medium
+        2. Build a Farm, then a Factory
+        3. Advance to day 5
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Game version
+      description: From **Quest For Duskara → About Quest For Duskara**, or the commit you built from.
+      placeholder: 0.02 or af7f5cc
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: macOS version and Mac
+      placeholder: macOS 26.1, MacBook Air M2
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Screenshots, recordings, or save file
+      description: |
+        Drag files here. For campaign bugs, your save file helps a lot. In Finder, choose **Go → Go to Folder…** and enter `~/Library/Containers/div.Quest-For-Duskara/Data/Documents/`, then attach `duskara-save.json`.
