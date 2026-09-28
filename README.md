@@ -2,6 +2,8 @@
 
 **Build a foothold. Sail the archipelago. Take Duskara.**
 
+[Website](https://dbhardwaj99.github.io/Quest-For-Duskara/) · [Play](#play) · [Contribute](#contributing)
+
 Quest for Duskara is a single-player strategy game for macOS. You begin with one small island town in a world of fifteen. Build an economy, feed and train an army, trade with free cities, and capture islands on the way to Duskara's stronghold. The other factions keep growing while you decide what to do next.
 
 ![Hearthglen in the Village theme](Screenshots/v0.02/village.jpg)
@@ -36,7 +38,7 @@ cd Quest-For-Duskara
 open "Quest For Duskara.xcodeproj"
 ```
 
-In Xcode, select the **Quest For Duskara** scheme and **My Mac**, then press **Run** (`⌘R`). This source was built with Xcode 26.6. The game includes a short first-launch tutorial; you can also skip it and start a campaign.
+In Xcode, select the **Quest For Duskara** scheme and **My Mac**, then press **Run** (`⌘R`). If Xcode asks for a signing team, choose your own under **Signing & Capabilities** (a free Personal Team works). This source was built with Xcode 26.6. The game includes a short first-launch tutorial; you can also skip it and start a campaign.
 
 Your first moves: choose a difficulty, build a House for workers, then add a Farm for food and a Factory for skill. Build Barracks when you have enough people to train archers or knights. Open **World** to inspect defenses and launch attacks. **Next** advances a day immediately.
 
@@ -44,6 +46,14 @@ Your first moves: choose a difficulty, build a House for workers, then add a Far
 
 I'm [Divyansh Bhardwaj](https://github.com/Dbhardwaj99). This started as a small Swift town-building prototype and grew into an island campaign. The interface is written in **SwiftUI**; the 3D town uses **RealityKit** and **Metal**; and the rules, economy, combat, world generation, and save system are written in Swift. The coastal buildings are bundled as **USDZ** models. A seeded generator lays out the archipelago, so each campaign has a coherent world to explore.
 
-The code is organized by job: [`Models/`](Models) holds game state and rules, [`ViewModels/`](ViewModels) connects actions to the interface, [`Views/`](Views) draws the game, and [`Tests/`](Tests) checks the campaign loop. If you want to explore or contribute, a small bug report or focused pull request is welcome.
+The code is organized by job: [`Models/`](Models) holds game state and rules, [`ViewModels/`](ViewModels) connects actions to the interface, [`Views/`](Views) draws the game, and [`Tests/`](Tests) checks the campaign loop.
+
+## Contributing
+
+Help of any size is welcome, from a bug report after a campaign to a balance tweak, a new building model, or a feature.
+
+- Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup, project layout, and pull request tips.
+- Browse [good first issues](https://github.com/Dbhardwaj99/Quest-For-Duskara/labels/good%20first%20issue) and [help wanted](https://github.com/Dbhardwaj99/Quest-For-Duskara/labels/help%20wanted), or [open an issue](https://github.com/Dbhardwaj99/Quest-For-Duskara/issues/new/choose) with a bug or an idea.
+- Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Quest for Duskara is open source under the [MIT License](LICENSE).

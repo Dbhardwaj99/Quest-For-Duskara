@@ -1,0 +1,19 @@
+name: Idea or feature request
+description: Suggest a new mechanic, balance change, or improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: The idea
+      description: What would you add or change? For balance ideas, include the numbers you'd use if you have them.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Why
+      description: What's missing, confusing, or frustrating today?
+  - type: checkboxes
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself
