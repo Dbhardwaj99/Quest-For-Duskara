@@ -1,0 +1,212 @@
+[
+  {
+    "file": "emblem/duskara-emblem-2048.png",
+    "width": 2048,
+    "height": 2048,
+    "alpha": true,
+    "bytes": 1453888
+  },
+  {
+    "file": "logo/title-stacked.png",
+    "width": 3000,
+    "height": 2000,
+    "alpha": true,
+    "bytes": 2584940
+  },
+  {
+    "file": "logo/title-stacked-50pct.png",
+    "width": 1500,
+    "height": 1000,
+    "alpha": true,
+    "bytes": 934176
+  },
+  {
+    "file": "logo/title-horizontal.png",
+    "width": 4000,
+    "height": 1200,
+    "alpha": true,
+    "bytes": 2053921
+  },
+  {
+    "file": "logo/title-horizontal-50pct.png",
+    "width": 2000,
+    "height": 600,
+    "alpha": true,
+    "bytes": 745451
+  },
+  {
+    "file": "logo/wordmark-flat.png",
+    "width": 3000,
+    "height": 1200,
+    "alpha": true,
+    "bytes": 208858
+  },
+  {
+    "file": "logo/wordmark-flat-50pct.png",
+    "width": 1500,
+    "height": 600,
+    "alpha": true,
+    "bytes": 125937
+  },
+  {
+    "file": "logo/wordmark-flat-teal-preview.png",
+    "width": 3000,
+    "height": 1200,
+    "alpha": false,
+    "bytes": 181021
+  },
+  {
+    "file": "logo/wordmark-flat.svg",
+    "width": 3000,
+    "height": 1200,
+    "alpha": true,
+    "bytes": 92514
+  },
+  {
+    "file": "icon/icon-default.png",
+    "width": 1024,
+    "height": 1024,
+    "alpha": false,
+    "bytes": 944901
+  },
+  {
+    "file": "icon/icon-dark.png",
+    "width": 1024,
+    "height": 1024,
+    "alpha": false,
+    "bytes": 928459
+  },
+  {
+    "file": "icon/icon-tinted.png",
+    "width": 1024,
+    "height": 1024,
+    "alpha": false,
+    "bytes": 154566
+  },
+  {
+    "file": "keyart/duskara-keyart-3840x2160.png",
+    "width": 3840,
+    "height": 2160,
+    "alpha": false,
+    "bytes": 5930615
+  },
+  {
+    "file": "banners/github-social-1280x640.png",
+    "width": 1280,
+    "height": 640,
+    "alpha": false,
+    "bytes": 1148595
+  },
+  {
+    "file": "banners/readme-header-1600x500.png",
+    "width": 1600,
+    "height": 500,
+    "alpha": false,
+    "bytes": 1102167
+  },
+  {
+    "file": "banners/website-og-1200x630.png",
+    "width": 1200,
+    "height": 630,
+    "alpha": false,
+    "bytes": 1156085
+  },
+  {
+    "file": "banners/website-hero-2880x1200.png",
+    "width": 2880,
+    "height": 1200,
+    "alpha": false,
+    "bytes": 3425601
+  },
+  {
+    "file": "banners/website-hero-1440x600.png",
+    "width": 1440,
+    "height": 600,
+    "alpha": false,
+    "bytes": 1140483
+  },
+  {
+    "file": "banners/discord-banner-960x540.png",
+    "width": 960,
+    "height": 540,
+    "alpha": false,
+    "bytes": 753090
+  },
+  {
+    "file": "banners/discord-invite-1920x1080.png",
+    "width": 1920,
+    "height": 1080,
+    "alpha": false,
+    "bytes": 2452355
+  },
+  {
+    "file": "banners/twitter-header-1500x500.png",
+    "width": 1500,
+    "height": 500,
+    "alpha": false,
+    "bytes": 1016616
+  },
+  {
+    "file": "banners/youtube-channel-2560x1440.png",
+    "width": 2560,
+    "height": 1440,
+    "alpha": false,
+    "bytes": 3657857
+  },
+  {
+    "file": "banners/itch-cover-630x500.png",
+    "width": 630,
+    "height": 500,
+    "alpha": false,
+    "bytes": 484070
+  },
+  {
+    "file": "banners/wallpaper-desktop-2560x1600.png",
+    "width": 2560,
+    "height": 1600,
+    "alpha": false,
+    "bytes": 4091910
+  },
+  {
+    "file": "banners/wallpaper-phone-1290x2796.png",
+    "width": 1290,
+    "height": 2796,
+    "alpha": false,
+    "bytes": 3683357
+  },
+  {
+    "file": "social/avatar-1024.png",
+    "width": 1024,
+    "height": 1024,
+    "alpha": false,
+    "bytes": 923520
+  },
+  {
+    "file": "social/avatar-512.png",
+    "width": 512,
+    "height": 512,
+    "alpha": false,
+    "bytes": 243753
+  },
+  {
+    "file": "social/favicon-32.png",
+    "width": 32,
+    "height": 32,
+    "alpha": false,
+    "bytes": 2103
+  },
+  {
+    "file": "social/apple-touch-icon-180.png",
+    "width": 180,
+    "height": 180,
+    "alpha": false,
+    "bytes": 36959
+  },
+  {
+    "file": "social/favicon-512.png",
+    "width": 512,
+    "height": 512,
+    "alpha": false,
+    "bytes": 243753
+  }
+]

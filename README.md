@@ -1,3 +1,5 @@
+![Quest for Duskara: a tower island at sunset, sailboats crossing toward Duskara's castle](brand-assets/banners/readme-header-1600x500.png)
+
 # Quest for Duskara
 
 **Build a foothold. Sail the archipelago. Take Duskara.**

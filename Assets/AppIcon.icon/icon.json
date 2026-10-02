@@ -1,0 +1,19 @@
+{
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name-specializations" : [
+            { "value" : "icon-default.png" },
+            { "appearance" : "dark", "value" : "icon-dark.png" },
+            { "appearance" : "tinted", "value" : "icon-tinted.png" }
+          ],
+          "name" : "icon"
+        }
+      ],
+      "shadow" : { "kind" : "none", "opacity" : 0 },
+      "translucency" : { "enabled" : false, "value" : 0 }
+    }
+  ],
+  "supported-platforms" : { "squares" : [ "macOS" ] }
+}

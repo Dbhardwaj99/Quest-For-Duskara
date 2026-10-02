@@ -5,30 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quest for Duskara — Build, train, and sail before dusk claims the isles</title>
 <meta name="description" content="Quest for Duskara is a calm, clay-crafted strategy game for macOS. Rule one island, raise an army, and conquer your way across an archipelago of fifteen cities until Duskara's crown falls.">
-<meta name="theme-color" content="#1a1410">
+<meta name="theme-color" content="#0e2631">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Quest for Duskara">
 <meta property="og:description" content="Build, train, and sail before dusk claims the isles. A free, open-source strategy game for macOS.">
 <meta property="og:url" content="https://dbhardwaj99.github.io/Quest-For-Duskara/">
-<meta property="og:image" content="https://dbhardwaj99.github.io/Quest-For-Duskara/Assets/Brand/quest-for-duskara-logo-square.png">
+<meta property="og:image" content="https://dbhardwaj99.github.io/Quest-For-Duskara/brand-assets/banners/website-og-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b4a5e'/%3E%3Ccircle cx='24' cy='30' r='11' fill='%23f0a64f'/%3E%3Cpath d='M12 42l20-9 20 9-20 9z' fill='%238cad66'/%3E%3Crect x='27' y='20' width='10' height='18' rx='2' fill='%23eddebf'/%3E%3Cpath d='M24 21l8-9 8 9z' fill='%23c97a5c'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="brand-assets/social/favicon-32.png">
+<link rel="apple-touch-icon" href="brand-assets/social/apple-touch-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Rokkitt:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ------------------------------------------------------------------
    Quest for Duskara — landing page
-   Tokens are lifted straight from the game: DuskaraTheme (panels, ink,
-   accent, warm gold), WorldPalette.village (clay, grass, sea, sand) and
-   DisplayNames (resource + faction colours).
+   Surface tokens follow the brand kit (brand-assets/): deep ocean teal,
+   sunset orange and sun gold. Game tokens are lifted from the game:
+   WorldPalette.village (clay, grass, sea, sand), DisplayNames (resource +
+   faction colours) and the in-game HUD (--hud, pills).
    ------------------------------------------------------------------ */
 :root{
-  --bg:#171c1b;
-  --bg-2:#243130; --bg-3:#3b4a3b; --bg-4:#594733;
-  --panel:#29211a; --panel-dark:#1a1410; --card:#3b342a; --card-2:#463c30;
-  --ink:#f2e8d1; --muted:#bdad94; --muted-2:#8f836f;
-  --accent:#d17a3d; --accent-deep:#8c4d2e; --gold:#e6b35c; --moss:#526e42;
+  --bg:#0e2631;
+  --panel:#143846; --panel-dark:#0a1d25; --card:#1c4a5a; --card-2:#245768;
+  --ink:#f6ead2; --muted:#a8c1c3; --muted-2:#7a9aa0;
+  --accent:#f59a3c; --accent-deep:#d4602b; --accent-ink:#3a1c08; --gold:#ffc35c; --moss:#526e42;
+  --menu:rgba(12,34,44,.92);
   --sea:#478f9e; --sea-deep:#1b4a5e; --sea-shadow:#337083; --sea-pale:#8fc4c8;
   --sand:#eed494; --earth:#debf87;
   --grass:#8cad66; --grass-2:#78996b; --grass-3:#5e7f4f;
@@ -94,7 +98,7 @@ p{margin:0}
   display:inline-flex;align-items:center;justify-content:center;gap:9px;
   padding:12px 22px;border-radius:999px;border:1px solid rgba(255,255,255,.34);
   font-weight:600;font-size:16px;line-height:1;white-space:nowrap;
-  background:linear-gradient(180deg,#544738,#3d3326);color:var(--ink);
+  background:linear-gradient(180deg,#245a6d,#173f4e);color:var(--ink);
   box-shadow:0 5px 9px rgba(0,0,0,.18);
   transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease,filter .16s ease;
   text-decoration:none!important;
@@ -102,7 +106,7 @@ p{margin:0}
 .btn svg{width:17px;height:17px;flex:none}
 .btn:hover{transform:translateY(-1px);box-shadow:0 8px 16px rgba(0,0,0,.26);filter:brightness(1.06)}
 .btn:active{transform:scale(.965);box-shadow:0 2px 4px rgba(0,0,0,.10);opacity:.86}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep));border-color:rgba(255,255,255,.22);color:#fff}
+.btn-primary{background:linear-gradient(180deg,var(--gold),var(--accent) 55%,var(--accent-deep));border-color:rgba(255,236,200,.5);color:var(--accent-ink);font-weight:700}
 .btn-lg{padding:15px 28px;font-size:18px}
 .btn-sm{padding:8px 14px;font-size:14px}
 .btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
@@ -119,7 +123,7 @@ p{margin:0}
 }
 .sheet{background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius-m)}
 .frame{
-  position:relative;background:linear-gradient(180deg,#2c3a2a,#243024);
+  position:relative;background:linear-gradient(180deg,#1b4757,#143846);
   border:1px solid rgba(230,179,92,.35);border-radius:14px;
   box-shadow:inset 0 0 0 6px rgba(0,0,0,.18),0 24px 50px rgba(0,0,0,.35);
 }
@@ -167,47 +171,46 @@ p{margin:0}
   position:fixed;inset:0 0 auto 0;z-index:50;padding:12px 0;
   transition:background .25s ease,box-shadow .25s ease,padding .25s ease;
 }
-.nav.scrolled{background:rgba(26,20,16,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--glass),0 10px 30px rgba(0,0,0,.25);padding:8px 0}
+.nav.scrolled{background:rgba(12,34,44,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 1px 0 var(--glass),0 10px 30px rgba(0,0,0,.25);padding:8px 0}
 .nav .wrap{display:flex;align-items:center;gap:18px}
 .brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none!important}
-.brand svg{width:34px;height:34px}
+.brand img{width:34px;height:34px;border-radius:9px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .brand b{font-family:var(--font-display);font-weight:800;letter-spacing:.06em;font-size:15px;line-height:1;text-transform:uppercase}
 .brand b small{display:block;font-size:9px;letter-spacing:.32em;color:var(--gold);margin-bottom:2px}
 .nav-links{display:flex;gap:4px;margin-left:auto;list-style:none;padding:0;margin-block:0}
 .nav-links a{display:block;padding:8px 12px;border-radius:999px;color:rgba(242,232,209,.82);font-weight:600;font-size:15px;text-decoration:none!important;transition:background .15s,color .15s}
 .nav-links a:hover,.nav-links a.active{background:rgba(255,255,255,.08);color:var(--ink)}
 .nav .btn{margin-left:6px}
-.nav-toggle{display:none;margin-left:auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--glass);background:var(--hud);place-items:center}
+.nav-toggle{display:none;margin-left:auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--glass);background:var(--menu);place-items:center}
 .nav-toggle svg{width:18px;height:18px}
 @media (max-width:860px){
-  .nav-links{display:none;position:absolute;top:calc(100% + 6px);left:20px;right:20px;flex-direction:column;background:var(--hud);border:1px solid var(--glass);border-radius:14px;padding:8px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .nav-links{display:none;position:absolute;top:calc(100% + 6px);left:20px;right:20px;flex-direction:column;background:var(--menu);border:1px solid var(--glass);border-radius:14px;padding:8px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.4)}
   .nav-links.open{display:flex}
   .nav-links a{padding:12px 14px;font-size:17px}
   .nav .btn{display:none}
   .nav-toggle{display:grid}
 }
 
-/* ---- hero: HomeBackgroundView — looping video, blurred, 45% scrim ---- */
+/* ---- hero: brand key art (sunset over the archipelago) ---- */
 .hero{
   position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;overflow:hidden;
-  background:linear-gradient(180deg,var(--bg-2),var(--bg-3) 55%,var(--bg-4));
-  padding:120px 0 80px;
+  background:linear-gradient(180deg,#2f86c4,#f5a050 46%,#1b6a8e 52%,var(--bg));
+  padding:110px 0 80px;
 }
-.hero-video{position:absolute;inset:-6%;width:112%;height:112%;object-fit:cover;filter:blur(10px) saturate(1.05);opacity:0;transition:opacity 1.2s ease}
-.hero-video.ready{opacity:1}
-.hero-scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
-.hero-scrim::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(23,28,27,.25),transparent 30%,transparent 70%,var(--bg))}
-.hero-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:22px;max-width:820px;padding:0 20px}
-.hero-logo{width:min(640px,86vw);height:auto;filter:drop-shadow(0 18px 30px rgba(0,0,0,.45))}
+.hero-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,26,36,.45) 0,rgba(8,26,36,0) 22%,rgba(8,26,36,.15) 45%,rgba(10,30,40,.72) 72%,var(--bg) 100%)}
+.hero-scrim::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 46% 40% at 50% 64%,rgba(6,22,30,.55),transparent 75%)}
+.hero-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:20px;max-width:820px;padding:0 20px}
+.hero-logo{width:min(560px,84vw);height:auto;filter:drop-shadow(0 14px 26px rgba(6,22,30,.45))}
 .wordmark{display:none;color:var(--ink);text-shadow:0 2px 0 #3a2a1c,0 6px 18px rgba(0,0,0,.5);-webkit-text-stroke:1.5px #3a2a1c;paint-order:stroke fill}
 .wordmark small{display:block;font-size:.34em;letter-spacing:.42em;margin-bottom:.15em}
 .logo-fallback .hero-logo{display:none}
 .logo-fallback .wordmark{display:block}
-.hero .tagline{font-size:clamp(20px,2.6vw,27px);font-weight:600;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5);letter-spacing:.01em}
-.hero .sub{font-size:clamp(16px,1.8vw,19px);color:rgba(255,255,255,.78);max-width:620px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.hero .tagline{font-size:clamp(20px,2.6vw,27px);font-weight:700;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);letter-spacing:.01em}
+.hero .sub{font-size:clamp(16px,1.8vw,19px);color:rgba(255,255,255,.9);max-width:620px;text-shadow:0 1px 8px rgba(0,0,0,.7)}
 .hero-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:6px}
 .hero-meta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
-.hero-meta .chip{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.hero-meta .chip{background:rgba(8,26,36,.5);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .scroll-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:2;color:rgba(255,255,255,.55);font-size:12px;letter-spacing:.2em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:6px}
 .scroll-hint svg{width:16px;height:16px;animation:bob 1.8s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
@@ -217,9 +220,9 @@ p{margin:0}
 .section.tight{padding-top:0}
 .section-head{text-align:center;max-width:800px;margin:0 auto 44px}
 .section-head .lead{margin-top:14px;text-wrap:balance}
-.band{background:linear-gradient(180deg,var(--bg) 0%,#1d2422 20%,#22291f 60%,var(--bg) 100%)}
-.band-warm{background:linear-gradient(180deg,var(--bg),#241f1a 30%,#2a231b 70%,var(--bg))}
-.band-sea{background:linear-gradient(180deg,var(--bg),#16323b 25%,#1b4a5e 60%,#16323b 90%,var(--bg))}
+.band{background:linear-gradient(180deg,var(--bg) 0%,#11303d 20%,#14394a 60%,var(--bg) 100%)}
+.band-warm{background:linear-gradient(180deg,var(--bg),#1d2f42 30%,#3a2f3c 70%,var(--bg))}
+.band-sea{background:linear-gradient(180deg,var(--bg),#174558 25%,#1d5a73 60%,#174558 90%,var(--bg))}
 
 /* ---- overview stats ---- */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:44px}
@@ -257,6 +260,7 @@ p{margin:0}
 .roundbtn svg{width:15px;height:15px}
 .bottombar{position:absolute;right:14px;bottom:12px;display:flex;gap:8px;padding:9px 10px;border-radius:999px;background:var(--hud);border:1px solid var(--glass);box-shadow:0 10px 18px rgba(0,0,0,.28)}
 .bottombar .btn{padding:10px 14px;font-size:15px}
+.bottombar .btn:not(.btn-primary){background:linear-gradient(180deg,#544738,#3d3326)}
 .toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:10px 16px;border-radius:999px;background:var(--hud);border:1px solid rgba(255,255,255,.2);font-weight:600;font-size:15px;color:#fff;box-shadow:0 7px 14px rgba(0,0,0,.26);white-space:nowrap}
 .screen-caption{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;color:var(--muted);font-size:14px}
 @media (max-width:640px){
@@ -407,7 +411,7 @@ p{margin:0}
 .lore-text p:first-of-type::first-letter{font-family:var(--font-display);font-size:3.4em;font-weight:800;float:left;line-height:.85;margin:6px 8px 0 0;color:var(--gold)}
 .lore-text p strong{color:var(--ink);font-weight:700}
 .chronicle{display:flex;flex-direction:column;gap:10px}
-.chronicle .entry{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#3a3126,#2e2720);border:1px solid rgba(230,179,92,.18)}
+.chronicle .entry{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#1f4b5b,#173c4a);border:1px solid rgba(255,195,92,.2)}
 .chronicle .entry .ic{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);display:grid;place-items:center;color:var(--gold)}
 .chronicle .entry .ic svg{width:20px;height:20px}
 .chronicle .entry b{display:block;font-size:16px}
@@ -447,14 +451,14 @@ p{margin:0}
 .setup{display:grid;grid-template-columns:1fr 420px;gap:clamp(28px,5vw,64px);align-items:center;margin-top:64px}
 .setup-panel{padding:16px;border-radius:8px;background:var(--panel)}
 .setup-panel .t{text-align:center;font-weight:700;font-size:18px;margin-bottom:12px}
-.diff{display:block;width:100%;text-align:left;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(135deg,var(--accent),var(--accent-deep));color:#fff;box-shadow:0 5px 9px rgba(0,0,0,.18);margin-bottom:10px;transition:transform .16s,box-shadow .16s,opacity .16s}
+.diff{display:block;width:100%;text-align:left;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(180deg,var(--gold),var(--accent) 55%,var(--accent-deep));color:var(--accent-ink);box-shadow:0 5px 9px rgba(0,0,0,.18);margin-bottom:10px;transition:transform .16s,box-shadow .16s,opacity .16s}
 .diff:hover{transform:translateY(-1px);filter:brightness(1.05)}
 .diff:active{transform:scale(.975);opacity:.86}
 .diff b{display:block;font-size:18px;font-weight:700}
-.diff span{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.85);margin:3px 0 8px}
+.diff span{display:block;font-size:12px;font-weight:600;color:rgba(58,28,8,.82);margin:3px 0 8px}
 .diff .pills{gap:8px}
 .diff .pill{padding:4px 6px}
-.diff .pills em{font-style:normal;font-size:12px;font-weight:700;color:rgba(255,255,255,.92);margin-left:-4px}
+.diff .pills em{font-style:normal;font-size:12px;font-weight:700;color:var(--accent-ink);margin-left:-4px}
 .diff .pills > div{display:inline-flex;align-items:center;gap:6px}
 @media (max-width:900px){.setup{grid-template-columns:1fr}}
 
@@ -469,17 +473,17 @@ p{margin:0}
 .req{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .get-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
 .get-art{display:grid;place-items:center}
-.get-art img{width:100%;max-width:340px;height:auto;border-radius:28%;box-shadow:0 30px 60px rgba(0,0,0,.5);transform:rotate(-3deg)}
+.get-art img{width:100%;max-width:340px;height:auto;border-radius:22.5%;box-shadow:0 30px 60px rgba(0,0,0,.5);transform:rotate(-3deg)}
 @media (max-width:900px){.get{grid-template-columns:1fr}.get-art{order:-1}.get-art img{max-width:240px}}
 
 /* ---- footer: dusk horizon band, then links "under the sea" ---- */
-footer{position:relative;margin-top:40px;overflow:hidden;background:#1d3a44}
-.horizon{position:relative;height:clamp(220px,30vw,360px);background:linear-gradient(180deg,var(--bg) 0%,#2a2c3a 30%,#6b4a4a 65%,#c98354 100%);pointer-events:none}
+footer{position:relative;margin-top:40px;overflow:hidden;background:#143846}
+.horizon{position:relative;height:clamp(220px,30vw,360px);background:linear-gradient(180deg,var(--bg) 0%,#1d5577 32%,#e98b4c 74%,#ffc463 100%);pointer-events:none}
 .horizon svg{position:absolute;inset:0;width:100%;height:100%}
 .foot{position:relative;z-index:1;padding:40px 0 26px;background:transparent}
-footer .sea-band{background:linear-gradient(180deg,#2a5262,#1d3a44 40%,#172c34)}
+footer .sea-band{background:linear-gradient(180deg,#1b5a76,#143846 40%,var(--bg))}
 .foot-top{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px;align-items:start}
-.foot .brand svg{width:44px;height:44px}
+.foot .brand img{width:44px;height:44px;border-radius:11px}
 .foot .tag{margin-top:12px;color:rgba(255,255,255,.8);font-size:15px;max-width:340px}
 .foot h5{margin:0 0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
 .foot ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
@@ -546,15 +550,7 @@ footer .sea-band{background:linear-gradient(180deg,#2a5262,#1d3a44 40%,#172c34)}
 <header class="nav" id="nav">
   <div class="wrap">
     <a class="brand" href="#top" aria-label="Quest for Duskara — home">
-      <svg viewBox="0 0 48 48" aria-hidden="true">
-        <rect width="48" height="48" rx="12" fill="#1b4a5e"/>
-        <circle cx="19" cy="22" r="9" fill="#f0a64f"/>
-        <path d="M8 31l16-7 16 7-16 7z" fill="#8cad66"/>
-        <path d="M11 30.5l13-6 13 6-13 6z" fill="#8fc4c8" opacity=".55" transform="translate(0 6)"/>
-        <rect x="20" y="16" width="8" height="15" rx="1.6" fill="#eddebf"/>
-        <path d="M18 17l6-8 6 8z" fill="#c97a5c"/>
-        <rect x="23.4" y="6" width="1.2" height="5" fill="#eddebf"/><path d="M24.6 6l4 1.5-4 1.5z" fill="#c97a5c"/>
-      </svg>
+      <img src="brand-assets/social/apple-touch-icon-180.png" alt="" width="34" height="34">
       <b><small>Quest for</small>Duskara</b>
     </a>
     <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Open menu"><svg><use href="#i-menu"/></svg></button>
@@ -576,13 +572,11 @@ footer .sea-band{background:linear-gradient(180deg,#2a5262,#1d3a44 40%,#172c34)}
 
 <!-- ================= HERO ================= -->
 <section class="hero">
-  <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
-    <source src="Assets/homescreen-bg.mp4" type="video/mp4">
-  </video>
+  <img class="hero-art" src="brand-assets/web/keyart-2560.webp" srcset="brand-assets/web/keyart-1280.webp 1280w, brand-assets/web/keyart-2560.webp 2560w" sizes="100vw" alt="" width="2560" height="1440" fetchpriority="high">
   <div class="hero-scrim"></div>
   <div class="hero-inner">
     <h1>
-      <img class="hero-logo" src="Assets/Brand/quest-for-duskara-logo-landscape.png" alt="Quest for Duskara" width="1711" height="919" fetchpriority="high" onerror="this.parentElement.classList.add('logo-fallback')">
+      <img class="hero-logo" src="brand-assets/web/title-stacked-1200.webp" alt="Quest for Duskara" width="1200" height="800" fetchpriority="high" onerror="this.parentElement.classList.add('logo-fallback')">
       <span class="wordmark display h1"><small>Quest for</small>Duskara</span>
     </h1>
     <p class="tagline">Build, train, and sail before dusk claims the isles.</p>
@@ -1026,7 +1020,7 @@ open "Quest-For-Duskara/Quest For Duskara.xcodeproj"</div>
         </div>
       </div>
       <div class="get-art">
-        <img src="Assets/Brand/quest-for-duskara-app-icon.png" alt="Quest for Duskara app icon: a clay tower on a small green island with a setting sun" width="1254" height="1254" loading="lazy" onerror="this.style.display='none'">
+        <img src="brand-assets/web/icon-640.webp" alt="Quest for Duskara app icon: a stone tower with a red flag on a small island, the sun setting behind it" width="640" height="640" loading="lazy" onerror="this.style.display='none'">
       </div>
     </div>
   </div>
@@ -1039,11 +1033,11 @@ open "Quest-For-Duskara/Quest For Duskara.xcodeproj"</div>
     <svg viewBox="0 0 1440 360" preserveAspectRatio="xMidYMax slice">
       <defs>
         <radialGradient id="sunG" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffd58a"/><stop offset=".6" stop-color="#f0a64f"/><stop offset="1" stop-color="#e0843f"/></radialGradient>
-        <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f8f9c"/><stop offset="1" stop-color="#2a5262"/></linearGradient>
+        <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f93b8"/><stop offset="1" stop-color="#1b5a76"/></linearGradient>
       </defs>
       <circle cx="1010" cy="262" r="92" fill="url(#sunG)" opacity=".95"/>
       <rect x="0" y="270" width="1440" height="90" fill="url(#seaG)"/>
-      <path d="M0 282c120-8 220 10 340 6s230-16 360-8 260 16 380 6 240-14 360-4v78H0z" fill="#3d6d7c" opacity=".7"/>
+      <path d="M0 282c120-8 220 10 340 6s230-16 360-8 260 16 380 6 240-14 360-4v78H0z" fill="#2a7395" opacity=".7"/>
       <g opacity=".95">
         <path d="M540 274c40-26 120-32 180-14 36 11 60 22 96 20 40-2 60-18 100-14 42 5 60 14 84 16v6H540z" fill="#e8d6a4"/>
         <path d="M580 268c30-22 100-28 160-12 28 6 50 16 80 14 44-4 58-16 96-10 40 6 56 12 74 14v4H580z" fill="#7f9a62"/>
@@ -1066,11 +1060,7 @@ open "Quest-For-Duskara/Quest For Duskara.xcodeproj"</div>
     <div class="foot-top">
       <div>
         <a class="brand" href="#top" aria-label="Quest for Duskara — back to top">
-          <svg viewBox="0 0 48 48" aria-hidden="true">
-            <rect width="48" height="48" rx="12" fill="#1b4a5e"/><circle cx="19" cy="22" r="9" fill="#f0a64f"/>
-            <path d="M8 31l16-7 16 7-16 7z" fill="#8cad66"/><rect x="20" y="16" width="8" height="15" rx="1.6" fill="#eddebf"/>
-            <path d="M18 17l6-8 6 8z" fill="#c97a5c"/><rect x="23.4" y="6" width="1.2" height="5" fill="#eddebf"/><path d="M24.6 6l4 1.5-4 1.5z" fill="#c97a5c"/>
-          </svg>
+          <img src="brand-assets/social/apple-touch-icon-180.png" alt="" width="44" height="44" loading="lazy">
           <b><small>Quest for</small>Duskara</b>
         </a>
         <p class="tag">Build, train, and sail before dusk claims the isles. A small, calm strategy game for macOS — and an open project you're welcome to fork.</p>
@@ -1678,15 +1668,6 @@ if ('IntersectionObserver' in window){
   $$('.reveal').forEach(el=>el.classList.add('in'));
 }
 
-// hero video fades in once frames are actually decoding; if it fails, the gradient stays
-const hv = $('#heroVideo');
-if (hv){
-  const ready = () => hv.classList.add('ready');
-  hv.addEventListener('playing', ready, {once:true});
-  hv.addEventListener('error', ()=>hv.remove(), true);
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ hv.removeAttribute('autoplay'); hv.pause(); }
-  else hv.play().catch(()=>{});
-}
 })();
 </script>
 </body>
