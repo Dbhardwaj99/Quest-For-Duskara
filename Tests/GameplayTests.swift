@@ -478,15 +478,75 @@ struct GameplayTests {
             try #require(viewModel.state.towns.filter { $0.isPlayerControlled == false }
                 .min { viewModel.effectiveDefenseStrength(for: $0) < viewModel.effectiveDefenseStrength(for: $1) })
         }
-        while try viewModel.canAttack(weakestTarget().id) == false, viewModel.state.day < 9 {
+        // Pacing asks for an army that out-muscles the garrison — the lane
+        // battle itself is the player's to win, so a focused push stands in.
+        func outmuscles() throws -> Bool {
+            try GameRules.canAttack(weakestTarget().id, from: viewModel.state.activeTownID,
+                                    in: viewModel.state, balance: viewModel.balance)
+        }
+        while try outmuscles() == false, viewModel.state.day < 9 {
             viewModel.advanceDayManually()
             while viewModel.trainingUnavailableReason(for: .archer) == nil { viewModel.train(.archer) }
         }
         let target = try weakestTarget()
         viewModel.attackTown(target.id)
+        var battle = try #require(viewModel.assault)
+        while battle.outcome == nil {
+            _ = battle.deploy(.knight, lane: 1) || battle.deploy(.archer, lane: 1)
+            battle.step(1.0 / 30)
+        }
+        viewModel.finishAssault(battle)
 
         #expect(viewModel.state.town(id: target.id)?.isPlayerControlled == true)
         #expect(viewModel.state.day < 9)
+    }
+
+    /// The lane battle's promise: force decides lopsided fights, play decides
+    /// close ones, and every unit lost is gone for good.
+    @Test func laneBattleRewardsConcentrationAndKeepsLosses() {
+        func roster(archers: Int, knights: Int) -> SoldierRoster {
+            var roster = SoldierRoster()
+            roster[.archer] = archers
+            roster[.knight] = knights
+            return roster
+        }
+        func fight(_ attackers: SoldierRoster, focused: Bool) -> LaneBattle {
+            var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: attackers,
+                                    defenders: roster(archers: 5, knights: 2), fortification: 30)
+            var lane = 0
+            while battle.outcome == nil {
+                for kind in [SoldierKind.knight, .archer] where battle.deploy(kind, lane: focused ? 2 : lane % 3) {
+                    lane += 1
+                }
+                battle.step(1.0 / 30)
+            }
+            return battle
+        }
+        let even = roster(archers: 5, knights: 2)
+        #expect(fight(even, focused: true).outcome == .captured)
+        #expect(fight(even, focused: false).outcome == .repelled)
+        #expect(fight(roster(archers: 1, knights: 1), focused: true).outcome == .repelled)
+        let rout = fight(roster(archers: 14, knights: 6), focused: false)
+        #expect(rout.outcome == .captured)
+
+        // Conclusion: survivors garrison the prize, the source keeps nothing.
+        let balance = GameBalance.duskDefault
+        var state = makeNewGame(balance: balance)
+        state.towns[0].soldierRoster = roster(archers: 14, knights: 6)
+        state.towns[0].armyStrength = state.towns[0].soldierRoster.armyStrength(using: balance.soldierDefinitions)
+        state.towns[1].soldierRoster = roster(archers: 5, knights: 2)
+        state.towns[1].armyStrength = 98
+        let target = state.towns[1].id
+        var battle = GameRules.assault(target, from: state.towns[0].id, in: state, balance: balance)!
+        while battle.outcome == nil {
+            _ = battle.deploy(.knight, lane: 0) || battle.deploy(.archer, lane: 0)
+            battle.step(1.0 / 30)
+        }
+        #expect(GameRules.conclude(battle, state: &state, balance: balance))
+        #expect(state.towns[0].armyStrength == 0)
+        #expect(state.towns[1].isPlayerControlled)
+        #expect(state.towns[1].soldierRoster == battle.survivors(.attacker))
+        #expect(state.towns[1].armyStrength < 14 * 10 + 6 * 24)
     }
 
     @Test func housesRefillAfterLosses() {

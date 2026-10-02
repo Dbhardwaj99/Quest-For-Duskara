@@ -28,11 +28,22 @@ struct GameView: View {
                 // the map doesn't rebuild the whole scene.
                 ZStack {
                     townBody
-                        .allowsHitTesting(viewModel.isWorldMapPresented == false)
-                        .accessibilityHidden(viewModel.isWorldMapPresented)
+                        .allowsHitTesting(viewModel.isWorldMapPresented == false && viewModel.assault == nil)
+                        .accessibilityHidden(viewModel.isWorldMapPresented || viewModel.assault != nil)
                     if viewModel.isWorldMapPresented {
                         WorldMapView(viewModel: viewModel)
+                            .allowsHitTesting(viewModel.assault == nil)
+                            .accessibilityHidden(viewModel.assault != nil)
                             .transition(.opacity)
+                    }
+                    if let assault = viewModel.assault {
+                        LaneBattleView(
+                            battle: assault,
+                            attackerName: viewModel.state.town(id: assault.sourceID)?.name ?? "",
+                            targetName: viewModel.state.town(id: assault.targetID)?.name ?? "",
+                            onFinish: viewModel.finishAssault
+                        )
+                        .transition(.opacity)
                     }
                 }
             case .victory:
@@ -42,6 +53,7 @@ struct GameView: View {
             }
         }
         .animation(.smooth(duration: 0.25), value: viewModel.isWorldMapPresented)
+        .animation(.smooth(duration: 0.25), value: viewModel.assault == nil)
     }
 
     private var townBody: some View {
@@ -305,7 +317,7 @@ struct GameView: View {
     private var townView3D: some View {
         World3DTownView(
             sourceViewModel: viewModel,
-            isActive: viewModel.isWorldMapPresented == false,
+            isActive: viewModel.isWorldMapPresented == false && viewModel.assault == nil,
             isCameraOrbiting: isCameraOrbiting,
             buildingScales: buildingScales,
             contrast: contrast

@@ -63,20 +63,76 @@ extension GameRules {
             return false
         }
 
+        capture(target, faction: faction, realmID: realmID,
+                garrison: SoldierRoster.decompose(strength: survivors, using: definitions), state: &state, balance: balance)
+        return true
+    }
+
+    /// The lane battle the active player's town would fight against `targetID`,
+    /// committing its whole army — or nil when there is no army to send.
+    static func assault(_ targetID: UUID, from sourceID: UUID, in state: GameState, balance: GameBalance) -> LaneBattle? {
+        guard let source = state.town(id: sourceID), source.isPlayerControlled, source.armyStrength > 0,
+              let target = state.town(id: targetID), target.isPlayerControlled == false else { return nil }
+        let definitions = balance.soldierDefinitions
+        return LaneBattle(sourceID: sourceID, targetID: targetID,
+                          attackers: fieldArmy(source, using: definitions),
+                          defenders: fieldArmy(target, using: definitions),
+                          fortification: defense(target, in: state, balance: balance) - target.armyStrength)
+    }
+
+    /// Applies a finished lane battle. Its losses are permanent: the attacker's
+    /// survivors either hold the captured town or sail home, and the defender
+    /// keeps whoever is left. Returns whether the town was captured.
+    @discardableResult
+    static func conclude(_ battle: LaneBattle, state: inout GameState, balance: GameBalance) -> Bool {
+        guard let outcome = battle.outcome,
+              let source = state.towns.firstIndex(where: { $0.id == battle.sourceID }),
+              let target = state.towns.firstIndex(where: { $0.id == battle.targetID }) else { return false }
+        let attackers = battle.survivors(.attacker)
+        guard outcome == .captured else {
+            garrison(source, with: attackers, state: &state, balance: balance)
+            garrison(target, with: battle.survivors(.defender), state: &state, balance: balance)
+            return false
+        }
+        garrison(source, with: SoldierRoster(), state: &state, balance: balance)
+        capture(target, faction: state.towns[source].faction, realmID: state.towns[source].realmID,
+                garrison: attackers, state: &state, balance: balance)
+        return true
+    }
+
+    /// A town's whole army as units. Strength not backed by a roster (older
+    /// saves) fights as whole units too.
+    static func fieldArmy(_ town: Town, using definitions: [SoldierKind: SoldierDefinition]) -> SoldierRoster {
+        var roster = town.soldierRoster
+        let legacy = town.armyStrength - roster.armyStrength(using: definitions)
+        if legacy > 0 { roster.merge(.decompose(strength: legacy, using: definitions)) }
+        return roster
+    }
+
+    private static func garrison(_ index: Int, with roster: SoldierRoster, state: inout GameState, balance: GameBalance) {
+        state.towns[index].soldierRoster = roster
+        state.towns[index].armyStrength = roster.armyStrength(using: balance.soldierDefinitions)
+        state.towns[index].resources[.soldiers] = state.towns[index].armyStrength
+    }
+
+    private static func capture(
+        _ target: Int,
+        faction: TownFaction,
+        realmID: UUID,
+        garrison roster: SoldierRoster,
+        state: inout GameState,
+        balance: GameBalance
+    ) {
         for (kind, rate) in balance.captureResourceLossRates {
             state.towns[target].resources[kind] = max(0, Int(Double(state.towns[target].resources[kind]) * (1 - rate)))
         }
         state.towns[target].setFaction(faction)
         state.towns[target].realmID = realmID
-        let garrison = SoldierRoster.decompose(strength: survivors, using: definitions)
-        state.towns[target].soldierRoster = garrison
-        state.towns[target].armyStrength = garrison.armyStrength(using: definitions)
-        state.towns[target].resources[.soldiers] = state.towns[target].armyStrength
+        garrison(target, with: roster, state: &state, balance: balance)
         let factions = Dictionary(uniqueKeysWithValues: state.towns.map { ($0.id, $0.faction) })
         for index in state.territory.regions.indices {
             state.territory.regions[index].ownerFaction = factions[state.territory.regions[index].townID] ?? .neutral
         }
-        return true
     }
 
     static func graphDistances(from source: UUID, connections: [TownConnection]) -> [UUID: Int] {

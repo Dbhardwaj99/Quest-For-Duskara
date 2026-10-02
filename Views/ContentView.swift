@@ -33,7 +33,12 @@ struct ContentView: View {
             }
         }
         .animation(.smooth(duration: 0.3), value: hasSeenTutorial)
-        .onAppear(perform: refreshSavedGame)
+        .onAppear {
+            refreshSavedGame()
+            #if DEBUG
+            if CommandLine.arguments.contains("-battleSandbox") { startBattleSandbox() }
+            #endif
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refreshSavedGame() }
         }
@@ -53,6 +58,30 @@ struct ContentView: View {
         viewModel.resume(state: savedGame.state, difficulty: savedGame.difficulty)
         path = [.game]
     }
+
+    #if DEBUG
+    /// `-battleSandbox` drops straight into an even lane battle, saving to a
+    /// scratch folder so the real save is never touched.
+    private func startBattleSandbox() {
+        let sandbox = GameViewModel(saveStore: GameSaveStore(directory: FileManager.default.temporaryDirectory))
+        sandbox.startGame()
+        var army = SoldierRoster()
+        army[.archer] = 5
+        army[.knight] = 2
+        let strength = army.armyStrength(using: sandbox.balance.soldierDefinitions)
+        guard let target = sandbox.state.towns.first(where: { $0.isPlayerControlled == false }) else { return }
+        for id in [sandbox.state.activeTownID, target.id] {
+            sandbox.state.updateTown(id: id) {
+                $0.soldierRoster = army
+                $0.armyStrength = strength
+            }
+        }
+        sandbox.attackTown(target.id)
+        viewModel.stopClock()
+        viewModel = sandbox
+        path = [.game]
+    }
+    #endif
 
     private func refreshSavedGame() {
         do {
