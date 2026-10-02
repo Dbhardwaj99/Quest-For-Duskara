@@ -4,6 +4,10 @@ import SwiftUI
 /// fixed floating overlays (header, legend, compass, and zoom controls).
 struct WorldMapView: View {
     @Bindable var viewModel: GameViewModel
+    var theme: WorldTheme = .village
+    var contrast: Double = WorldContrast.standard
+    var travelProgress: Double = 1
+    var travelDuration: Double = 1.8
     @State var selectedTownID: UUID?
     @State var panOffset: CGSize = .zero
     @State var dragStartOffset: CGSize?
@@ -11,9 +15,9 @@ struct WorldMapView: View {
     @State var magnifyStartScale: CGFloat?
 
     /// How much larger than the window the terrain renders, so there is room to pan.
-    let mapOverscan: CGFloat = 1.15
+    let mapOverscan: CGFloat = 1
     /// Open ocean around the terrain, so edge islands never touch the map border.
-    let oceanPadding: CGFloat = 80
+    let oceanPadding: CGFloat = 0
     let maxZoom: CGFloat = 2.6
 
     var body: some View {
@@ -23,7 +27,7 @@ struct WorldMapView: View {
             GeometryReader { proxy in
                 ZStack {
                     // Open sea backdrop for the ring beyond the pannable map.
-                    Color(red: 0.28, green: 0.56, blue: 0.62)
+                    Color(nsColor: theme.palette.waterDeep)
                     mapViewport(container: proxy.size)
                     mapVignette
                 }
@@ -32,16 +36,24 @@ struct WorldMapView: View {
             .ignoresSafeArea()
 
             header
+                .opacity(travelProgress)
+                .animation(.easeInOut(duration: 0.14).delay(travelProgress > 0 ? travelDuration : 0), value: travelProgress)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(14)
             legend
+                .opacity(travelProgress)
+                .animation(.easeInOut(duration: 0.14).delay(travelProgress > 0 ? travelDuration : 0), value: travelProgress)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .padding(14)
             CompassRose()
+                .opacity(travelProgress)
+                .animation(.easeInOut(duration: 0.14).delay(travelProgress > 0 ? travelDuration : 0), value: travelProgress)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(18)
             GeometryReader { proxy in
                 zoomControls(minZoom: minimumZoom(in: proxy.size))
+                    .opacity(travelProgress)
+                    .animation(.easeInOut(duration: 0.14).delay(travelProgress > 0 ? travelDuration : 0), value: travelProgress)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(14)
             }
@@ -72,20 +84,25 @@ struct WorldMapView: View {
             container: container,
             map: outer
         )
-        let scaled = CGSize(width: outer.width * zoomScale, height: outer.height * zoomScale)
+        let displayedZoom = 1 + (zoomScale - 1) * CGFloat(travelProgress)
+        let displayedOffset = CGSize(width: panOffset.width * CGFloat(travelProgress), height: panOffset.height * CGFloat(travelProgress))
+        let scaled = CGSize(width: outer.width * displayedZoom, height: outer.height * displayedZoom)
         return ZStack {
-            // Static, so kept out of the layer the ships animate in.
-            SeaWavesLayer()
-                .compositingGroup()
             TerritoryRenderer(
                 world: viewModel.state.world,
+                gridSize: viewModel.balance.gridSize,
+                theme: theme,
+                contrast: contrast,
+                travelProgress: travelProgress,
+                travelDuration: travelDuration,
+                isActive: !viewModel.isBattlePresented,
                 territory: viewModel.state.territory,
                 towns: viewModel.state.towns,
                 nodes: viewModel.state.worldNodes,
                 connections: viewModel.state.connections,
                 activeTownID: viewModel.state.activeTownID,
                 selectedTownID: selectedTownID,
-                markerScale: 1 / sqrt(zoomScale),
+                markerScale: 1 / sqrt(displayedZoom),
                 onSelectTown: { selectedTownID = $0 },
                 canActOnTown: { townID in
                     viewModel.state.town(id: townID)?.isPlayerControlled == true || viewModel.canAttack(townID)
@@ -94,7 +111,7 @@ struct WorldMapView: View {
                     if viewModel.state.town(id: townID)?.isPlayerControlled == true {
                         viewModel.switchToTown(townID)
                     } else {
-                        viewModel.attackTown(townID)
+                        viewModel.prepareAssault(townID)
                     }
                 },
                 badgeValue: { town in
@@ -110,8 +127,9 @@ struct WorldMapView: View {
             .frame(width: terrain.width, height: terrain.height)
         }
         .frame(width: outer.width, height: outer.height)
-        .scaleEffect(zoomScale)
-        .offset(clampedOffset(panOffset, mapSize: scaled, container: container))
+        .scaleEffect(displayedZoom)
+        .offset(clampedOffset(displayedOffset, mapSize: scaled, container: container))
+        .animation(.timingCurve(1.0 / 3, 0, 2.0 / 3, 1, duration: travelDuration), value: travelProgress)
         .frame(width: container.width, height: container.height)
         .clipped()
         .contentShape(Rectangle())
@@ -182,9 +200,7 @@ struct WorldMapView: View {
     }
 
     func terrainSize(in container: CGSize) -> CGSize {
-        let aspect = viewModel.state.world.layout.aspectRatio
-        let width = max(container.width, container.height * aspect) * mapOverscan
-        return CGSize(width: width, height: width / aspect)
+        container
     }
 
     func minimumZoom(in container: CGSize) -> CGFloat {

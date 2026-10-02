@@ -1,4 +1,5 @@
 import SwiftUI
+import simd
 
 struct SeaRoute: Identifiable {
     let id: String
@@ -32,8 +33,28 @@ struct SeaRoute: Identifiable {
         return CGPoint(x: mid.x - dy / length * bulge, y: mid.y + dx / length * bulge)
     }
 
+    static func worldPoint(at t: Float, from: SIMD3<Float>, to: SIMD3<Float>, seed: Int) -> SIMD3<Float> {
+        let delta = to - from
+        let length = simd_length(delta)
+        guard length > 0.001 else { return from }
+        let side = SIMD3<Float>(-delta.z, 0, delta.x) / length
+        let bend = side * min(1, length * 0.12) * (seed.isMultiple(of: 2) ? 1 : -1)
+        return from + delta * t + bend * (4 * t * (1 - t))
+    }
+
     func path(projection: WorldMapProjection) -> Path {
         var path = Path()
+        if let camera = projection.camera {
+            let start = camera.position(x: Float(from.x), y: Float(from.y))
+            let end = camera.position(x: Float(to.x), y: Float(to.y))
+            let inset = min(0.42, 1.55 / max(0.01, simd_distance(start, end)))
+            for step in 0...32 {
+                let t = inset + Float(step) / 32 * (1 - 2 * inset)
+                let point = camera.project(Self.worldPoint(at: t, from: start, to: end, seed: seed))
+                if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            }
+            return path
+        }
         path.move(to: projection.point(for: from))
         path.addQuadCurve(to: projection.point(for: to), control: controlPoint(projection: projection))
         return path
@@ -65,13 +86,15 @@ struct SeaRoute: Identifiable {
 // else on the map stays static.
 struct SeaTrafficLayer: View {
     let routes: [SeaRoute]
+    var camera: WorldMapCamera? = nil
+    var showsShips = true
 
     static let tradeGold = Color(red: 0.94, green: 0.78, blue: 0.42)
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1 / 24)) { timeline in
             Canvas { context, size in
-                let projection = WorldMapProjection(size: size)
+                let projection = WorldMapProjection(size: size, camera: camera)
                 let time = timeline.date.timeIntervalSinceReferenceDate
 
                 drawCloudShadows(context: context, size: size, time: time)
@@ -91,7 +114,7 @@ struct SeaTrafficLayer: View {
                     )
                 }
 
-                for route in routes where route.hasShip {
+                for route in routes where showsShips && route.hasShip {
                     drawShip(route: route, projection: projection, time: time, context: context)
                 }
             }

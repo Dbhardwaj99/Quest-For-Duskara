@@ -11,7 +11,8 @@ using namespace metal;
 // waves without knowing the island's footprint.
 //
 // custom_parameter carries the one active interaction ripple:
-//   x, z = ripple center (world), z. .z = current ring radius, .w = strength.
+//   .xy = ripple center (world XZ), .z = radius, .w = strength.
+// Negative strength selects matte archipelago water; town water keeps its finish.
 
 namespace ocean {
 
@@ -54,6 +55,8 @@ void oceanSurface(realitykit::surface_parameters params)
     float time = params.uniforms().time();
     float3 worldPosition = params.geometry().world_position();
     float shoreDistance = params.geometry().uv0().x;
+    float4 ripple = params.uniforms().custom_parameter();
+    bool mapWater = ripple.w < 0.0;
 
     // Deep-water color comes from the theme via the material's base tint;
     // shallow and foam colors are derived from it so themes stay coherent.
@@ -70,14 +73,14 @@ void oceanSurface(realitykit::surface_parameters params)
     // Crest shading sells the motion: gentle brightening on wave tops,
     // a touch of deepening in the troughs.
     float crest = ocean::waveHeight(worldPosition.xz, time) / 0.036;
-    color = mix(color, half3(0.80h, 0.94h, 0.94h), half(saturate(crest) * 0.18));
-    color = mix(color, deep, half(saturate(-crest) * 0.14));
+    color = mix(color, half3(0.80h, 0.94h, 0.94h), half(saturate(crest) * (mapWater ? 0.012 : 0.18)));
+    color = mix(color, deep, half(saturate(-crest) * (mapWater ? 0.025 : 0.14)));
 
     // Fresnel: grazing angles pick up a pale sky sheen.
     float3 normal = ocean::waveNormal(worldPosition.xz, time);
     float3 view = normalize(params.geometry().view_direction());
     float fresnel = pow(1.0 - saturate(dot(normal, view)), 3.0);
-    color = mix(color, half3(0.85h, 0.93h, 0.95h), half(fresnel * 0.40));
+    color = mix(color, half3(0.85h, 0.93h, 0.95h), half(fresnel * (mapWater ? 0.12 : 0.40)));
 
     // Permanent shoreline foam: one thin bright line at the sand, breathing
     // slowly, with a fainter lace line drifting just past it.
@@ -87,7 +90,6 @@ void oceanSurface(realitykit::surface_parameters params)
     color = mix(color, half3(0.98h, 0.99h, 0.98h), half(saturate(foam + lace) * 0.9));
 
     // Interaction ripple: one thin white ring expanding at constant speed.
-    float4 ripple = params.uniforms().custom_parameter();
     if (ripple.w > 0.001) {
         float d = distance(worldPosition.xz, ripple.xy);
         float ring = 1.0 - smoothstep(0.0, 0.05, abs(d - ripple.z));
@@ -95,7 +97,7 @@ void oceanSurface(realitykit::surface_parameters params)
     }
 
     params.surface().set_base_color(color);
-    params.surface().set_roughness(half(mix(0.35, 0.9, foam)));
-    params.surface().set_specular(0.25h);
+    params.surface().set_roughness(half(mix(mapWater ? 0.80 : 0.35, 0.9, foam)));
+    params.surface().set_specular(mapWater ? 0.08h : 0.25h);
     params.surface().set_metallic(0.0h);
 }

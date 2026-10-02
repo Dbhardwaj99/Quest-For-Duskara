@@ -2,6 +2,22 @@ import Foundation
 import Testing
 
 struct GameplayTests {
+    @Test func meleeHitEmitsAttackerAndTargetIDs() throws {
+        var roster = SoldierRoster()
+        roster[.knight] = 1
+        var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: roster, defenders: roster, fortification: 0)
+        let defender = try #require(battle.units.first).id
+        battle.deploy(.knight, lane: 0)
+        let attacker = try #require(battle.units.first(where: { $0.side == .attacker })).id
+        for _ in 0..<1800 {
+            battle.step(LaneBattle.tick)
+            if battle.events.contains(where: {
+                if case let .struck(a, t) = $0 { return a == attacker && t == defender }
+                return false
+            }) { return }
+        }
+        Issue.record("Melee hit never emitted the unit IDs")
+    }
     @Test func autosaveRoundTripsAndSurfacesTypedFailures() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -478,15 +494,156 @@ struct GameplayTests {
             try #require(viewModel.state.towns.filter { $0.isPlayerControlled == false }
                 .min { viewModel.effectiveDefenseStrength(for: $0) < viewModel.effectiveDefenseStrength(for: $1) })
         }
-        while try viewModel.canAttack(weakestTarget().id) == false, viewModel.state.day < 9 {
+        // Pacing asks for an army a fifth over the defense — the margin at
+        // which a plain focused push reliably wins the lane battle.
+        func outmuscles() throws -> Bool {
+            try Double(viewModel.activeArmyStrength) > Double(viewModel.effectiveDefenseStrength(for: weakestTarget())) * 1.2
+        }
+        while try outmuscles() == false, viewModel.state.day < 9 {
             viewModel.advanceDayManually()
             while viewModel.trainingUnavailableReason(for: .archer) == nil { viewModel.train(.archer) }
         }
         let target = try weakestTarget()
         viewModel.attackTown(target.id)
+        var battle = try #require(viewModel.assault)
+        while battle.outcome == nil {
+            _ = battle.deploy(.knight, lane: 1) || battle.deploy(.archer, lane: 1)
+            battle.step(LaneBattle.tick)
+        }
+        viewModel.finishAssault(battle)
 
         #expect(viewModel.state.town(id: target.id)?.isPlayerControlled == true)
         #expect(viewModel.state.day < 9)
+    }
+
+    /// The lane battle's promise: force decides lopsided fights, play decides
+    /// close ones, and every unit lost is gone for good.
+    @Test func laneBattleRewardsConcentrationAndKeepsLosses() {
+        func roster(archers: Int, knights: Int) -> SoldierRoster {
+            var roster = SoldierRoster()
+            roster[.archer] = archers
+            roster[.knight] = knights
+            return roster
+        }
+        // Garrison 96 behind 30 fortification: 126 defense on the map.
+        func fight(_ attackers: SoldierRoster, screened: Bool) -> LaneBattle {
+            var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: attackers,
+                                    defenders: roster(archers: 5, knights: 2), fortification: 30)
+            var lane = 0
+            while battle.outcome == nil {
+                if screened {
+                    // Knight and archer land together in one lane, knight in front.
+                    if battle.attackerReserve[.knight] > 0, battle.attackerReserve[.archer] > 0 {
+                        if battle.attackerCommand >= 6 {
+                            battle.deploy(.knight, lane: 2)
+                            battle.deploy(.archer, lane: 2)
+                        }
+                    } else {
+                        _ = battle.deploy(.knight, lane: 2) || battle.deploy(.archer, lane: 2)
+                    }
+                } else {
+                    for kind in [SoldierKind.knight, .archer] where battle.deploy(kind, lane: lane % 3) { lane += 1 }
+                }
+                battle.step(LaneBattle.tick)
+            }
+            return battle
+        }
+        let close = roster(archers: 5, knights: 3) // 122, just under the defense
+        #expect(fight(close, screened: true).outcome == .captured)
+        #expect(fight(close, screened: false).outcome == .repelled)
+        #expect(fight(roster(archers: 4, knights: 2), screened: true).outcome == .repelled)
+        let rout = fight(roster(archers: 14, knights: 6), screened: false)
+        #expect(rout.outcome == .captured)
+
+        // Conclusion: survivors garrison the prize, the source keeps nothing.
+        let balance = GameBalance.duskDefault
+        var state = makeNewGame(balance: balance)
+        state.towns[0].soldierRoster = roster(archers: 14, knights: 6)
+        state.towns[0].armyStrength = state.towns[0].soldierRoster.armyStrength(using: balance.soldierDefinitions)
+        state.towns[1].soldierRoster = roster(archers: 5, knights: 2)
+        state.towns[1].armyStrength = 98
+        let target = state.towns[1].id
+        var battle = GameRules.assault(target, from: state.towns[0].id, in: state, balance: balance)!
+        while battle.outcome == nil {
+            _ = battle.deploy(.knight, lane: 0) || battle.deploy(.archer, lane: 0)
+            battle.step(LaneBattle.tick)
+        }
+        #expect(GameRules.conclude(battle, state: &state, balance: balance))
+        #expect(state.towns[0].armyStrength == 0)
+        #expect(state.towns[1].isPlayerControlled)
+        #expect(state.towns[1].soldierRoster == battle.survivors(.attacker))
+        #expect(state.towns[1].armyStrength < 14 * 10 + 6 * 24)
+    }
+
+    /// Defenders in a quiet lane fall back through the gate to meet an
+    /// attacker at the fortress instead of idling on their own line.
+    @Test func idleDefendersFallBackToTheBreachedLane() {
+        var archer = SoldierRoster()
+        archer[.archer] = 1
+        var knight = SoldierRoster()
+        knight[.knight] = 1
+        var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: knight, defenders: archer, fortification: 10)
+        #expect(battle.units.first?.lane == 0)
+        battle.deploy(.knight, lane: 2)
+        var defended = false
+        while battle.outcome == nil, defended == false {
+            battle.step(LaneBattle.tick)
+            defended = battle.units.contains { $0.side == .defender && $0.lane == 2 }
+        }
+        #expect(defended)
+    }
+
+    @Test func battleOddsThresholds() {
+        for (power, label) in [(84,"Outmatched"),(85,"Even fight"),(109,"Even fight"),
+                               (110,"Favoured"),(149,"Favoured"),(150,"Overwhelming")] {
+            #expect(BattleBriefing.odds(power: power, defense: 100) == label)
+        }
+        #expect(BattleBriefing.odds(power: 1, defense: 0) == "Overwhelming")
+        #expect(BattleBriefing.odds(power: 0, defense: 0) == "Outmatched")
+    }
+
+    @Test func battleHUDPublishesChangedValuesAtMostFourTimesASecond() {
+        var army = SoldierRoster(); army[.knight] = 2
+        var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: army,
+                                defenders: SoldierRoster(), fortification: 10)
+        let initial = BattleHUDState(battle)
+        var publisher = BattleHUDPublisher(battle)
+        battle.step(LaneBattle.tick)
+        #expect(BattleHUDState(battle) == initial)
+        #expect(publisher.update(battle, now: 0, hasLanded: false) == nil)
+        let didDeploy = battle.deploy(.knight, lane: 2)
+        #expect(didDeploy)
+        let landed = publisher.update(battle, now: 0.1, hasLanded: true)
+        #expect(landed?.reserve[.knight] == 1)
+        #expect(landed?.attackerLanes == [0,0,1])
+        battle.step(1)
+        #expect(publisher.update(battle, now: 0.34, hasLanded: true) == nil)
+        #expect(publisher.update(battle, now: 0.36, hasLanded: true) != nil)
+        #expect(publisher.update(battle, now: 1, hasLanded: true) == nil)
+    }
+
+    @Test func briefingAndReportPauseTheClockAndKeepSurvivors() throws {
+        let vm = makeViewModel(); vm.startGame()
+        defer { vm.stopClock() }
+        var army = SoldierRoster(); army[.knight] = 2
+        vm.state.updateTown(id: vm.state.activeTownID) {
+            $0.soldierRoster = army; $0.armyStrength = army.armyStrength(using: vm.balance.soldierDefinitions)
+        }
+        let target = try #require(vm.state.towns.first { !$0.isPlayerControlled })
+        vm.prepareAssault(target.id)
+        #expect(vm.battleBriefing != nil && vm.assault == nil)
+        let elapsed = vm.state.elapsedSecondsInDay
+        vm.lastTick = Date().addingTimeInterval(-20); vm.tick(); vm.advanceDayManually()
+        #expect(vm.state.elapsedSecondsInDay == elapsed)
+        vm.confirmAssault()
+        var result = try #require(vm.assault); result.withdraw(); vm.finishAssault(result)
+        let report = try #require(vm.battleReport)
+        #expect(report.title == "Withdrew" && report.attackers == army)
+        #expect(report.attackerLosses.counts.values.reduce(0,+) == 0)
+        #expect(vm.activeTown.soldierRoster == army)
+        vm.lastTick = Date().addingTimeInterval(-20); vm.tick()
+        #expect(vm.state.elapsedSecondsInDay == elapsed)
+        vm.dismissBattleReport(); #expect(!vm.isBattlePresented)
     }
 
     @Test func housesRefillAfterLosses() {

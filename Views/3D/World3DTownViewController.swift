@@ -10,10 +10,23 @@ final class World3DTownViewController: NSViewController {
     private var renderView: World3DRenderView?
     private let cameraController = World3DCameraController()
     private var didCountActiveARView = false
+    private var isInputEnabled = true
+    private var isSceneActive = true
+    private let initialWorldMapProgress: Double
+    private var renderedTown: Town?
+    private var renderedGridSize: GridSize?
+    private var renderedSelection: GridCoordinate?
+    private var renderedPlacement: BuildingKind?
+    private var renderedTheme: WorldTheme?
+    private var renderedContrast: Double?
+    private var renderedPlacementStock: ResourceWallet?
+    private var renderedPlayerTownCount: Int?
+    private var appliedBuildingScales: [BuildingKind: Float]?
 
-    init(sourceViewModel: GameViewModel) {
+    init(sourceViewModel: GameViewModel, initialWorldMapProgress: Double = 0) {
         self.sourceViewModel = sourceViewModel
         self.adapter = World3DStateAdapter(viewModel: sourceViewModel)
+        self.initialWorldMapProgress = initialWorldMapProgress
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -76,18 +89,59 @@ final class World3DTownViewController: NSViewController {
         cameraController.setOrbiting(enabled)
     }
 
-    /// Stops drawing while something else covers the town (the world map).
-    func setActive(_ active: Bool) {
-        renderView?.isPaused = !active
+    func setInputEnabled(_ enabled: Bool) {
+        isInputEnabled = enabled
+        cameraController.setInputEnabled(enabled)
     }
 
-    func applyBuildingScales() {
+    func setWorldMapProgress(_ progress: Double, duration: Double) {
+        cameraController.setWorldMapProgress(Float(progress), duration: duration)
+        updatePacing()
+    }
+
+    /// Stops drawing while something else covers the town (the world map).
+    func setActive(_ active: Bool) {
+        isSceneActive = active
+        updatePacing()
+    }
+
+    private func updatePacing() {
+        renderView?.isPaused = isSceneActive == false || cameraController.isWorldMapCovered
+    }
+
+    func applyBuildingScales(_ scales: [BuildingKind: Float]) {
+        guard scales != appliedBuildingScales else { return }
+        appliedBuildingScales = scales
         renderer?.applyBuildingScales()
     }
 
     func syncFromGameState() {
-        guard cameraController.isInteracting == false else { return }
-        renderer?.render(adapter: adapter)
+        // Read the source before deferring, preserving SwiftUI's observation.
+        let town = sourceViewModel.activeTown
+        let gridSize = sourceViewModel.balance.gridSize
+        let selection = sourceViewModel.selectedCoordinate
+        let placement = sourceViewModel.placementBuildingKind
+        let theme = WorldTheme.current
+        let contrast = WorldContrast.level
+        guard let renderer, cameraController.isInteracting == false,
+              cameraController.isAtTown || renderedTown == nil else { return }
+        let placementStock = placement == nil ? nil : sourceViewModel.spendingTown.resources
+        let playerTownCount = placement == nil ? nil : sourceViewModel.playerTowns.count
+        guard renderedTown?.id != town.id || renderedTown?.buildings != town.buildings
+                || renderedTown?.biomeLayout != town.biomeLayout || renderedTown?.faction != town.faction
+                || renderedTown?.soldierRoster != town.soldierRoster || renderedTown?.armyStrength != town.armyStrength
+                || renderedGridSize != gridSize || renderedSelection != selection || renderedPlacement != placement
+                || renderedPlacementStock != placementStock || renderedPlayerTownCount != playerTownCount
+                || renderedTheme != theme || renderedContrast != contrast else { return }
+        renderer.render(adapter: adapter)
+        renderedTown = town
+        renderedGridSize = gridSize
+        renderedSelection = selection
+        renderedPlacement = placement
+        renderedTheme = theme
+        renderedContrast = contrast
+        renderedPlacementStock = placementStock
+        renderedPlayerTownCount = playerTownCount
     }
 
     private func configureScene() {
@@ -116,11 +170,16 @@ final class World3DTownViewController: NSViewController {
             bounds: renderer.cameraBounds(for: sourceViewModel.balance.gridSize),
             parent: renderer.cameraParent
         )
+        cameraController.setWorldMapProgress(Float(initialWorldMapProgress), duration: 0)
         renderView.renderer.activeCamera = cameraController.camera
-        renderView.onFrame = { [weak cameraController] deltaTime in
-            cameraController?.advance(by: deltaTime)
+        renderView.onFrame = { [weak self] deltaTime in
+            self?.cameraController.advance(by: deltaTime)
+            self?.updatePacing()
         }
         cameraController.onInteractionEnded = { [weak self] in
+            self?.syncFromGameState()
+        }
+        cameraController.onWorldMapTravelEnded = { [weak self] in
             self?.syncFromGameState()
         }
         self.renderer = renderer
@@ -131,11 +190,11 @@ final class World3DTownViewController: NSViewController {
     }
 
     @objc private func handleTap(_ recognizer: NSClickGestureRecognizer) {
-        guard let renderView, let renderer,
+        guard isInputEnabled, let renderView, let renderer,
               let ray = renderView.ray(through: recognizer.location(in: renderView)),
               let coordinate = renderer.coordinate(along: ray) else { return }
 
         sourceViewModel.selectCell(coordinate)
-        renderer.render(adapter: adapter)
+        syncFromGameState()
     }
 }

@@ -2,6 +2,12 @@ import SwiftUI
 
 struct TerritoryRenderer: View {
     let world: WorldMapState
+    let gridSize: GridSize
+    let theme: WorldTheme
+    let contrast: Double
+    let travelProgress: Double
+    let travelDuration: Double
+    var isActive = true
     let territory: TerritoryState
     let towns: [Town]
     let nodes: [WorldTownNode]
@@ -51,27 +57,26 @@ struct TerritoryRenderer: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let projection = WorldMapProjection(size: proxy.size)
-
+            let active = nodes.first { $0.townID == activeTownID }
+            let camera = WorldMapCamera(size: proxy.size, aspectRatio: world.layout.aspectRatio,
+                                        activePoint: SIMD2(Float(active?.x ?? 0.5), Float(active?.y ?? 0.5)),
+                                        travelProgress: travelProgress)
+            let labelCamera = WorldMapCamera(size: camera.size, aspectRatio: camera.aspectRatio,
+                                             activePoint: camera.activePoint)
+            let projection = WorldMapProjection(size: proxy.size, camera: labelCamera)
             ZStack {
-                // Its own compositing group: the ships and the pulsing marker
-                // animate every frame, and sharing a layer with them made
-                // SwiftUI re-run every blur and shadow filter of the clay
-                // islands each time (~70% GPU). Grouped, it is drawn once.
-                ZStack {
-                    WorldTerrainLayer(world: world, nodes: nodes)
-                    TerritoryRegionLayer(
-                        world: world,
-                        territory: territory,
-                        selectedTownID: selectedTownID,
-                        activeTownID: activeTownID
-                    )
-                    laneLayer
+                World3DMapView(towns: towns, nodes: nodes, routes: seaRoutes, gridSize: gridSize,
+                               camera: camera, theme: theme, contrast: contrast, travelDuration: travelDuration, isActive: isActive)
+                    .allowsHitTesting(false)
+                if isActive {
+                    ZStack {
+                        laneLayer(projection: projection)
+                        SeaTrafficLayer(routes: seaRoutes, camera: labelCamera, showsShips: false)
+                        townMarkerLayer(projection: projection)
+                    }
+                    .opacity(travelProgress)
+                    .animation(.easeInOut(duration: 0.14).delay(travelProgress > 0 ? travelDuration : 0), value: travelProgress)
                 }
-                .compositingGroup()
-                SeaTrafficLayer(routes: seaRoutes)
-                landmarkLayer(projection: projection)
-                townMarkerLayer(projection: projection)
             }
         }
     }
@@ -79,9 +84,8 @@ struct TerritoryRenderer: View {
     // Faint curved sea lanes between neighboring islands. Purely decorative:
     // any city can be attacked, but the lanes hint at the archipelago's
     // shape. Trade routes are drawn (animated) by SeaTrafficLayer instead.
-    var laneLayer: some View {
+    func laneLayer(projection: WorldMapProjection) -> some View {
         Canvas { context, size in
-            let projection = WorldMapProjection(size: size)
             for route in seaRoutes where route.isTrade == false {
                 context.stroke(
                     route.path(projection: projection),
@@ -108,18 +112,25 @@ struct TerritoryRenderer: View {
             ForEach(nodes) { node in
                 if let town = townByID[node.townID] {
                     let isSelected = node.townID == selectedTownID
+                    let center = projection.point(for: MapPoint(x: node.x, y: node.y))
+                    Color.clear
+                        .frame(width: 92, height: 72)
+                        .contentShape(Ellipse())
+                        .position(center)
+                        .onTapGesture { onSelectTown(node.townID) }
                     WorldTownMarkerView(
                         town: town,
                         badge: badgeValue(town),
                         isActive: node.townID == activeTownID,
                         isSelected: isSelected,
+                        showsGlyph: false,
                         canAct: canActOnTown(node.townID),
                         onAction: { onActOnTown(node.townID) },
                         note: isSelected ? attackNote(node.townID) : nil,
                         onRally: isSelected && canRally(node.townID) ? { onRally(node.townID) } : nil
                     )
                     .scaleEffect(markerScale)
-                    .position(projection.point(for: MapPoint(x: node.x, y: node.y)))
+                    .position(x: center.x, y: center.y + 34)
                     .onTapGesture { onSelectTown(node.townID) }
                     .zIndex(node.townID == selectedTownID ? 3 : 2)
                 }

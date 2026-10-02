@@ -5,6 +5,10 @@ struct GameView: View {
     var onNewCampaign: () -> Void = {}
     @State private var isNewsPresented = false
     @State private var isCameraOrbiting = false
+    @State private var worldTravelProgress = 0.0
+    @State private var isWorldTraveling = false
+    @State private var worldTravelID = UUID()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Debug building sizes. Held here (not read straight off `BuildingScale`)
     /// so a slider edit invalidates this view and reaches the 3D scene.
     @State private var buildingScales: [BuildingKind: Float] = [:]
@@ -18,21 +22,31 @@ struct GameView: View {
     #endif
 
     var body: some View {
-        Group {
+        ZStack {
+            Group {
             switch viewModel.phase {
             case .setup:
                 StartSetupView(viewModel: viewModel)
             case .town:
-                // The world map covers the town entirely — no popup. The town
-                // stays mounted underneath with its 3D view paused, so closing
-                // the map doesn't rebuild the whole scene.
                 ZStack {
                     townBody
-                        .allowsHitTesting(viewModel.isWorldMapPresented == false)
-                        .accessibilityHidden(viewModel.isWorldMapPresented)
-                    if viewModel.isWorldMapPresented {
-                        WorldMapView(viewModel: viewModel)
-                            .transition(.opacity)
+                        .allowsHitTesting(viewModel.isWorldMapPresented == false && isWorldTraveling == false && !viewModel.isBattlePresented)
+                        .accessibilityHidden(viewModel.isWorldMapPresented || isWorldTraveling || viewModel.isBattlePresented)
+                    WorldMapView(
+                        viewModel: viewModel,
+                        theme: ThemeManager.shared.theme,
+                        contrast: contrast,
+                        travelProgress: worldTravelProgress,
+                        travelDuration: reduceMotion ? 0 : 1.8
+                    )
+                    .modifier(WorldTravelOpacity(progress: worldTravelProgress, start: reduceMotion ? 0 : 0.36, end: reduceMotion ? 1 : 0.64))
+                    .allowsHitTesting(viewModel.isWorldMapPresented && isWorldTraveling == false && !viewModel.isBattlePresented)
+                    .accessibilityHidden(viewModel.isWorldMapPresented == false || isWorldTraveling || viewModel.isBattlePresented)
+                    if reduceMotion == false {
+                        WorldTravelClouds(progress: worldTravelProgress)
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
                     }
                 }
             case .victory:
@@ -40,8 +54,42 @@ struct GameView: View {
             case .defeat:
                 DefeatView(day: viewModel.state.day, onNewCampaign: onNewCampaign)
             }
+            }
+            .disabled(viewModel.isBattlePresented)
+            .accessibilityHidden(viewModel.isBattlePresented)
+            if let assault = viewModel.assault {
+                LaneBattleView(
+                    battle: assault,
+                    attackerName: viewModel.state.town(id: assault.sourceID)?.name ?? "",
+                    targetTown: viewModel.state.town(id: assault.targetID) ?? viewModel.activeTown,
+                    onFinish: viewModel.finishAssault
+                )
+                .transition(.opacity)
+            }
+            if let briefing = viewModel.battleBriefing {
+                BattleBriefingView(briefing: briefing, onAttack: viewModel.confirmAssault, onCancel: viewModel.cancelAssault)
+            }
+            if let report = viewModel.battleReport {
+                BattleReportView(report: report, onContinue: viewModel.dismissBattleReport)
+            }
         }
-        .animation(.smooth(duration: 0.25), value: viewModel.isWorldMapPresented)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: viewModel.isBattlePresented)
+        .onChange(of: viewModel.isWorldMapPresented, initial: true) { _, presented in
+            guard worldTravelProgress != (presented ? 1 : 0) else { return }
+            if presented {
+                isCameraOrbiting = false
+                isNewsPresented = false
+                isContrastPanelPresented = false
+            }
+            let travelID = UUID()
+            worldTravelID = travelID
+            isWorldTraveling = true
+            withAnimation(.timingCurve(1.0 / 3, 0, 2.0 / 3, 1, duration: reduceMotion ? 0.22 : 1.8)) {
+                worldTravelProgress = presented ? 1 : 0
+            } completion: {
+                if worldTravelID == travelID { isWorldTraveling = false }
+            }
+        }
     }
 
     private var townBody: some View {
@@ -71,6 +119,7 @@ struct GameView: View {
                     .accessibilityLabel("Stop camera orbit")
             } else {
                 townControls
+                    .modifier(WorldTravelOpacity(progress: worldTravelProgress, start: 0, end: 0.22, reversed: true))
                     .zIndex(2)
             }
 
@@ -305,7 +354,11 @@ struct GameView: View {
     private var townView3D: some View {
         World3DTownView(
             sourceViewModel: viewModel,
-            isActive: viewModel.isWorldMapPresented == false,
+            isActive: !viewModel.isBattlePresented && (reduceMotion == false || viewModel.isWorldMapPresented == false || isWorldTraveling),
+            isInputEnabled: isWorldTraveling == false && viewModel.isWorldMapPresented == false && !viewModel.isBattlePresented,
+            worldMapProgress: reduceMotion ? 0 : worldTravelProgress,
+            travelDuration: reduceMotion ? 0 : 1.8,
+            startsAboveTown: reduceMotion == false && isWorldTraveling && worldTravelProgress == 0,
             isCameraOrbiting: isCameraOrbiting,
             buildingScales: buildingScales,
             contrast: contrast
@@ -352,6 +405,84 @@ struct GameView: View {
             .padding(.horizontal, 14)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityLabel("Cancel building placement")
+        }
+    }
+}
+
+/// Interpolate only the compositing layer. Native scene updates receive a
+/// target once and animate their cameras on the existing display link.
+private struct WorldTravelOpacity: AnimatableModifier {
+    var progress: Double
+    let start: Double
+    let end: Double
+    var reversed = false
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let opacity = worldTravelEase(progress, from: start, to: end)
+        content.opacity(reversed ? 1 - opacity : opacity)
+    }
+}
+
+private func worldTravelEase(_ progress: Double, from start: Double, to end: Double) -> Double {
+    let t = min(1, max(0, (progress - start) / (end - start)))
+    return t * t * (3 - 2 * t)
+}
+
+/// Sculpted cloud banks pass at two depths; gaps keep the sea visible during
+/// the handoff, with a soft blue underside instead of an opaque white wipe.
+private struct WorldTravelClouds: View, Animatable {
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            let appear = worldTravelEase(progress, from: 0.10, to: 0.35)
+            let disappear = 1 - worldTravelEase(progress, from: 0.66, to: 0.94)
+            guard appear * disappear > 0.001 else { return }
+            context.opacity = appear * disappear
+            for layer in 0..<2 {
+                let depth = Double(layer)
+                let scale = 0.65 + progress * (1.05 + depth * 0.6)
+                for index in 0..<9 {
+                    let column = index % 3
+                    let row = index / 3
+                    let x = (Double(column) - 1) * 0.48 + (layer == 0 ? -0.08 : 0.09)
+                    let y = (Double(row) - 1) * 0.48 + (layer == 0 ? 0.08 : -0.10)
+                    let center = CGPoint(
+                        x: size.width * (0.5 + x * scale),
+                        y: size.height * (0.5 + y * scale + (progress - 0.5) * (0.20 + depth * 0.14))
+                    )
+                    let width = size.width * (0.33 + depth * 0.09) * scale
+                    let height = size.height * (0.27 + depth * 0.06) * scale
+                    var cloud = Path()
+                    for puff in 0..<5 {
+                        let t = Double(puff) / 4
+                        let puffHeight = height * (puff == 2 ? 1 : 0.70)
+                        cloud.addEllipse(in: CGRect(
+                            x: center.x + (t - 0.5) * width * 0.72 - width * 0.22,
+                            y: center.y - puffHeight * 0.5 + (puff.isMultiple(of: 2) ? -height * 0.07 : height * 0.10),
+                            width: width * 0.48,
+                            height: puffHeight
+                        ))
+                    }
+                    var bank = context
+                    bank.opacity *= layer == 0 ? 0.90 : 0.98
+                    bank.fill(cloud, with: .linearGradient(
+                        Gradient(colors: [Color(red: 1, green: 0.99, blue: 0.94), Color(red: 0.83, green: 0.91, blue: 0.93)]),
+                        startPoint: CGPoint(x: center.x, y: center.y - height * 0.5),
+                        endPoint: CGPoint(x: center.x, y: center.y + height * 0.5)
+                    ))
+                }
+            }
         }
     }
 }

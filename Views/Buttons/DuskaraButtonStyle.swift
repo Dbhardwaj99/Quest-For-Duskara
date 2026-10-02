@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DuskaraButtonStyle: ButtonStyle {
     var prominent = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -17,8 +18,8 @@ struct DuskaraButtonStyle: ButtonStyle {
             .overlay(Capsule().stroke(.white.opacity(prominent ? 0.22 : 0.34), lineWidth: 1))
             .shadow(color: .black.opacity(configuration.isPressed ? 0.10 : 0.18), radius: configuration.isPressed ? 4 : 9, y: configuration.isPressed ? 2 : 5)
             .opacity(configuration.isPressed ? 0.86 : 1)
-            .scaleEffect(configuration.isPressed ? 0.965 : 1)
-            .animation(.smooth(duration: 0.16), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.965 : 1)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.16), value: configuration.isPressed)
     }
 
     private var buttonFill: AnyShapeStyle {

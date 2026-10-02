@@ -36,6 +36,13 @@ final class GameViewModel {
     var isTroopsPresented = false
     var isMarketPresented = false
     var feedback: GameMessage?
+    /// The lane battle being fought, as it stood when the army landed. The
+    /// battle scene owns the live copy — mirroring every frame here would
+    /// re-render the whole window — and hands it back to `finishAssault`.
+    var assault: LaneBattle?
+    var battleBriefing: BattleBriefing?
+    var battleReport: BattleReport?
+    var isBattlePresented: Bool { assault != nil || battleBriefing != nil || battleReport != nil }
 
     var clockTask: Task<Void, Never>?
     var feedbackTask: Task<Void, Never>?
@@ -72,6 +79,8 @@ final class GameViewModel {
         isTroopsPresented = false
         isMarketPresented = false
         feedback = nil
+        assault = nil
+        battleBriefing = nil; battleReport = nil
         lastTick = Date()
         startClock()
     }
@@ -239,7 +248,7 @@ final class GameViewModel {
     }
 
     func advanceDayManually() {
-        guard phase == .town else { return }
+        guard phase == .town, !isBattlePresented else { return }
         show("Day \(state.day + 1) begins.")
         endDay(carry: 0)
     }
@@ -255,51 +264,80 @@ final class GameViewModel {
         saveCurrentGame()
     }
 
+    /// Lands the active island's whole army for a lane battle; the clock stands
+    /// still until `finishAssault` settles it.
     func attackTown(_ targetID: UUID) {
-        guard let target = state.town(id: targetID) else { return }
-        let defense = effectiveDefenseStrength(for: target)
-        guard GameRules.attack(targetID, from: state.activeTownID, state: &state, balance: balance) else {
-            // Combat is decided up front: an attack that can't win never sails.
-            GameSound.failure.play()
-            show("\(target.name) holds", detail: "Its defense is \(defense); \(activeTown.name) has \(activeArmyStrength) power.", tone: .danger)
+        guard assault == nil else { return }
+        guard let battle = GameRules.assault(targetID, from: state.activeTownID, in: state, balance: balance) else {
+            show("\(activeTown.name) has no army to send.", tone: .danger)
             return
         }
-        GameSound.capture.play()
-        state.addNews(.cityCapture, "You captured \(target.name)")
-        if target.isDuskara {
-            state.addNews(.duskaraAttack, "You conquered Duskara")
-            phase = .victory
-            isWorldMapPresented = false
-            stopClock()
-            show("Duskara conquered. Victory is yours.")
-        } else if let captured = state.town(id: targetID) {
-            // Its stores join the shared stockpile the moment it changes hands.
-            let plunder = GameRules.sharedKinds.map { "\(captured.resources[$0]) \($0.title.lowercased())" }
-            show("\(target.name) is yours",
-                 detail: "Plundered \(plunder.joined(separator: " · ")). \(captured.armyStrength) power holds it.",
-                 tone: .success)
+        assault = battle
+    }
+
+    func prepareAssault(_ targetID: UUID) {
+        guard !isBattlePresented,
+              let battle = GameRules.assault(targetID, from: state.activeTownID, in: state, balance: balance),
+              let target = state.town(id: targetID) else { return }
+        battleBriefing = BattleBriefing(battle: battle, source: activeTown, target: target,
+                                       power: activeArmyStrength, defense: effectiveDefenseStrength(for: target))
+        lastTick = Date()
+    }
+
+    func confirmAssault() {
+        guard let briefing = battleBriefing else { return }
+        battleBriefing = nil
+        attackTown(briefing.target.id)
+    }
+
+    func cancelAssault() { battleBriefing = nil; lastTick = Date() }
+    func dismissBattleReport() { battleReport = nil; lastTick = Date() }
+
+    func finishAssault(_ battle: LaneBattle) {
+        guard let initial = assault, battle.outcome != nil,
+              battle.sourceID == initial.sourceID, battle.targetID == initial.targetID,
+              let target = state.town(id: battle.targetID) else { return }
+        let captured = GameRules.conclude(battle, state: &state, balance: balance)
+        let plunder: [ResourceKind: Int] = captured ? Dictionary(uniqueKeysWithValues:
+            GameRules.sharedKinds.map { ($0, state.town(id: battle.targetID)?.resources[$0] ?? 0) }) : [:]
+        battleReport = BattleReport(initial: initial, result: battle, townName: target.name, plunder: plunder)
+        assault = nil
+        lastTick = Date()
+        if captured {
+            GameSound.battleVictory.play()
+            state.addNews(.cityCapture, "You captured \(target.name)")
+            if target.isDuskara {
+                state.addNews(.duskaraAttack, "You conquered Duskara")
+                phase = .victory
+                isWorldMapPresented = false
+                stopClock()
+            }
+        } else {
+            GameSound.battleDefeat.play()
+            state.addNews(.cityCapture, battle.outcome == .withdrew
+                          ? "You withdrew from \(target.name)" : "Your assault on \(target.name) was repelled")
         }
         saveCurrentGame()
     }
 
+    /// Any army can sail; whether it wins is down to the battle.
     func canAttack(_ targetID: UUID) -> Bool {
-        GameRules.canAttack(targetID, from: state.activeTownID, in: state, balance: balance)
+        state.town(id: targetID)?.isPlayerControlled == false && activeArmyStrength > 0
     }
 
     func effectiveDefenseStrength(for town: Town) -> Int {
         GameRules.defense(town, in: state, balance: balance)
     }
 
-    /// The army here can't take the target, but the whole empire's could.
+    /// Other islands have troops that could join the assault.
     func canRallyAndAttack(_ targetID: UUID) -> Bool {
-        guard let target = state.town(id: targetID), target.isPlayerControlled == false,
-              canAttack(targetID) == false else { return false }
-        return empireArmyStrength > effectiveDefenseStrength(for: target)
+        state.town(id: targetID)?.isPlayerControlled == false
+            && transferDestinations.contains { $0.armyStrength > 0 }
     }
 
     func rallyAndAttack(_ targetID: UUID) {
         rallyTroops()
-        attackTown(targetID)
+        prepareAssault(targetID)
     }
 
     /// Islands a troop move could reach: everything the player holds except
@@ -412,6 +450,11 @@ final class GameViewModel {
     func tick() {
         guard phase == .town else { return }
         let now = Date()
+        // The day stands still while an assault is fought.
+        guard !isBattlePresented else {
+            lastTick = now
+            return
+        }
         state.elapsedSecondsInDay += max(0, now.timeIntervalSince(lastTick))
         lastTick = now
         while phase == .town, state.elapsedSecondsInDay >= balance.dayDuration {
