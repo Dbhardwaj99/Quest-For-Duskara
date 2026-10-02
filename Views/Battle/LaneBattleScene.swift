@@ -162,7 +162,11 @@ final class LaneBattleScene: SKScene {
     }
     func key(_ event: NSEvent, down: Bool) -> Bool {
         if [123,124].contains(event.keyCode) {
-            if down { keys.insert(event.keyCode); manualPan() } else { keys.remove(event.keyCode) }
+            if down {
+                // A tap shorter than one frame must still start the pan.
+                if !keys.contains(event.keyCode) { panVelocity += (event.keyCode == 124 ? 1 : -1)*2200*LaneBattle.tick }
+                keys.insert(event.keyCode); manualPan()
+            } else { keys.remove(event.keyCode) }
             return true
         }
         let character = event.charactersIgnoringModifiers?.lowercased() ?? ""
