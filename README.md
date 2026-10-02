@@ -2,7 +2,7 @@
 
 **Build a foothold. Sail the archipelago. Take Duskara.**
 
-[Website](https://dbhardwaj99.github.io/Quest-For-Duskara/) · [Play](#play) · [Contribute](#contributing)
+[Website](https://dbhardwaj99.github.io/Quest-For-Duskara/) · [Discord](https://discord.gg/9MyQVV22Ft) · [Play](#play) · [Contribute](#contributing)
 
 Quest for Duskara is a single-player strategy game for macOS. You begin with one small island town in a world of fifteen. Build an economy, feed and train an army, trade with free cities, and capture islands on the way to Duskara's stronghold. The other factions keep growing while you decide what to do next.
 
@@ -54,6 +54,7 @@ Help of any size is welcome, from a bug report after a campaign to a balance twe
 
 - Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup, project layout, and pull request tips.
 - Browse [good first issues](https://github.com/Dbhardwaj99/Quest-For-Duskara/labels/good%20first%20issue) and [help wanted](https://github.com/Dbhardwaj99/Quest-For-Duskara/labels/help%20wanted), or [open an issue](https://github.com/Dbhardwaj99/Quest-For-Duskara/issues/new/choose) with a bug or an idea.
+- Join the [Discord server](https://discord.gg/9MyQVV22Ft) to share campaigns, report bugs, and talk with other players and contributors.
 - Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Quest for Duskara is open source under the [MIT License](LICENSE).
