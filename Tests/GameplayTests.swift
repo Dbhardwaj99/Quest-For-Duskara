@@ -478,11 +478,10 @@ struct GameplayTests {
             try #require(viewModel.state.towns.filter { $0.isPlayerControlled == false }
                 .min { viewModel.effectiveDefenseStrength(for: $0) < viewModel.effectiveDefenseStrength(for: $1) })
         }
-        // Pacing asks for an army that out-muscles the garrison — the lane
-        // battle itself is the player's to win, so a focused push stands in.
+        // Pacing asks for an army a fifth over the defense — the margin at
+        // which a plain focused push reliably wins the lane battle.
         func outmuscles() throws -> Bool {
-            try GameRules.canAttack(weakestTarget().id, from: viewModel.state.activeTownID,
-                                    in: viewModel.state, balance: viewModel.balance)
+            try Double(viewModel.activeArmyStrength) > Double(viewModel.effectiveDefenseStrength(for: weakestTarget())) * 1.2
         }
         while try outmuscles() == false, viewModel.state.day < 9 {
             viewModel.advanceDayManually()
@@ -493,7 +492,7 @@ struct GameplayTests {
         var battle = try #require(viewModel.assault)
         while battle.outcome == nil {
             _ = battle.deploy(.knight, lane: 1) || battle.deploy(.archer, lane: 1)
-            battle.step(1.0 / 30)
+            battle.step(LaneBattle.tick)
         }
         viewModel.finishAssault(battle)
 
@@ -510,23 +509,34 @@ struct GameplayTests {
             roster[.knight] = knights
             return roster
         }
-        func fight(_ attackers: SoldierRoster, focused: Bool) -> LaneBattle {
+        // Garrison 96 behind 30 fortification: 126 defense on the map.
+        func fight(_ attackers: SoldierRoster, screened: Bool) -> LaneBattle {
             var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: attackers,
                                     defenders: roster(archers: 5, knights: 2), fortification: 30)
             var lane = 0
             while battle.outcome == nil {
-                for kind in [SoldierKind.knight, .archer] where battle.deploy(kind, lane: focused ? 2 : lane % 3) {
-                    lane += 1
+                if screened {
+                    // Knight and archer land together in one lane, knight in front.
+                    if battle.attackerReserve[.knight] > 0, battle.attackerReserve[.archer] > 0 {
+                        if battle.attackerCommand >= 6 {
+                            battle.deploy(.knight, lane: 2)
+                            battle.deploy(.archer, lane: 2)
+                        }
+                    } else {
+                        _ = battle.deploy(.knight, lane: 2) || battle.deploy(.archer, lane: 2)
+                    }
+                } else {
+                    for kind in [SoldierKind.knight, .archer] where battle.deploy(kind, lane: lane % 3) { lane += 1 }
                 }
-                battle.step(1.0 / 30)
+                battle.step(LaneBattle.tick)
             }
             return battle
         }
-        let even = roster(archers: 5, knights: 2)
-        #expect(fight(even, focused: true).outcome == .captured)
-        #expect(fight(even, focused: false).outcome == .repelled)
-        #expect(fight(roster(archers: 1, knights: 1), focused: true).outcome == .repelled)
-        let rout = fight(roster(archers: 14, knights: 6), focused: false)
+        let close = roster(archers: 5, knights: 3) // 122, just under the defense
+        #expect(fight(close, screened: true).outcome == .captured)
+        #expect(fight(close, screened: false).outcome == .repelled)
+        #expect(fight(roster(archers: 4, knights: 2), screened: true).outcome == .repelled)
+        let rout = fight(roster(archers: 14, knights: 6), screened: false)
         #expect(rout.outcome == .captured)
 
         // Conclusion: survivors garrison the prize, the source keeps nothing.
@@ -540,13 +550,31 @@ struct GameplayTests {
         var battle = GameRules.assault(target, from: state.towns[0].id, in: state, balance: balance)!
         while battle.outcome == nil {
             _ = battle.deploy(.knight, lane: 0) || battle.deploy(.archer, lane: 0)
-            battle.step(1.0 / 30)
+            battle.step(LaneBattle.tick)
         }
         #expect(GameRules.conclude(battle, state: &state, balance: balance))
         #expect(state.towns[0].armyStrength == 0)
         #expect(state.towns[1].isPlayerControlled)
         #expect(state.towns[1].soldierRoster == battle.survivors(.attacker))
         #expect(state.towns[1].armyStrength < 14 * 10 + 6 * 24)
+    }
+
+    /// Defenders in a quiet lane fall back through the gate to meet an
+    /// attacker at the fortress instead of idling on their own line.
+    @Test func idleDefendersFallBackToTheBreachedLane() {
+        var archer = SoldierRoster()
+        archer[.archer] = 1
+        var knight = SoldierRoster()
+        knight[.knight] = 1
+        var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: knight, defenders: archer, fortification: 10)
+        #expect(battle.units.first?.lane == 0)
+        battle.deploy(.knight, lane: 2)
+        var defended = false
+        while battle.outcome == nil, defended == false {
+            battle.step(LaneBattle.tick)
+            defended = battle.units.contains { $0.side == .defender && $0.lane == 2 }
+        }
+        #expect(defended)
     }
 
     @Test func housesRefillAfterLosses() {

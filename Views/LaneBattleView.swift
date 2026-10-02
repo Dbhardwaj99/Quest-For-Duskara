@@ -100,6 +100,7 @@ final class LaneBattleScene: SKScene {
     private let banner = SKLabelNode(fontNamed: "AvenirNextCondensed-Heavy")
     private var unitNodes: [Int: SKNode] = [:]
     private var lastUpdate: TimeInterval?
+    private var unsimulated = 0.0
     private var finished = false
 
     private static let attackerColor = NSColor(red: 0.36, green: 0.62, blue: 0.95, alpha: 1)
@@ -204,9 +205,12 @@ final class LaneBattleScene: SKScene {
     // MARK: Frame
 
     override func update(_ currentTime: TimeInterval) {
-        let dt = lastUpdate.map { min(0.05, currentTime - $0) } ?? 0
+        unsimulated += lastUpdate.map { min(0.1, currentTime - $0) } ?? 0
         lastUpdate = currentTime
-        battle.step(dt)
+        while unsimulated >= LaneBattle.tick {
+            battle.step(LaneBattle.tick)
+            unsimulated -= LaneBattle.tick
+        }
         drain()
         sync()
         if let outcome = battle.outcome, finished == false {
