@@ -13,7 +13,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = Path("/tmp/duskara-settlement-models")
-OUT.mkdir(exist_ok=True)
 
 COLORS = {
     "plaster": (0.93, 0.87, 0.75),
@@ -430,26 +429,32 @@ def consolidate():
         items[0].name = mat_name
 
 
-for name, create in MODELS.items():
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete(use_global=False)
-    create()
-    consolidate()
-    bpy.ops.wm.usd_export(
-        filepath=str(OUT / f"settlement_{name}.usdc"),
-        export_materials=True,
-        generate_preview_surface=True,
-        convert_orientation=True,
-        export_global_up_selection="Y",
-        convert_world_material=False,
-        export_lights=False,
-        export_cameras=False,
-    )
-    subprocess.run([
-        "usdzip", "--checkCompliance", "--arkitAsset",
-        str(OUT / f"settlement_{name}.usdc"),
-        str(ROOT / "Assets" / f"settlement_{name}.usdz"),
-    ], check=True)
-    subprocess.run(["usdcat", "-l", str(ROOT / "Assets" / f"settlement_{name}.usdz")],
-                   check=True, stdout=subprocess.DEVNULL)
-    print(f"EXPORTED settlement_{name}")
+def export_all():
+    OUT.mkdir(exist_ok=True)
+    for name, create in MODELS.items():
+        bpy.ops.object.select_all(action="SELECT")
+        bpy.ops.object.delete(use_global=False)
+        create()
+        consolidate()
+        bpy.ops.wm.usd_export(
+            filepath=str(OUT / f"settlement_{name}.usdc"),
+            export_materials=True,
+            generate_preview_surface=True,
+            convert_orientation=True,
+            export_global_up_selection="Y",
+            convert_world_material=False,
+            export_lights=False,
+            export_cameras=False,
+        )
+        subprocess.run([
+            "usdzip", "--checkCompliance", "--arkitAsset",
+            str(OUT / f"settlement_{name}.usdc"),
+            str(ROOT / "Assets" / f"settlement_{name}.usdz"),
+        ], check=True)
+        subprocess.run(["usdcat", "-l", str(ROOT / "Assets" / f"settlement_{name}.usdz")],
+                       check=True, stdout=subprocess.DEVNULL)
+        print(f"EXPORTED settlement_{name}")
+
+
+if __name__ == "__main__":
+    export_all()

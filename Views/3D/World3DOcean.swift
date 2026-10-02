@@ -2,6 +2,13 @@ import RealityKit
 import AppKit
 import Metal
 
+/// Final world-space island position and plot extents; tileSize uses that same scale.
+struct WorldOceanIsland {
+    let center: SIMD2<Float>
+    let halfExtents: SIMD2<Float>
+    let seed: Int
+}
+
 /// One continuous living ocean plane (see docs/DESIGN_LANGUAGE.md).
 ///
 /// The mesh is a set of concentric rings around the island footprint —
@@ -21,9 +28,23 @@ final class World3DOcean {
     private var rippleTimer: Timer?
     private let rippleDuration: TimeInterval = 1.6
 
-    init(islandHalfExtents: SIMD2<Float>, tileSize: Float, span: Float, deepColor: NSColor, seed: Int) {
-        let mesh = Self.makeRingMesh(islandHalfExtents: islandHalfExtents, tileSize: tileSize, outerRadius: span / 2, seed: seed)
+    convenience init(islandHalfExtents: SIMD2<Float>, tileSize: Float, span: Float, deepColor: NSColor, seed: Int) {
+        self.init(mesh: Self.makeRingMesh(islandHalfExtents: islandHalfExtents, tileSize: tileSize,
+                                         outerRadius: span / 2, seed: seed), deepColor: deepColor)
+    }
 
+    convenience init(islands: [WorldOceanIsland], tileSize: Float, span: SIMD2<Float>, deepColor: NSColor) {
+        self.init(mesh: Self.makeArchipelagoMesh(islands: islands, tileSize: tileSize, span: span),
+                  deepColor: deepColor)
+        if var custom = material {
+            // Negative ripple strength selects the quieter map-water finish.
+            custom.custom.value.w = -1
+            material = custom
+            entity.model?.materials = [custom]
+        }
+    }
+
+    private init(mesh: MeshResource, deepColor: NSColor) {
         if let custom = Self.makeCustomMaterial(deepColor: deepColor) {
             material = custom
             entity = ModelEntity(mesh: mesh, materials: [custom])
@@ -251,6 +272,89 @@ final class World3DOcean {
     }
 
     // MARK: - Mesh
+
+    private static func nearestShoreDistance(at point: SIMD2<Float>, islands: [WorldOceanIsland], tileSize: Float) -> Float {
+        islands.map { island in
+            let offset = point - island.center
+            let coast = coastRadius(angle: atan2(offset.x, offset.y), islandHalfExtents: island.halfExtents,
+                                     tileSize: tileSize, seed: island.seed)
+            return simd_length(offset) - coast
+        }.min() ?? 10
+    }
+
+    private static func makeArchipelagoMesh(islands: [WorldOceanIsland], tileSize: Float, span: SIMD2<Float>) -> MeshResource {
+        precondition(tileSize.isFinite && tileSize > 0 && span.x.isFinite && span.x > 0 && span.y.isFinite && span.y > 0)
+        // ponytail: fixed 220x160 grid for the campaign map; use coastal subdivision
+        // if larger worlds need finer foam without increasing the whole mesh.
+        let columns = 220
+        let rows = 160
+        var positions: [SIMD3<Float>] = []
+        var uvs: [SIMD2<Float>] = []
+        var indices: [UInt32] = []
+        positions.reserveCapacity((columns + 1) * (rows + 1))
+        uvs.reserveCapacity((columns + 1) * (rows + 1))
+        indices.reserveCapacity(columns * rows * 6)
+        for row in 0...rows {
+            for column in 0...columns {
+                let point = SIMD2<Float>((Float(column) / Float(columns) - 0.5) * span.x,
+                                          (Float(row) / Float(rows) - 0.5) * span.y)
+                positions.append(SIMD3<Float>(point.x, 0, point.y))
+                // Match the town ring's minimum under land; negative distances
+                // farther inland would extrapolate the shader's exponential mixes.
+                uvs.append(SIMD2<Float>(max(-0.30, nearestShoreDistance(at: point, islands: islands, tileSize: tileSize)), 0))
+                if row < rows && column < columns {
+                    let a = UInt32(row * (columns + 1) + column)
+                    let b = a + 1
+                    let c = a + UInt32(columns + 1)
+                    let d = c + 1
+                    indices.append(contentsOf: [a, c, b, b, c, d])
+                }
+            }
+        }
+        // Four outer corners continue the same water to +/-100 world units.
+        // Fan each detailed edge out to them, so there is no boundary on a wide
+        // window or during the camera's flight through the clouds.
+        let outer = UInt32(positions.count)
+        let extent = max(100, max(span.x, span.y) * 0.5 + 1)
+        positions.append(contentsOf: [SIMD3<Float>(-extent, 0, -extent),
+                                     SIMD3<Float>(extent, 0, -extent),
+                                     SIMD3<Float>(extent, 0, extent),
+                                     SIMD3<Float>(-extent, 0, extent)])
+        uvs.append(contentsOf: Array(repeating: SIMD2<Float>(10, 0), count: 4))
+        let stride = columns + 1
+        let edges: [[UInt32]] = [
+            (0...columns).map { UInt32($0) },
+            (0...rows).map { UInt32($0 * stride + columns) },
+            (0...columns).reversed().map { UInt32(rows * stride + $0) },
+            (0...rows).reversed().map { UInt32($0 * stride) }
+        ]
+        for (side, edge) in edges.enumerated() {
+            let corner = outer + UInt32(side)
+            for index in 0..<(edge.count - 1) {
+                indices.append(contentsOf: [corner, edge[index], edge[index + 1]])
+            }
+            indices.append(contentsOf: [corner, edge.last!, outer + UInt32((side + 1) % 4)])
+        }
+        #if DEBUG
+        assert(positions.count == (columns + 1) * (rows + 1) + 4 && uvs.count == positions.count)
+        assert(indices.count == columns * rows * 6 + (columns * 2 + rows * 2 + 4) * 3
+               && indices.allSatisfy { Int($0) < positions.count })
+        assert(uvs.allSatisfy { $0.x.isFinite }, "Every ocean vertex needs a finite shore distance")
+        if let island = islands.first {
+            let coast = coastRadius(angle: 0, islandHalfExtents: island.halfExtents, tileSize: tileSize, seed: island.seed)
+            let shoreline = island.center + SIMD2<Float>(0, coast)
+            assert(nearestShoreDistance(at: island.center, islands: [island], tileSize: tileSize) < 0)
+            assert(abs(nearestShoreDistance(at: shoreline, islands: [island], tileSize: tileSize)) < 0.001)
+            assert(nearestShoreDistance(at: shoreline + SIMD2<Float>(0, 0.25), islands: [island], tileSize: tileSize) > 0)
+        }
+        #endif
+        var descriptor = MeshDescriptor(name: "world3d_archipelago_ocean")
+        descriptor.positions = MeshBuffer(positions)
+        descriptor.normals = MeshBuffer(Array(repeating: SIMD3<Float>(0, 1, 0), count: positions.count))
+        descriptor.textureCoordinates = MeshBuffer(uvs)
+        descriptor.primitives = .triangles(indices)
+        return try! MeshResource.generate(from: [descriptor])
+    }
 
     private static func makeRingMesh(islandHalfExtents: SIMD2<Float>, tileSize: Float, outerRadius: Float, seed: Int) -> MeshResource {
         // Ring offsets from the shoreline: tucked slightly under the beach,

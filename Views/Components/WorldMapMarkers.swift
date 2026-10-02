@@ -6,6 +6,7 @@ struct WorldTownMarkerView: View {
     let badge: Int
     let isActive: Bool
     let isSelected: Bool
+    var showsGlyph = true
     let canAct: Bool
     let onAction: () -> Void
     var note: String? = nil
@@ -16,18 +17,20 @@ struct WorldTownMarkerView: View {
 
     var body: some View {
         VStack(spacing: 3) {
-            ClayTownGlyph(
-                color: town.faction.mapColor,
-                isActive: isActive,
-                isDuskara: town.isDuskara
-            )
+            if showsGlyph {
+                ClayTownGlyph(color: town.faction.mapColor, isActive: isActive, isDuskara: town.isDuskara)
+            }
             Text(town.name)
                 .font(isSelected ? DuskaraTheme.Fonts.caption : DuskaraTheme.Fonts.label)
                 .foregroundStyle(.white.opacity(isSelected ? 1 : 0.88))
                 .shadow(color: .black.opacity(0.75), radius: 2, x: 0, y: 1)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-                .frame(width: 72)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(DuskaraTheme.hudFill, in: Capsule())
+                .overlay(Capsule().stroke(town.faction.mapColor.opacity(isActive ? 0.9 : 0.35), lineWidth: isActive ? 2 : 1))
+                .fixedSize()
             infoBadge
             if isSelected {
                 Button(town.isPlayerControlled ? "Visit" : "Attack", action: onAction)
@@ -184,9 +187,11 @@ struct WorldLandmarkView: View {
 
 struct WorldMapProjection {
     var size: CGSize
+    var camera: WorldMapCamera? = nil
 
     func point(for point: MapPoint) -> CGPoint {
-        CGPoint(x: size.width * point.x, y: size.height * point.y)
+        if let camera { return camera.point(x: point.x, y: point.y) }
+        return CGPoint(x: size.width * point.x, y: size.height * point.y)
     }
 
     func point(for townID: UUID, nodes: [WorldTownNode]) -> CGPoint {

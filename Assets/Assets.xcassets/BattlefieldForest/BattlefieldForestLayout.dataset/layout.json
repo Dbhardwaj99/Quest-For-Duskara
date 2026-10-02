@@ -1,0 +1,85 @@
+{
+  "width": 4480,
+  "height": 1024,
+  "shoreX": 256,
+  "gateX": 1792,
+  "laneYs": [
+    262.40008544921875,
+    211.2000732421875,
+    160.00006103515625
+  ],
+  "tiles": [
+    {
+      "name": "battlefield_forest_far_0",
+      "layer": "far",
+      "x": 0,
+      "y": 0,
+      "width": 4096,
+      "height": 1024,
+      "parallax": 0.4
+    },
+    {
+      "name": "battlefield_forest_far_1",
+      "layer": "far",
+      "x": 4096,
+      "y": 0,
+      "width": 384,
+      "height": 1024,
+      "parallax": 0.4
+    },
+    {
+      "name": "battlefield_forest_ground_0",
+      "layer": "ground",
+      "x": 0,
+      "y": 0,
+      "width": 2048,
+      "height": 655,
+      "parallax": 1
+    },
+    {
+      "name": "battlefield_forest_ground_1",
+      "layer": "ground",
+      "x": 2048,
+      "y": 0,
+      "width": 2048,
+      "height": 655,
+      "parallax": 1
+    },
+    {
+      "name": "battlefield_forest_ground_2",
+      "layer": "ground",
+      "x": 4096,
+      "y": 0,
+      "width": 384,
+      "height": 655,
+      "parallax": 1
+    },
+    {
+      "name": "battlefield_forest_front_0",
+      "layer": "front",
+      "x": 0,
+      "y": 0,
+      "width": 2048,
+      "height": 1024,
+      "parallax": 1.15
+    },
+    {
+      "name": "battlefield_forest_front_1",
+      "layer": "front",
+      "x": 2048,
+      "y": 0,
+      "width": 2048,
+      "height": 1024,
+      "parallax": 1.15
+    },
+    {
+      "name": "battlefield_forest_front_2",
+      "layer": "front",
+      "x": 4096,
+      "y": 0,
+      "width": 384,
+      "height": 1024,
+      "parallax": 1.15
+    }
+  ]
+}

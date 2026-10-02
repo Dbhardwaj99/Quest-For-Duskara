@@ -1,5 +1,6 @@
 import RealityKit
 import AppKit
+import QuartzCore
 
 struct World3DCameraBounds {
     let halfWidth: Float
@@ -45,6 +46,15 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     private var distanceVelocity: Float = 0
     private var lastLoggedDistance: Float = World3DCameraController.defaultDistance
     private(set) var isInteracting = false
+    private var isInputEnabled = true
+    private var worldMapProgress: Float = 0
+    private var worldMapTarget: Float = 0
+    private var worldMapStartProgress: Float = 0
+    private var worldMapTravelStartedAt: CFTimeInterval = 0
+    private var worldMapTravelDuration: Double = 0
+    var onWorldMapTravelEnded: (() -> Void)?
+    var isAtTown: Bool { worldMapProgress == 0 && worldMapTarget == 0 }
+    var isWorldMapCovered: Bool { worldMapTarget == 1 && worldMapProgress >= 0.72 }
     /// Fired when a gesture (and its inertia) fully ends, so the view can
     /// replay any renders skipped while interacting.
     var onInteractionEnded: (() -> Void)?
@@ -73,6 +83,8 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     /// debug orbit, both paced by the (≤ 60 fps) render loop.
     func advance(by deltaTime: Float) {
         guard deltaTime > 0, deltaTime < 1 else { return }
+        advanceWorldMapTravel(at: CACurrentMediaTime())
+        guard isInputEnabled, isAtTown else { return }
         if isCoasting {
             stepInertia(deltaTime)
         }
@@ -82,7 +94,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     }
 
     @objc private func handleRotate(_ recognizer: NSPanGestureRecognizer) {
-        guard let view else { return }
+        guard isInputEnabled, let view else { return }
         switch recognizer.state {
         case .began:
             beginInteraction(recognizer)
@@ -103,6 +115,7 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
     }
 
     @objc private func handlePinch(_ recognizer: NSMagnificationGestureRecognizer) {
+        guard isInputEnabled else { return }
         switch recognizer.state {
         case .began:
             beginInteraction(recognizer)
@@ -120,6 +133,50 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     func gestureRecognizer(_ gestureRecognizer: NSGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer) -> Bool {
         true
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        isInputEnabled
+    }
+
+    func setInputEnabled(_ enabled: Bool) {
+        guard enabled != isInputEnabled else { return }
+        isInputEnabled = enabled
+        if enabled == false {
+            stopInertia()
+            activeGestureIDs.removeAll()
+            isInteracting = false
+            onInteractionEnded?()
+        }
+    }
+
+    /// Camera travel is an offset from the saved town pose, so descending
+    /// restores exactly the player's previous rotation, pitch and zoom.
+    func setWorldMapProgress(_ progress: Float, duration: Double) {
+        let progress = min(1, max(0, safeFloat(progress, fallback: 0)))
+        guard progress != worldMapTarget || duration == 0 && progress != worldMapProgress else { return }
+        let now = CACurrentMediaTime()
+        // Catch up while paused before reversing, so descent shares the same
+        // starting progress as the cloud and map compositing animation.
+        advanceWorldMapTravel(at: now)
+        worldMapStartProgress = worldMapProgress
+        worldMapTarget = progress
+        worldMapTravelStartedAt = now
+        worldMapTravelDuration = max(0, duration)
+        if worldMapTravelDuration == 0 {
+            worldMapProgress = progress
+            updateCamera()
+        }
+    }
+
+    private func advanceWorldMapTravel(at time: CFTimeInterval) {
+        guard worldMapProgress != worldMapTarget else { return }
+        let elapsed = worldMapTravelDuration > 0 ? min(1, max(0, (time - worldMapTravelStartedAt) / worldMapTravelDuration)) : 1
+        let t = Float(elapsed)
+        let eased = t * t * (3 - 2 * t)
+        worldMapProgress = elapsed >= 1 ? worldMapTarget : worldMapStartProgress + (worldMapTarget - worldMapStartProgress) * eased
+        updateCamera()
+        if elapsed >= 1 { onWorldMapTravelEnded?() }
     }
 
     /// Debug-only cinematic orbit around the island. Keeps the current pitch
@@ -142,11 +199,16 @@ final class World3DCameraController: NSObject, NSGestureRecognizerDelegate {
 
     private func updateCamera() {
         sanitizeState()
+        WorldMapFlightPose.yaw = yaw
         logZoomIfChanged()
-        let horizontalDistance = cos(pitch) * distance
+        let t = min(1, worldMapProgress / 0.36)
+        let rise = t * t * (3 - 2 * t)
+        let travelDistance = distance + (14 - distance) * rise
+        let travelPitch = pitch + (1.20 - pitch) * rise
+        let horizontalDistance = cos(travelPitch) * travelDistance
         let position = target + SIMD3<Float>(
             sin(yaw) * horizontalDistance,
-            sin(pitch) * distance,
+            sin(travelPitch) * travelDistance,
             cos(yaw) * horizontalDistance
         )
         let lookTarget = target + SIMD3<Float>(0, 0.02, 0)

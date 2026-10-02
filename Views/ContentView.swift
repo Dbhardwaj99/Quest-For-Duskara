@@ -68,15 +68,27 @@ struct ContentView: View {
         var army = SoldierRoster()
         army[.archer] = 5
         army[.knight] = 2
+        if CommandLine.arguments.contains("-battleCapture") { army[.archer] = 14; army[.knight] = 6 }
+        if CommandLine.arguments.contains("-battleRepelled") { army[.archer] = 1; army[.knight] = 0 }
         let strength = army.armyStrength(using: sandbox.balance.soldierDefinitions)
         guard let target = sandbox.state.towns.first(where: { $0.isPlayerControlled == false }) else { return }
-        for id in [sandbox.state.activeTownID, target.id] {
+        let sourceID = sandbox.state.activeTownID
+        for id in [sourceID, target.id] {
             sandbox.state.updateTown(id: id) {
-                $0.soldierRoster = army
-                $0.armyStrength = strength
+                let isAttacker = id == sourceID
+                var roster = army
+                if !isAttacker { roster[.archer] = 5; roster[.knight] = 2 }
+                $0.soldierRoster = roster
+                $0.armyStrength = isAttacker ? strength : roster.armyStrength(using: sandbox.balance.soldierDefinitions)
             }
         }
-        sandbox.attackTown(target.id)
+        if CommandLine.arguments.contains("-battleBriefing") { sandbox.prepareAssault(target.id) }
+        else if CommandLine.arguments.contains("-battleProfile") {
+            // Allow Instruments to attach before the HUD is constructed.
+            sandbox.stopClock()
+            DispatchQueue.main.asyncAfter(deadline: .now()+10) { sandbox.attackTown(target.id) }
+        }
+        else { sandbox.attackTown(target.id) }
         viewModel.stopClock()
         viewModel = sandbox
         path = [.game]

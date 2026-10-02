@@ -21,6 +21,11 @@ extension World3DTileEntity {
 
     static var settlementTemplates: [String: Entity] = [:]
 
+    /// Shared by the town renderer and the battle's pre-rendered skyline.
+    static func settlementAssets(for kind: BuildingKind, level: Int) -> [String] {
+        districtPieces(for: kind).filter { $0.appearsAt <= level }.map(\.asset)
+    }
+
     static func makeSettlementDistrict(
         _ kind: BuildingKind, level: Int, tileSize: Float,
         coordinate: GridCoordinate, gridSize: GridSize, townID: UUID,

@@ -1,0 +1,220 @@
+{
+  "settlement_cottage_a": {
+    "width": 152,
+    "height": 193,
+    "anchorX": 0.5,
+    "anchorY": 0.2041445717292746,
+    "footprintWidth": 1.1425964832305908,
+    "footprintDepth": 1.0389999747276306
+  },
+  "settlement_cottage_b": {
+    "width": 146,
+    "height": 192,
+    "anchorX": 0.4520547945205479,
+    "anchorY": 0.2156244913736979,
+    "footprintWidth": 1.0944302380084991,
+    "footprintDepth": 1.0854302644729614
+  },
+  "settlement_townhouse": {
+    "width": 156,
+    "height": 265,
+    "anchorX": 0.5,
+    "anchorY": 0.15622604658018868,
+    "footprintWidth": 1.171373963356018,
+    "footprintDepth": 1.1339999735355377
+  },
+  "settlement_barn": {
+    "width": 170,
+    "height": 228,
+    "anchorX": 0.5,
+    "anchorY": 0.19035044887609648,
+    "footprintWidth": 1.2812705636024475,
+    "footprintDepth": 1.1939999759197235
+  },
+  "settlement_farmstead": {
+    "width": 166,
+    "height": 184,
+    "anchorX": 0.463855421686747,
+    "anchorY": 0.20326033882472827,
+    "footprintWidth": 1.2491762042045593,
+    "footprintDepth": 1.0339999794960022
+  },
+  "settlement_granary": {
+    "width": 132,
+    "height": 204,
+    "anchorX": 0.5,
+    "anchorY": 0.19803873697916666,
+    "footprintWidth": 0.9800000190734863,
+    "footprintDepth": 1.14000004529953
+  },
+  "settlement_shed": {
+    "width": 123,
+    "height": 154,
+    "anchorX": 0.5040650406504065,
+    "anchorY": 0.23636300223214285,
+    "footprintWidth": 0.9128248989582062,
+    "footprintDepth": 0.918999969959259
+  },
+  "settlement_workshop": {
+    "width": 165,
+    "height": 213,
+    "anchorX": 0.503030303030303,
+    "anchorY": 0.1990605743838028,
+    "footprintWidth": 1.2423087358474731,
+    "footprintDepth": 1.2039999961853027
+  },
+  "settlement_forge": {
+    "width": 140,
+    "height": 200,
+    "anchorX": 0.4785714285714286,
+    "anchorY": 0.19699951171875,
+    "footprintWidth": 1.0489999949932098,
+    "footprintDepth": 1.0290000140666962
+  },
+  "settlement_foundry": {
+    "width": 161,
+    "height": 243,
+    "anchorX": 0.5031055900621118,
+    "anchorY": 0.1744851948302469,
+    "footprintWidth": 1.2100000381469727,
+    "footprintDepth": 1.1439999639987946
+  },
+  "settlement_barracks_hut": {
+    "width": 156,
+    "height": 203,
+    "anchorX": 0.47435897435897434,
+    "anchorY": 0.20394040563423646,
+    "footprintWidth": 1.1743276119232178,
+    "footprintDepth": 1.0653277039527893
+  },
+  "settlement_armory": {
+    "width": 153,
+    "height": 193,
+    "anchorX": 0.5228758169934641,
+    "anchorY": 0.20932591887953367,
+    "footprintWidth": 1.1443554759025574,
+    "footprintDepth": 1.0589999556541443
+  },
+  "settlement_watchtower": {
+    "width": 158,
+    "height": 310,
+    "anchorX": 0.43037974683544306,
+    "anchorY": 0.1335480720766129,
+    "footprintWidth": 1.1881915926933289,
+    "footprintDepth": 1.1231915950775146
+  },
+  "settlement_jetty": {
+    "width": 98,
+    "height": 138,
+    "anchorX": 0.5,
+    "anchorY": 0.2855065387228261,
+    "footprintWidth": 0.7259999513626099,
+    "footprintDepth": 1.3680000305175781
+  },
+  "settlement_boathouse": {
+    "width": 167,
+    "height": 191,
+    "anchorX": 0.4550898203592814,
+    "anchorY": 0.1801042007526178,
+    "footprintWidth": 1.25900000333786,
+    "footprintDepth": 1.0389999747276306
+  },
+  "settlement_harbor_store": {
+    "width": 161,
+    "height": 207,
+    "anchorX": 0.5031055900621118,
+    "anchorY": 0.19999952823067632,
+    "footprintWidth": 1.2128087282180786,
+    "footprintDepth": 1.1089999973773956
+  },
+  "settlement_beacon": {
+    "width": 116,
+    "height": 294,
+    "anchorX": 0.5,
+    "anchorY": 0.13401327327806123,
+    "footprintWidth": 0.8600000143051147,
+    "footprintDepth": 1.0149999856948853
+  },
+  "settlement_warehouse": {
+    "width": 167,
+    "height": 213,
+    "anchorX": 0.5029940119760479,
+    "anchorY": 0.1990605743838028,
+    "footprintWidth": 1.2624344229698181,
+    "footprintDepth": 1.1490000188350677
+  },
+  "fort_wall": {
+    "width": 106,
+    "height": 280,
+    "anchorX": 0.5,
+    "anchorY": 0.19785679408482143,
+    "footprintWidth": 0.7799999713897705,
+    "footprintDepth": 1.6799999475479126
+  },
+  "fort_endcap": {
+    "width": 108,
+    "height": 280,
+    "anchorX": 0.5,
+    "anchorY": 0.19785679408482143,
+    "footprintWidth": 0.800000011920929,
+    "footprintDepth": 1.6799999475479126
+  },
+  "fort_tower": {
+    "width": 146,
+    "height": 381,
+    "anchorX": 0.5,
+    "anchorY": 0.08503911376312336,
+    "footprintWidth": 1.100000023841858,
+    "footprintDepth": 1.0,
+    "slitX": 0.0,
+    "slitY": 71.1897201538086
+  },
+  "fort_gate_intact": {
+    "width": 210,
+    "height": 256,
+    "anchorX": 0.5,
+    "anchorY": 0.09921836853027344,
+    "footprintWidth": 1.600000023841858,
+    "footprintDepth": 0.9200000166893005
+  },
+  "fort_gate_cracked": {
+    "width": 210,
+    "height": 256,
+    "anchorX": 0.5,
+    "anchorY": 0.09921836853027344,
+    "footprintWidth": 1.600000023841858,
+    "footprintDepth": 0.9200000166893005
+  },
+  "fort_gate_breaking": {
+    "width": 210,
+    "height": 257,
+    "anchorX": 0.5,
+    "anchorY": 0.10272335542315175,
+    "footprintWidth": 1.600000023841858,
+    "footprintDepth": 0.9200000166893005
+  },
+  "fort_gate_broken": {
+    "width": 210,
+    "height": 293,
+    "anchorX": 0.5,
+    "anchorY": 0.21296894997866894,
+    "footprintWidth": 1.600000023841858,
+    "footprintDepth": 1.4099999964237213
+  },
+  "fort_banner_blue": {
+    "width": 79,
+    "height": 264,
+    "anchorX": 0.08860759493670886,
+    "anchorY": 0.016666296756628788,
+    "footprintWidth": 0.5750000216066837,
+    "footprintDepth": 0.0729999989271164
+  },
+  "fort_banner_red": {
+    "width": 79,
+    "height": 264,
+    "anchorX": 0.08860759493670886,
+    "anchorY": 0.016666296756628788,
+    "footprintWidth": 0.5750000216066837,
+    "footprintDepth": 0.0729999989271164
+  }
+}

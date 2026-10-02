@@ -2,6 +2,22 @@ import Foundation
 import Testing
 
 struct GameplayTests {
+    @Test func meleeHitEmitsAttackerAndTargetIDs() throws {
+        var roster = SoldierRoster()
+        roster[.knight] = 1
+        var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: roster, defenders: roster, fortification: 0)
+        let defender = try #require(battle.units.first).id
+        battle.deploy(.knight, lane: 0)
+        let attacker = try #require(battle.units.first(where: { $0.side == .attacker })).id
+        for _ in 0..<1800 {
+            battle.step(LaneBattle.tick)
+            if battle.events.contains(where: {
+                if case let .struck(a, t) = $0 { return a == attacker && t == defender }
+                return false
+            }) { return }
+        }
+        Issue.record("Melee hit never emitted the unit IDs")
+    }
     @Test func autosaveRoundTripsAndSurfacesTypedFailures() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -575,6 +591,59 @@ struct GameplayTests {
             defended = battle.units.contains { $0.side == .defender && $0.lane == 2 }
         }
         #expect(defended)
+    }
+
+    @Test func battleOddsThresholds() {
+        for (power, label) in [(84,"Outmatched"),(85,"Even fight"),(109,"Even fight"),
+                               (110,"Favoured"),(149,"Favoured"),(150,"Overwhelming")] {
+            #expect(BattleBriefing.odds(power: power, defense: 100) == label)
+        }
+        #expect(BattleBriefing.odds(power: 1, defense: 0) == "Overwhelming")
+        #expect(BattleBriefing.odds(power: 0, defense: 0) == "Outmatched")
+    }
+
+    @Test func battleHUDPublishesChangedValuesAtMostFourTimesASecond() {
+        var army = SoldierRoster(); army[.knight] = 2
+        var battle = LaneBattle(sourceID: UUID(), targetID: UUID(), attackers: army,
+                                defenders: SoldierRoster(), fortification: 10)
+        let initial = BattleHUDState(battle)
+        var publisher = BattleHUDPublisher(battle)
+        battle.step(LaneBattle.tick)
+        #expect(BattleHUDState(battle) == initial)
+        #expect(publisher.update(battle, now: 0, hasLanded: false) == nil)
+        let didDeploy = battle.deploy(.knight, lane: 2)
+        #expect(didDeploy)
+        let landed = publisher.update(battle, now: 0.1, hasLanded: true)
+        #expect(landed?.reserve[.knight] == 1)
+        #expect(landed?.attackerLanes == [0,0,1])
+        battle.step(1)
+        #expect(publisher.update(battle, now: 0.34, hasLanded: true) == nil)
+        #expect(publisher.update(battle, now: 0.36, hasLanded: true) != nil)
+        #expect(publisher.update(battle, now: 1, hasLanded: true) == nil)
+    }
+
+    @Test func briefingAndReportPauseTheClockAndKeepSurvivors() throws {
+        let vm = makeViewModel(); vm.startGame()
+        defer { vm.stopClock() }
+        var army = SoldierRoster(); army[.knight] = 2
+        vm.state.updateTown(id: vm.state.activeTownID) {
+            $0.soldierRoster = army; $0.armyStrength = army.armyStrength(using: vm.balance.soldierDefinitions)
+        }
+        let target = try #require(vm.state.towns.first { !$0.isPlayerControlled })
+        vm.prepareAssault(target.id)
+        #expect(vm.battleBriefing != nil && vm.assault == nil)
+        let elapsed = vm.state.elapsedSecondsInDay
+        vm.lastTick = Date().addingTimeInterval(-20); vm.tick(); vm.advanceDayManually()
+        #expect(vm.state.elapsedSecondsInDay == elapsed)
+        vm.confirmAssault()
+        var result = try #require(vm.assault); result.withdraw(); vm.finishAssault(result)
+        let report = try #require(vm.battleReport)
+        #expect(report.title == "Withdrew" && report.attackers == army)
+        #expect(report.attackerLosses.counts.values.reduce(0,+) == 0)
+        #expect(vm.activeTown.soldierRoster == army)
+        vm.lastTick = Date().addingTimeInterval(-20); vm.tick()
+        #expect(vm.state.elapsedSecondsInDay == elapsed)
+        vm.dismissBattleReport(); #expect(!vm.isBattlePresented)
     }
 
     @Test func housesRefillAfterLosses() {

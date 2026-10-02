@@ -34,8 +34,9 @@ struct LaneBattle {
     /// What happened during the last steps, for the scene to animate. The
     /// scene drains it; nothing in the rules reads it.
     enum Event {
+        case struck(attackerID: Int, targetID: Int?)
         case shot(lane: Int, from: Double, to: Double, side: Side)
-        case fell(lane: Int, at: Double, side: Side)
+        case fell(id: Int, kind: SoldierKind, lane: Int, at: Double, side: Side)
         case gateHit
     }
 
@@ -148,7 +149,7 @@ struct LaneBattle {
         fireTower(dt)
 
         for unit in units where unit.health <= 0 {
-            events.append(.fell(lane: unit.lane, at: unit.position, side: unit.side))
+            events.append(.fell(id: unit.id, kind: unit.kind, lane: unit.lane, at: unit.position, side: unit.side))
         }
         units.removeAll { $0.health <= 0 }
 
@@ -170,14 +171,13 @@ struct LaneBattle {
             guard units[index].cooldown <= 0 else { return }
             units[index].cooldown = stats.interval
             units[target].health -= stats.damage
-            if unit.kind == .archer {
-                events.append(.shot(lane: unit.lane, from: unit.position, to: units[target].position, side: unit.side))
-            }
+            events.append(.struck(attackerID: unit.id, targetID: units[target].id))
         } else if unit.side == .attacker {
             if unit.position >= 1 {
                 guard units[index].cooldown <= 0 else { return }
                 units[index].cooldown = stats.interval
                 gateHealth -= stats.damage
+                events.append(.struck(attackerID: unit.id, targetID: nil))
                 events.append(.gateHit)
             } else {
                 units[index].position = min(1, unit.position + stats.speed * dt)

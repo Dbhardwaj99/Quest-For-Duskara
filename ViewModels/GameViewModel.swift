@@ -40,6 +40,9 @@ final class GameViewModel {
     /// battle scene owns the live copy — mirroring every frame here would
     /// re-render the whole window — and hands it back to `finishAssault`.
     var assault: LaneBattle?
+    var battleBriefing: BattleBriefing?
+    var battleReport: BattleReport?
+    var isBattlePresented: Bool { assault != nil || battleBriefing != nil || battleReport != nil }
 
     var clockTask: Task<Void, Never>?
     var feedbackTask: Task<Void, Never>?
@@ -77,6 +80,7 @@ final class GameViewModel {
         isMarketPresented = false
         feedback = nil
         assault = nil
+        battleBriefing = nil; battleReport = nil
         lastTick = Date()
         startClock()
     }
@@ -244,7 +248,7 @@ final class GameViewModel {
     }
 
     func advanceDayManually() {
-        guard phase == .town else { return }
+        guard phase == .town, !isBattlePresented else { return }
         show("Day \(state.day + 1) begins.")
         endDay(carry: 0)
     }
@@ -271,38 +275,47 @@ final class GameViewModel {
         assault = battle
     }
 
+    func prepareAssault(_ targetID: UUID) {
+        guard !isBattlePresented,
+              let battle = GameRules.assault(targetID, from: state.activeTownID, in: state, balance: balance),
+              let target = state.town(id: targetID) else { return }
+        battleBriefing = BattleBriefing(battle: battle, source: activeTown, target: target,
+                                       power: activeArmyStrength, defense: effectiveDefenseStrength(for: target))
+        lastTick = Date()
+    }
+
+    func confirmAssault() {
+        guard let briefing = battleBriefing else { return }
+        battleBriefing = nil
+        attackTown(briefing.target.id)
+    }
+
+    func cancelAssault() { battleBriefing = nil; lastTick = Date() }
+    func dismissBattleReport() { battleReport = nil; lastTick = Date() }
+
     func finishAssault(_ battle: LaneBattle) {
-        guard assault != nil, let target = state.town(id: battle.targetID),
-              let source = state.town(id: battle.sourceID) else { return }
+        guard let initial = assault, battle.outcome != nil,
+              battle.sourceID == initial.sourceID, battle.targetID == initial.targetID,
+              let target = state.town(id: battle.targetID) else { return }
+        let captured = GameRules.conclude(battle, state: &state, balance: balance)
+        let plunder: [ResourceKind: Int] = captured ? Dictionary(uniqueKeysWithValues:
+            GameRules.sharedKinds.map { ($0, state.town(id: battle.targetID)?.resources[$0] ?? 0) }) : [:]
+        battleReport = BattleReport(initial: initial, result: battle, townName: target.name, plunder: plunder)
         assault = nil
         lastTick = Date()
-        let sent = source.armyStrength
-        let captured = GameRules.conclude(battle, state: &state, balance: balance)
-        let survived = battle.survivors(.attacker).armyStrength(using: balance.soldierDefinitions)
-        let losses = "Lost \(sent - survived) of \(sent) power."
-        guard captured else {
-            GameSound.failure.play()
-            let held = state.town(id: battle.targetID)?.armyStrength ?? 0
-            show(battle.outcome == .withdrew ? "Withdrew from \(target.name)" : "\(target.name) holds",
-                 detail: "\(losses) \(held) power still defends it.", tone: .danger)
-            state.addNews(.cityCapture, "Your assault on \(target.name) was repelled")
-            saveCurrentGame()
-            return
-        }
-        GameSound.capture.play()
-        state.addNews(.cityCapture, "You captured \(target.name)")
-        if target.isDuskara {
-            state.addNews(.duskaraAttack, "You conquered Duskara")
-            phase = .victory
-            isWorldMapPresented = false
-            stopClock()
-            show("Duskara conquered. Victory is yours.")
-        } else if let captured = state.town(id: battle.targetID) {
-            // Its stores join the shared stockpile the moment it changes hands.
-            let plunder = GameRules.sharedKinds.map { "\(captured.resources[$0]) \($0.title.lowercased())" }
-            show("\(target.name) is yours",
-                 detail: "\(losses) Plundered \(plunder.joined(separator: " · ")). \(captured.armyStrength) power holds it.",
-                 tone: .success)
+        if captured {
+            GameSound.battleVictory.play()
+            state.addNews(.cityCapture, "You captured \(target.name)")
+            if target.isDuskara {
+                state.addNews(.duskaraAttack, "You conquered Duskara")
+                phase = .victory
+                isWorldMapPresented = false
+                stopClock()
+            }
+        } else {
+            GameSound.battleDefeat.play()
+            state.addNews(.cityCapture, battle.outcome == .withdrew
+                          ? "You withdrew from \(target.name)" : "Your assault on \(target.name) was repelled")
         }
         saveCurrentGame()
     }
@@ -324,7 +337,7 @@ final class GameViewModel {
 
     func rallyAndAttack(_ targetID: UUID) {
         rallyTroops()
-        attackTown(targetID)
+        prepareAssault(targetID)
     }
 
     /// Islands a troop move could reach: everything the player holds except
@@ -438,7 +451,7 @@ final class GameViewModel {
         guard phase == .town else { return }
         let now = Date()
         // The day stands still while an assault is fought.
-        guard assault == nil else {
+        guard !isBattlePresented else {
             lastTick = now
             return
         }

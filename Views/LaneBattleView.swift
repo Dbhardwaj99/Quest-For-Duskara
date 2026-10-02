@@ -1,304 +1,185 @@
 import SpriteKit
 import SwiftUI
 
-/// Full-screen lane assault. SpriteKit draws the field on its own 60 fps
-/// clock; the SwiftUI controls only change when the player clicks, so the
-/// battle never re-renders the window.
+@MainActor private enum BattleSession { static var confirmedWithdrawal = false }
+
+/// The scene owns the live simulation; SwiftUI receives quantized HUD snapshots.
 struct LaneBattleView: View {
     let battle: LaneBattle
     let attackerName: String
-    let targetName: String
+    let targetTown: Town
     let onFinish: (LaneBattle) -> Void
     @State private var scene: LaneBattleScene?
     @State private var selected: SoldierKind = .knight
-    @State private var reserve = SoldierRoster()
+    @State private var hud: BattleHUDState?
+    @State private var confirmingWithdrawal = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             DuskaraTheme.panelDark.ignoresSafeArea()
             if let scene {
-                SpriteView(scene: scene, preferredFramesPerSecond: 60)
-                    .ignoresSafeArea()
+                BattleSpriteView(scene: scene).ignoresSafeArea().accessibilityHidden(true)
             }
-            VStack {
-                header
-                Spacer()
-                controls
+            if let hud {
+                BattleHUD(state: hud, selected: selected, townName: targetTown.name,
+                          power: battle.survivors(.attacker).armyStrength(using: GameBalance.duskDefault.soldierDefinitions),
+                          garrison: targetTown.armyStrength,
+                          fortification: Int((battle.gateMaxHealth-LaneBattle.gateBase)/LaneBattle.gatePerFortification),
+                          onSelect: { selected = $0 }, onWithdraw: requestWithdrawal,
+                          confirming: confirmingWithdrawal, onCancelWithdrawal: { confirmingWithdrawal = false },
+                          onConfirmWithdrawal: {
+                              BattleSession.confirmedWithdrawal = true
+                              confirmingWithdrawal = false; scene?.withdraw()
+                          })
+                    .equatable()
             }
-            .padding(14)
         }
         .onAppear {
             guard scene == nil else { return }
-            let scene = LaneBattleScene(battle: battle)
+            let scene = LaneBattleScene(battle: battle, town: targetTown)
             scene.onFinish = onFinish
-            scene.onDeploy = { reserve = $0 }
+            scene.onHUD = { next in
+                let summaryChanged = hud?.spokenSummary != next.spokenSummary
+                hud = next
+                if summaryChanged {
+                    NSAccessibility.post(element: NSApp!, notification: .announcementRequested,
+                                         userInfo: [.announcement: next.spokenSummary, .priority: NSAccessibilityPriorityLevel.low.rawValue])
+                }
+            }
+            scene.onSelect = { selected = $0 }
+            scene.onWithdrawRequest = requestWithdrawal
+            scene.reduceMotion = reduceMotion
             scene.selected = selected
-            reserve = battle.attackerReserve
+            hud = BattleHUDState(battle)
             self.scene = scene
         }
-        .onChange(of: selected) { scene?.selected = selected }
-    }
-
-    private var header: some View {
-        VStack(spacing: 2) {
-            Text("Assault on \(targetName)")
-                .font(DuskaraTheme.Fonts.title)
-            Text("Click a lane to land the selected unit from \(attackerName). Break the gate before time runs out.")
-                .font(DuskaraTheme.Fonts.body)
-                .foregroundStyle(DuskaraTheme.mutedInk)
+        .onDisappear {
+            scene?.onFinish = nil; scene?.onHUD = nil; scene?.onSelect = nil; scene?.onWithdrawRequest = nil
+            scene = nil
         }
-        .foregroundStyle(DuskaraTheme.ink)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 8)
-        .background(DuskaraTheme.hudFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .allowsHitTesting(false)
-    }
-
-    private var controls: some View {
-        HStack(spacing: 10) {
-            unitButton(.knight, key: "k")
-            unitButton(.archer, key: "a")
-            Spacer(minLength: 20)
-            Button("Withdraw", systemImage: "flag.fill") { scene?.withdraw() }
-                .buttonStyle(DuskaraButtonStyle())
-                .keyboardShortcut(.cancelAction)
-                .frame(width: 150)
+        .onChange(of: selected) { _, kind in
+            scene?.selected = kind
+            if let view = scene?.view { view.window?.makeFirstResponder(view) }
         }
-        .frame(maxWidth: 620)
-    }
-
-    private func unitButton(_ kind: SoldierKind, key: KeyEquivalent) -> some View {
-        let stats = LaneBattle.stats(kind)
-        return Button {
-            selected = kind
-        } label: {
-            Text("\(kind.title) ×\(reserve[kind]) · \(Int(stats.cost)) cmd")
+        .onChange(of: confirmingWithdrawal) { _, confirming in
+            if let view = scene?.view { view.window?.makeFirstResponder(confirming ? nil : view) }
         }
-        .buttonStyle(DuskaraButtonStyle(prominent: selected == kind))
-        .keyboardShortcut(key, modifiers: [])
-        .disabled(reserve[kind] == 0)
-        .frame(width: 190)
-        .accessibilityHint("Selects \(kind.title) for the next landing. Shortcut \(String(key.character).uppercased()).")
+        .onChange(of: reduceMotion) { _, value in scene?.reduceMotion = value }
+    }
+    private func requestWithdrawal() {
+        if confirmingWithdrawal { confirmingWithdrawal = false }
+        else if BattleSession.confirmedWithdrawal { scene?.withdraw() }
+        else { confirmingWithdrawal = true }
     }
 }
 
-final class LaneBattleScene: SKScene {
-    private(set) var battle: LaneBattle
-    var selected: SoldierKind = .knight
-    var onFinish: ((LaneBattle) -> Void)?
-    var onDeploy: ((SoldierRoster) -> Void)?
+private struct BattleHUD: View, Equatable {
+    let state: BattleHUDState
+    let selected: SoldierKind
+    let townName: String
+    let power, garrison, fortification: Int
+    let onSelect: (SoldierKind) -> Void
+    let onWithdraw: () -> Void
+    let confirming: Bool
+    let onCancelWithdrawal, onConfirmWithdrawal: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let field = SKNode()
-    private let unitLayer = SKNode()
-    private let effects = SKNode()
-    private let gate = SKShapeNode()
-    private let gateBar = SKSpriteNode(color: .systemRed, size: .zero)
-    private let commandBar = SKSpriteNode(color: .systemYellow, size: .zero)
-    private let commandFrame = SKShapeNode()
-    private let clockLabel = SKLabelNode(fontNamed: "AvenirNextCondensed-Bold")
-    private let commandLabel = SKLabelNode(fontNamed: "AvenirNextCondensed-DemiBold")
-    private let banner = SKLabelNode(fontNamed: "AvenirNextCondensed-Heavy")
-    private var unitNodes: [Int: SKNode] = [:]
-    private var lastUpdate: TimeInterval?
-    private var unsimulated = 0.0
-    private var finished = false
-
-    private static let attackerColor = NSColor(red: 0.36, green: 0.62, blue: 0.95, alpha: 1)
-    private static let defenderColor = NSColor(red: 0.90, green: 0.36, blue: 0.30, alpha: 1)
-
-    init(battle: LaneBattle) {
-        self.battle = battle
-        super.init(size: CGSize(width: 1200, height: 800))
-        scaleMode = .resizeFill
-        backgroundColor = NSColor(red: 0.10, green: 0.08, blue: 0.06, alpha: 1)
-        for node in [field, unitLayer, effects] { addChild(node) }
-        for node: SKNode in [gate, gateBar, commandFrame, commandBar, clockLabel, commandLabel, banner] { addChild(node) }
-        clockLabel.fontSize = 22
-        commandLabel.fontSize = 14
-        commandLabel.horizontalAlignmentMode = .left
-        clockLabel.horizontalAlignmentMode = .right
-        commandBar.anchorPoint = CGPoint(x: 0, y: 0.5)
-        gateBar.anchorPoint = CGPoint(x: 0.5, y: 0)
-        banner.fontSize = 56
-        banner.zPosition = 10
-        banner.isHidden = true
+    static func == (a: Self,b: Self) -> Bool {
+        a.state == b.state && a.selected == b.selected && a.townName == b.townName
+            && a.power == b.power && a.garrison == b.garrison && a.fortification == b.fortification && a.confirming == b.confirming
     }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    func withdraw() {
-        battle.withdraw()
-    }
-
-    // MARK: Layout
-
-    /// The battlefield: shore on the left, gate on the right, with room left
-    /// for the SwiftUI header above and controls below.
-    private var fieldRect: CGRect {
-        CGRect(x: 70, y: 90, width: max(200, size.width - 190), height: max(150, size.height - 220))
-    }
-
-    private var laneHeight: CGFloat { fieldRect.height / CGFloat(LaneBattle.lanes) }
-
-    private func point(lane: Int, position: Double, id: Int = 0) -> CGPoint {
-        // Spread units sharing a spot so a crowd stays readable.
-        let jitter = CGFloat(id % 5 - 2) * laneHeight * 0.1
-        return CGPoint(x: fieldRect.minX + CGFloat(position) * fieldRect.width,
-                       y: fieldRect.maxY - (CGFloat(lane) + 0.5) * laneHeight + jitter)
-    }
-
-    override func didChangeSize(_ oldSize: CGSize) {
-        field.removeAllChildren()
-        let rect = fieldRect
-        let shore = SKShapeNode(rect: CGRect(x: rect.minX - 50, y: rect.minY, width: 50, height: rect.height))
-        shore.fillColor = NSColor(red: 0.25, green: 0.45, blue: 0.55, alpha: 1)
-        shore.lineWidth = 0
-        field.addChild(shore)
-        for lane in 0..<LaneBattle.lanes {
-            let band = SKShapeNode(rect: CGRect(x: rect.minX, y: rect.maxY - CGFloat(lane + 1) * laneHeight,
-                                                width: rect.width, height: laneHeight))
-            band.fillColor = lane.isMultiple(of: 2)
-                ? NSColor(red: 0.33, green: 0.40, blue: 0.24, alpha: 1)
-                : NSColor(red: 0.29, green: 0.36, blue: 0.21, alpha: 1)
-            band.strokeColor = NSColor.black.withAlphaComponent(0.25)
-            field.addChild(band)
-        }
-        let line = SKShapeNode(rect: CGRect(x: rect.minX + CGFloat(LaneBattle.holdLine) * rect.width - 1,
-                                            y: rect.minY, width: 2, height: rect.height))
-        line.fillColor = NSColor.white.withAlphaComponent(0.12)
-        line.lineWidth = 0
-        field.addChild(line)
-        let tower = SKShapeNode(circleOfRadius: CGFloat(LaneBattle.towerRange) * rect.width)
-        tower.position = CGPoint(x: rect.maxX, y: rect.midY)
-        tower.fillColor = NSColor.systemRed.withAlphaComponent(0.06)
-        tower.strokeColor = NSColor.systemRed.withAlphaComponent(0.25)
-        field.addChild(tower)
-
-        gate.path = CGPath(rect: CGRect(x: rect.maxX, y: rect.minY, width: 26, height: rect.height), transform: nil)
-        gate.fillColor = NSColor(red: 0.45, green: 0.33, blue: 0.22, alpha: 1)
-        gate.strokeColor = NSColor(red: 0.25, green: 0.18, blue: 0.12, alpha: 1)
-        gate.lineWidth = 3
-        gateBar.position = CGPoint(x: rect.maxX + 50, y: rect.minY)
-        commandFrame.path = CGPath(rect: CGRect(x: rect.minX, y: rect.maxY + 16, width: 220, height: 12), transform: nil)
-        commandFrame.strokeColor = NSColor.white.withAlphaComponent(0.4)
-        commandBar.position = CGPoint(x: rect.minX, y: rect.maxY + 22)
-        commandLabel.position = CGPoint(x: rect.minX + 230, y: rect.maxY + 16)
-        clockLabel.position = CGPoint(x: rect.maxX + 26, y: rect.maxY + 12)
-        banner.position = CGPoint(x: rect.midX, y: rect.midY)
-    }
-
-    // MARK: Input
-
-    override func mouseDown(with event: NSEvent) {
-        let location = event.location(in: self)
-        guard fieldRect.insetBy(dx: -50, dy: 0).contains(location) else { return }
-        let lane = Int((fieldRect.maxY - location.y) / laneHeight)
-        if battle.deploy(selected, lane: min(LaneBattle.lanes - 1, max(0, lane))) {
-            onDeploy?(battle.attackerReserve)
-        } else if battle.attackerReserve[selected] > 0 {
-            commandBar.run(.sequence([.colorize(with: .white, colorBlendFactor: 1, duration: 0.05),
-                                      .colorize(withColorBlendFactor: 0, duration: 0.2)]))
-        }
-    }
-
-    // MARK: Frame
-
-    override func update(_ currentTime: TimeInterval) {
-        unsimulated += lastUpdate.map { min(0.1, currentTime - $0) } ?? 0
-        lastUpdate = currentTime
-        while unsimulated >= LaneBattle.tick {
-            battle.step(LaneBattle.tick)
-            unsimulated -= LaneBattle.tick
-        }
-        drain()
-        sync()
-        if let outcome = battle.outcome, finished == false {
-            finished = true
-            banner.text = switch outcome {
-            case .captured: "The gate falls!"
-            case .repelled: "Repelled"
-            case .withdrew: "Retreat!"
+    var body: some View {
+        ZStack {
+            VStack {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading,spacing: 4) {
+                        Text("Assault on \(townName)").font(DuskaraTheme.Fonts.heading)
+                        Text("Your power \(power) · Garrison \(garrison) · Fortification \(fortification)")
+                            .font(DuskaraTheme.Fonts.body).foregroundStyle(DuskaraTheme.mutedInk)
+                    }.battlePlate().allowsHitTesting(false)
+                    Spacer()
+                }
+                Spacer()
+                HStack(alignment: .bottom) {
+                    Spacer().frame(maxWidth: .infinity)
+                    VStack(spacing: 10) {
+                        Text("1 2 3 lanes · ←/→ pan · pinch or +/− zoom")
+                            .font(DuskaraTheme.Fonts.caption).battlePlate()
+                            .opacity(state.hasLanded ? 0 : 1).accessibilityHidden(state.hasLanded)
+                            .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: state.hasLanded)
+                        BattlePips(filled: state.command,total: Int(LaneBattle.maxCommand))
+                            .battlePlate().accessibilityElement(children: .ignore).accessibilityHidden(false).accessibilityLabel("Command \(state.command) of \(Int(LaneBattle.maxCommand))")
+                        HStack(spacing: 10) { card(.knight,key: "K"); card(.archer,key: "A") }
+                    }
+                    HStack {
+                        Spacer()
+                        Button("Withdraw  Esc", systemImage: "flag.fill", action: onWithdraw)
+                            .buttonStyle(DuskaraButtonStyle()).keyboardShortcut(.cancelAction)
+                            .frame(width: 160).accessibilityLabel("Withdraw from battle")
+                            .accessibilityHint("Escape. Confirms the first withdrawal this session.")
+                            .popover(isPresented: Binding(get: { confirming },set: { if !$0 { onCancelWithdrawal() } }),arrowEdge: .bottom) {
+                                VStack(alignment: .leading,spacing: 12) {
+                                    Text("Withdraw from the assault?").font(DuskaraTheme.Fonts.heading)
+                                    Text("Survivors sail home. Lost units stay lost.").font(DuskaraTheme.Fonts.body)
+                                    HStack {
+                                        Button("Keep fighting",action: onCancelWithdrawal).keyboardShortcut(.cancelAction)
+                                        Button("Withdraw",action: onConfirmWithdrawal).keyboardShortcut(.defaultAction)
+                                    }.buttonStyle(DuskaraButtonStyle())
+                                }.foregroundStyle(DuskaraTheme.ink).padding(18).frame(width: 320)
+                                    .background(DuskaraTheme.sheetBackground)
+                            }
+                    }.frame(maxWidth: .infinity)
+                }
             }
-            banner.fontColor = outcome == .captured ? .systemYellow : .white
-            banner.isHidden = false
-            let result = battle
-            run(.sequence([.wait(forDuration: 1.6), .run { [weak self] in self?.onFinish?(result) }]))
+            Text(state.timer).font(DuskaraTheme.Fonts.title.monospacedDigit())
+                .foregroundStyle(state.seconds < 15 ? Color(red: 1,green: 0.38,blue: 0.30) : DuskaraTheme.ink)
+                .battlePlate().frame(maxHeight: .infinity,alignment: .top)
+                .accessibilityLabel("\(state.seconds) seconds remaining")
         }
+        .padding(18).foregroundStyle(DuskaraTheme.ink)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Battle. \(state.spokenSummary)")
     }
+    private func card(_ kind: SoldierKind,key: String) -> some View {
+        let available = state.affordable.contains(kind)
+        return Button { onSelect(kind) } label: {
+            HStack(spacing: 8) {
+                Image("\(kind.rawValue)_blue_portrait").resizable().scaledToFit().frame(width: 58,height: 62)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading,spacing: 4) {
+                    Text("\(kind.title) ×\(state.reserve[kind])").font(DuskaraTheme.Fonts.number)
+                    BattlePips(filled: Int(LaneBattle.stats(kind).cost),total: Int(LaneBattle.stats(kind).cost),size: 6)
+                    Text("\(key) · \(selected == kind ? "Selected" : "Select")").font(DuskaraTheme.Fonts.caption)
+                }
+            }.frame(width: 165,height: 66).opacity(available ? 1 : 0.75)
+        }
+        .buttonStyle(DuskaraButtonStyle())
+        .overlay(Capsule().stroke(selected == kind ? DuskaraTheme.warmGold : .clear,lineWidth: 2))
+        .keyboardShortcut(KeyEquivalent(key.lowercased().first!),modifiers: [])
+        .disabled(state.reserve[kind] == 0).saturation(available ? 1 : 0.35)
+        .accessibilityLabel("\(kind.title), \(state.reserve[kind]) ready, costs \(Int(LaneBattle.stats(kind).cost)) command, \(selected == kind ? "selected" : "unselected")")
+        .accessibilityHint("\(key) selects. 1, 2, or 3 lands in that lane. \(available ? "Ready to land." : "Not enough command or no units left.")")
+    }
+}
 
-    private func sync() {
-        let rect = fieldRect
-        var alive = Set<Int>()
-        for unit in battle.units {
-            alive.insert(unit.id)
-            let node = unitNodes[unit.id] ?? makeNode(for: unit)
-            node.position = point(lane: unit.lane, position: unit.position, id: unit.id)
-            if let bar = node.childNode(withName: "health") as? SKSpriteNode {
-                bar.xScale = CGFloat(max(0, unit.health / LaneBattle.stats(unit.kind).health))
+struct BattlePips: View {
+    let filled, total: Int
+    var size: CGFloat = 9
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<total,id: \.self) { index in
+                Circle().fill(index < filled ? DuskaraTheme.warmGold : DuskaraTheme.mutedInk.opacity(0.22))
+                    .frame(width: size,height: size)
             }
-        }
-        for (id, node) in unitNodes where alive.contains(id) == false {
-            node.removeFromParent()
-            unitNodes[id] = nil
-        }
-        gateBar.size = CGSize(width: 10, height: rect.height * CGFloat(max(0, battle.gateHealth / battle.gateMaxHealth)))
-        let fill = CGFloat(battle.attackerCommand / LaneBattle.maxCommand)
-        commandBar.size = CGSize(width: 220 * fill, height: 12)
-        commandLabel.text = "Command \(Int(battle.attackerCommand))/\(Int(LaneBattle.maxCommand))"
-        let seconds = Int(battle.timeRemaining.rounded(.up))
-        clockLabel.text = String(format: "%d:%02d", seconds / 60, seconds % 60)
-        clockLabel.fontColor = seconds <= 15 ? .systemRed : .white
+        }.accessibilityHidden(true)
     }
+}
 
-    private func makeNode(for unit: LaneBattle.Unit) -> SKNode {
-        let color = unit.side == .attacker ? Self.attackerColor : Self.defenderColor
-        let body: SKShapeNode = unit.kind == .knight
-            ? SKShapeNode(rectOf: CGSize(width: 20, height: 20), cornerRadius: 4)
-            : SKShapeNode(circleOfRadius: 8)
-        body.fillColor = color
-        body.strokeColor = NSColor.black.withAlphaComponent(0.6)
-        body.lineWidth = 1.5
-        let glyph = SKLabelNode(fontNamed: "AvenirNextCondensed-Bold")
-        glyph.text = unit.kind == .knight ? "K" : "A"
-        glyph.fontSize = 11
-        glyph.fontColor = .black
-        glyph.verticalAlignmentMode = .center
-        body.addChild(glyph)
-        let bar = SKSpriteNode(color: .systemGreen, size: CGSize(width: 22, height: 3))
-        bar.anchorPoint = CGPoint(x: 0, y: 0.5)
-        bar.position = CGPoint(x: -11, y: 15)
-        bar.name = "health"
-        body.addChild(bar)
-        unitLayer.addChild(body)
-        unitNodes[unit.id] = body
-        return body
-    }
-
-    /// Turns the battle's events into short-lived effects.
-    private func drain() {
-        for event in battle.events {
-            switch event {
-            case let .shot(lane, from, to, side):
-                let path = CGMutablePath()
-                path.move(to: point(lane: lane, position: from))
-                path.addLine(to: point(lane: lane, position: to))
-                let streak = SKShapeNode(path: path)
-                streak.strokeColor = (side == .attacker ? Self.attackerColor : Self.defenderColor).withAlphaComponent(0.8)
-                streak.lineWidth = 1.5
-                effects.addChild(streak)
-                streak.run(.sequence([.fadeOut(withDuration: 0.18), .removeFromParent()]))
-            case let .fell(lane, at, side):
-                let puff = SKShapeNode(circleOfRadius: 10)
-                puff.position = point(lane: lane, position: at)
-                puff.strokeColor = side == .attacker ? Self.attackerColor : Self.defenderColor
-                effects.addChild(puff)
-                puff.run(.sequence([.group([.scale(to: 2.2, duration: 0.35), .fadeOut(withDuration: 0.35)]), .removeFromParent()]))
-            case .gateHit:
-                guard gate.action(forKey: "hit") == nil else { continue }
-                gate.run(.sequence([.moveBy(x: 3, y: 0, duration: 0.04), .moveBy(x: -3, y: 0, duration: 0.06)]), withKey: "hit")
-            }
-        }
-        battle.events.removeAll()
+extension View {
+    func battlePlate() -> some View {
+        padding(.horizontal,14).padding(.vertical,10)
+            .background(DuskaraTheme.hudFill,in: RoundedRectangle(cornerRadius: DuskaraTheme.cornerM))
+            .overlay(RoundedRectangle(cornerRadius: DuskaraTheme.cornerM).stroke(DuskaraTheme.glassStroke))
     }
 }
