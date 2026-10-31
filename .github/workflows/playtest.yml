@@ -1,0 +1,83 @@
+name: Playtest engine
+
+# Builds and tests the headless playtester (Playtest/README.md) on Linux and
+# Windows whenever the rules it compiles change, and uploads ready-to-run
+# bundles: the binary, its README and the agent prompt.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Models/**"
+      - "ViewModels/**"
+      - "Playtest/**"
+      - "Package.swift"
+      - ".github/workflows/playtest.yml"
+  pull_request:
+    paths:
+      - "Models/**"
+      - "ViewModels/**"
+      - "Playtest/**"
+      - "Package.swift"
+      - ".github/workflows/playtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test and build in the Swift image
+        run: |
+          docker run --rm -v "$PWD":/src -w /src swift:6.2-noble bash -c '
+            set -e
+            swift test
+            swift build -c release --static-swift-stdlib
+            ./.build/release/duskara-playtest simulate --games 2 --max-days 60 --compact > /dev/null'
+      - name: Bundle
+        run: |
+          mkdir dist
+          sudo cp .build/release/duskara-playtest dist/
+          cp Playtest/PROMPT.md Playtest/README.md dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duskara-playtest-linux-${{ matrix.arch }}
+          path: dist/
+
+  windows:
+    name: Windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: compnerd/gha-setup-swift@main
+        with:
+          branch: swift-6.2-release
+          tag: 6.2-RELEASE
+      - name: Test
+        run: swift test
+      - name: Build
+        run: swift build -c release
+      - name: Bundle with the Swift runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item .build\release\duskara-playtest.exe dist\
+          $runtime = Split-Path (where.exe swiftCore.dll | Select-Object -First 1)
+          Copy-Item (Join-Path $runtime '*.dll') dist\
+          Copy-Item Playtest\PROMPT.md, Playtest\README.md dist\
+          .\dist\duskara-playtest.exe simulate --games 2 --max-days 60 --compact | Out-Null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duskara-playtest-windows-x86_64
+          path: dist/

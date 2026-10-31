@@ -58,17 +58,20 @@ enum GameSaveLoadError: Error, Equatable {
 
 struct GameSaveStore {
     private let fileName = "duskara-save.json"
-    private let directory: URL
+    /// nil keeps nothing: the headless playtester runs thousands of days and
+    /// never resumes from the autosave.
+    private let directory: URL?
 
-    private var saveURL: URL {
-        directory.appendingPathComponent(fileName)
+    private var saveURL: URL? {
+        directory?.appendingPathComponent(fileName)
     }
 
-    init(directory: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]) {
+    init(directory: URL? = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]) {
         self.directory = directory
     }
 
     func save(state: GameState, difficulty: Difficulty) throws {
+        guard let saveURL else { return }
         let savedGame = SavedGame(dayLabel: dayLabel(for: state.day), state: state, difficulty: difficulty)
         // Compact: this runs on the main thread every ten-second day.
         let data = try JSONEncoder().encode(savedGame)
@@ -76,7 +79,7 @@ struct GameSaveStore {
     }
 
     func load() throws -> SavedGame? {
-        guard FileManager.default.fileExists(atPath: saveURL.path) else { return nil }
+        guard let saveURL, FileManager.default.fileExists(atPath: saveURL.path) else { return nil }
 
         let data: Data
         do { data = try Data(contentsOf: saveURL) }

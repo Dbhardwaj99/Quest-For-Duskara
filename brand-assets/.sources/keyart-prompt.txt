@@ -1,0 +1,25 @@
+Use case: stylized-concept.
+Asset type: Quest for Duskara master key art, a wide cinematic text-free banner source.
+Create one finished landscape illustration at 3840×2160 pixels, exact 16:9 composition, fully opaque.
+
+Reference images and roles:
+Image 1 is the NEW master emblem: match its cream watchtower with coral terracotta conical roof, flag, olive grassy island, soft cream sandy shore, pale aqua shallows, rounded handmade clay forms and orange setting sun. Integrate that tower naturally into the foreground town; do not paste the emblem or its sun disc over the scene.
+Image 2 is the CURRENT village screenshot supplied by the user: use only the actual game world as visual reference, with organic grassy island, cream cottages with coral/straw/slate roofs, rounded trees, paths, pier and boats. Ignore all screenshot UI, text and window frame.
+Image 3 is the CURRENT world-map screenshot supplied by the user: use only its real organic archipelago, cream sandy coastlines, teal/deep-blue sea and pale aqua shallows. Ignore every label, lane line, badge, compass and UI overlay. This is an artistic scenic composition of 3–4 islands, not a map diagram.
+
+Scene and composition:
+A calm deep teal sea with pale aqua shallows around three or four organic soft-clay islands at different distances. Foreground RIGHT: the player's cozy island town, cream plaster cottages with oversized molded terracotta, coral and straw roofs, a timber pier, small farm fields, rounded olive/moss-green bushes and trees, and the exact cream tower from the new emblem with coral conical roof. Warm-lit windows. One short line of tiny chunky friendly knights and archers on the pier. Correct CURRENT battle colors: BLUE tabards and blue hood/plume/shields; knight armor slate blue with cream/pale-stone helmets, small gold shield bosses, timber bows and quivers for archers. Keep them small, toy-like and simple.
+Midground: TWO small timber ships with cream sails traveling across the open water.
+Far LEFT near the horizon: Duskara's stronghold on a larger distant fortress island, a square terracotta fortified-clay keep with cream stone merlons, a timber gate and small RED pennant banners, a few slate roofs. It is silhouetted against a huge low warm ORANGE setting sun.
+The sky fades from warm gold near the horizon to soft teal at the top. Gentle long shadows, calm inviting adventurous mood, the moment before the campaign begins.
+
+Reserve the UPPER CENTER-LEFT THIRD as clean empty calm sky so an existing title logo can be composited later. No clouds, flags, towers, ships or scene focal objects in this open logo space. Keep all important subjects away from the outer 10% of all canvas edges. Tower and town on right, sun and distant stronghold on left, flowing sea in the lower middle. A coherent 3/4 elevated camera with miniature diorama depth, matching the handmade game.
+
+Style and material:
+Low-poly soft clay plus painted wood, handcrafted coastal miniature. Chunky bevelled rounded primitives with matte softly hand-pressed surfaces, premium polymer clay/wooden toys. Bold simple readable silhouettes, soft top-left light with gentle edge highlights, subtle rim light and soft contact shadows. Rich controlled saturation and an elegant restrained premium indie-game finish. Clean scene, zero clutter, zero grain or busy microscopic detail.
+
+Palette:
+plaster cream #EDDEBF, ink parchment #F2E8D1, terracotta #C9735C, coral #E08F73, banner red #C76152, sunset orange #F0A64F, accent orange #D17A3D, warm gold #E6B35C, island olive #8CAD66, crop green #8CAB61, moss #526E42, shallow aqua #8FC4C8, sea #5F8F9C, deep sea #2A5262, deep teal #1B4A5E, slate roof #70808A, timber #8F6B4A. Friendly soldier blue can use #5C8FDB. Dark brown only in small architectural accents.
+
+Text: NONE. This entire image must be completely text-free.
+Avoid any logo, title, lettering, UI elements, labels, borders, device/window frames, map route lines, watermarks, signatures, extra ornaments, dark/gothic fantasy, grimdark, realistic humans, photorealism, metallic chrome, lens flare, gloss sheen, heavy grain, busy filigree, neon, purple and generic mobile-game explosions.

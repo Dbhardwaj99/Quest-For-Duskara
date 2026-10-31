@@ -36,8 +36,9 @@ xcodebuild test -scheme "Quest For Duskara" -destination 'platform=macOS' CODE_S
 | `Assets/` | USDZ building models, brand art, and the asset catalog. |
 | `Tools/` | `generate_settlement_models.py` rebuilds the settlement USDZ pieces in Blender; usage is at the top of the file. |
 | `Tests/` | Gameplay tests written with Swift Testing. |
+| `Playtest/` | The headless playtester: the rules and view model as a command-line tool for Linux, Windows and macOS, for AI agents and bulk simulations. See [its README](Playtest/README.md). |
 
-Xcode picks up new files in these folders automatically. The test target compiles `Models/` and `ViewModels/` directly, so code there can't depend on anything in `Views/`.
+Xcode picks up new files in these folders automatically. The test target compiles `Models/` and `ViewModels/` directly, so code there can't depend on anything in `Views/`. The playtester compiles them on Linux and Windows too, so keep SwiftUI, AppKit and RealityKit out of `Models/` and `ViewModels/GameViewModel*.swift`.
 
 ## Sending a pull request
 

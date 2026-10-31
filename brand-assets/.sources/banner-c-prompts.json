@@ -1,0 +1,44 @@
+[
+  {
+    "asset": "itch-cover",
+    "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara itch.io cover BACKGROUND, text-free.\nGenerate a fresh standalone landscape image, requested exact 630×500 px (1.26:1).\nInput image: ONLY the attached accepted master key art. Use it as the exact reference for palette, character and architecture identities, clay forms, lighting, and subjects. Recompose the scene for this new aspect ratio without stretching or awkward cropping.\nComposition: a close view of the cozy foreground town and its cream watchtower. Place the same distinctive round cream tower with coral conical roof and terracotta flag in the UPPER RIGHT, below the outer 10% margins. Warm orange setting sun on the LEFT with the distant cream/terracotta crenellated stronghold below it. A few cream cottages with coral/straw/slate molded roofs and rounded olive bushes; a wooden pier with tiny BLUE-friendly toy knights/archers. Deep teal sea with aqua shallows and cream sandy shoreline flows in front of the town. Keep the BOTTOM THIRD quiet and uncluttered, mostly smooth dark teal sea, because an existing finished HORIZONTAL logo will be added there later. No boats, figures, tower or buildings in that quiet logo zone.\nStyle: match the reference's premium handmade low-poly soft clay and matte painted wood, chunky bevelled rounded shapes, cream plaster, organic olive grassy islands, cream sandy shores, pale aqua shallows, deep teal ocean, warm orange dusk. Small BLUE-friendly troops, toy scale. Soft studio sunset lighting, gently warm-lit windows, restrained saturation, elegant calm miniature diorama.\nText: NONE. No title, wordmark, logo, letters, UI, route lines, frames, borders, watermarks or signatures. No photorealism, glossy plastic, chrome, lens flare, neon, purple, heavy grain or clutter. Entire output fully opaque.",
+    "references": [
+      "brand-assets/.sources/keyart.png"
+    ],
+    "requestedSize": [
+      630,
+      500
+    ],
+    "tool": "built-in image_gen",
+    "originalPath": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-50144484-8206-4374-91d0-6056c37ab712.png",
+    "savedPath": "brand-assets/.sources/itch-cover.png"
+  },
+  {
+    "asset": "wallpaper-desktop",
+    "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara desktop community wallpaper BACKGROUND, completely text-free.\nCreate a fresh finished LANDSCAPE image, requested exact 2560×1600 px, 16:10 aspect ratio.\nInput image: ONLY the attached accepted master key art. Treat it as the exact style, palette, lighting and subject reference. Preserve the cream round tower with coral roof and flag, cottage identities, cream-sailed ships, blue troops, organic grass islands and sunset fortress. Recompose for 16:10 without stretching or awkward cropping.\n\nShow the full calm archipelago scene: foreground town and distinctive cream watchtower on the RIGHT, cream cottages with coral/straw/slate molded roofs, wooden pier and small farm fields with rounded olive bushes and toy trees. Tiny BLUE-friendly knights and archers stand on the pier. A distant cream/terracotta crenellated stronghold with red banners on the LEFT, silhouetted against a large warm orange setting sun. TWO cream-sailed timber ships cross the water. A few organic olive islands at different depths with soft cream sandy shorelines and pale aqua shallows over a deep teal ocean. A broad teal/gold sky, gentle long sunset shadows, premium calm miniature diorama.\n\nComposition: leave the BOTTOM CENTER quiet and uncluttered, with a clean area approximately 380×255 px in the requested 2560×1600 composition, positioned at bottom center with 60px bottom padding. That area must be calm dark teal sea only, no boats, rocks, figures, pier or islands, because a small existing STACKED title logo will later be added there. Keep main tower, fortress and boats safely away from outer 10% edges. Allow the sea to breathe between left stronghold and right town.\n\nStyle: identical premium handmade soft clay and matte painted wood, chunky bevelled rounded shapes, cream plaster, organic olive grassy land, cream sand, aqua coastal rings and deep teal ocean, warm orange dusk, small blue troops. Soft top-left sunset lighting, warm windows, elegant controlled saturation. No tiny noisy detail or clutter.\n\nText: NONE. No logo, wordmark, title, letters, UI, labels, route lines, frames, borders, watermarks or signatures. No photorealism, reflective plastic, chrome, lens flare, neon, purple, heavy grain or explosions. Fully opaque image.",
+    "references": [
+      "brand-assets/.sources/keyart.png"
+    ],
+    "requestedSize": [
+      2560,
+      1600
+    ],
+    "tool": "built-in image_gen",
+    "originalPath": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-7b203236-1875-483a-ad1a-16fc15bbc8ce.png",
+    "savedPath": "brand-assets/.sources/wallpaper-desktop.png"
+  },
+  {
+    "asset": "wallpaper-phone",
+    "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara phone community wallpaper BACKGROUND, completely text-free.\nCreate a fresh finished VERTICAL PORTRAIT composition requested exact 1290×2796 px, 9:19.5 aspect ratio.\nInput image: ONLY the attached accepted master key art. It is the exact reference for palette, lighting, handmade clay forms and subject identity. RECOMPOSE all subjects vertically for this tall phone format; do not stretch the landscape, do not simply crop it, and do not put a landscape panel inside a vertical frame.\n\nVertical scene layout:\nUPPER HALF: broad airy softly graded teal and golden sunset sky, with the huge warm orange setting sun high on the LEFT. Leave plentiful open sky near the top for phone clock/widget overlays (do not draw any overlays). Below the sun, in the upper-middle LEFT, place the distant cream/terracotta crenellated stronghold on its organic island with tiny red banners and a timber gate.\nMIDDLE RIGHT: the cozy player town and the distinctive round cream watchtower from the reference, same coral conical roof and terracotta flag, warm arched window, cream base steps. A cluster of cream cottages with coral/straw/slate molded roofs, farm fields, rounded olive bushes and trees, and a timber pier with tiny BLUE-friendly toy knights/archers. Entire town and tower must remain inside the frame with generous margins and enough camera distance.\nLOWER HALF: flowing deep teal ocean and pale aqua shallows wrapping cream sandy organic shorelines. TWO small timber boats with cream sails cross the lower water. Use a few organic olive-green islands at differing distances to give depth, without crowding.\nKeep the BOTTOM CENTER peaceful and uncluttered with only smooth dark teal sea, roughly the lower 12% of the portrait, because a small existing HORIZONTAL title logo will be composited there later. No ships, rocks, pier, figures, land or focal objects in that bottom center logo space.\nA coherent elevated 3/4 miniature-diorama camera, calm inviting adventure at dusk. Warm sun left, town tower right, ships lower down. Nothing cropped at the edges.\n\nStyle: match the attached reference's premium soft-clay and matte painted-wood handcrafted game scene exactly, chunky bevelled rounded volumes, cream plaster, organic olive grassy islands, cream sand, pale aqua shallows, deep teal sea and orange-gold dusk. Soft sunset edge lighting, gentle long shadows, warm windows, small BLUE-friendly troops. Elegant restrained saturation and clean readable toy silhouettes.\nText: NONE. No title, logo, wordmark, letters, UI, status bar, clock, widgets, map labels, route lines, borders, frames, watermarks or signatures. No photorealism, chrome, glossy plastic, lens flare, neon, purple, heavy grain, clutter or explosions. Fully opaque edge-to-edge illustration.",
+    "references": [
+      "brand-assets/.sources/keyart.png"
+    ],
+    "requestedSize": [
+      1290,
+      2796
+    ],
+    "tool": "built-in image_gen",
+    "originalPath": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-2f141a17-74d8-44b9-8ecf-06c84345d02b.png",
+    "savedPath": "brand-assets/.sources/wallpaper-phone.png"
+  }
+]

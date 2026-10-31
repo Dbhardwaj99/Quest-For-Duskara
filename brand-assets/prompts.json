@@ -1,0 +1,367 @@
+{
+  "mode": "built-in image_gen",
+  "brief": "brand-assets/brand-kit-prompts.md",
+  "references": "Latest screenshots supplied by user; outdated logos and archived maps excluded.",
+  "generation": [
+    {
+      "asset": "emblem",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nA calm single-player macOS island strategy game: build small coastal town districts, train knights and archers, sail between 15 islands, capture Duskara's stronghold. Current authoritative visual references are the user-supplied current screenshots; this updated game is now on main, with a real RealityKit 3D archipelago using the same town islands, organic coastlines, modular settlement clusters, rolling ocean and little cream-sailed ships. Never copy an old 2D map, old logos or archived screenshots.\nVisual DNA: handcrafted coastal miniature, low-poly soft clay / painted wood with chunky bevelled rounded matte forms and restrained pastel surfaces. Cream plaster walls, terracotta/coral gabled and straw/slate roofs, warm timber, olive grassy organic islands with sandy rims, pale aqua shallows over deep teal ocean. Troops match current campaign attacker colors: blue tabards/plumes and pale stone helmets, timber bows and gold shield bosses.\nHero-subject assets: bold immediately readable silhouette, toy-like volumes, soft top-left studio lighting, crisp gentle edge highlights, soft contact shadows, controlled saturation. No clutter or tiny disappearing detail.\nPalette: plaster #EDDEBF; parchment #F2E8D1; terracotta #C9735C; coral #E08F73; red #C76152; sunset #F0A64F; accent #D17A3D; gold #E6B35C; olive #8CAD66; crops #8CAB61; moss #526E42; aqua #8FC4C8; sea #5F8F9C; deep sea #2A5262; backdrop #1B4A5E; slate #70808A; timber #8F6B4A; dark outlines #29211A.\nAvoid gothic/grimdark fantasy, realistic humans, photorealism, chrome, lens flare, grain, filigree, neon, purple, generic glossy mobile-game explosions, signatures/watermarks, UI, frames, device mockups. No text except official title logos.\nUse case: logo-brand\nAsset type: master emblem, a completely NEW identity, no lettering.\nInput images are ONLY the user's current village and current 3D world-map screenshots. Use their organic green island, sandy shallow-water rim, molded low-poly buildings, simple toy boats and matte surface language. Ignore all interface panels, map labels, window chrome and clouds crossing buildings. This is a new emblem, not a screenshot recreation.\nCreate one rounded organic olive island with a cream sandy shoreline and a small pale aqua water rim. A single boldly proportioned chunky cream-plaster round watchtower stands on it, coral-terracotta conical roof, tiny terracotta pennant, arched doorway, two cream stone steps, ONE warm glowing #FFCC78 window, two round moss-green bushes. Behind the tower a large warm-orange #F0A64F sun disc is half concealed by the island, the dusk idea. No boat; strong clean silhouette takes priority.\nCamera: elevated three-quarter view like the screenshots. Polished premium soft-clay game mark, handmade-looking matte geometry and soft top-left key lighting, gentle rim highlights, clean confident proportions with a slightly tall tower. Simple volumes and no fine texture.\nCanvas square, requested 2048x2048 pixels. Centered subject fills approximately70% of width and height with generous clear padding. Truly TRANSPARENT background; no magenta field, no backdrop, no frame, no shadow plate, no drop shadow beneath entire composition. No text, no lettering, no extra objects.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-village.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-world-map.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-2bc1a0d2-aacf-4289-875e-7bf5cb8bdf87.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/emblem.png",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "nativeAlpha": true
+    },
+    {
+      "asset": "title-stacked",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nA calm single-player macOS island strategy game: build small coastal town districts, train knights and archers, sail between 15 islands, capture Duskara's stronghold. Current authoritative visual references are the user-supplied current screenshots; this updated game is now on main, with a real RealityKit 3D archipelago using the same town islands, organic coastlines, modular settlement clusters, rolling ocean and little cream-sailed ships. Never copy an old 2D map, old logos or archived screenshots.\nVisual DNA: handcrafted coastal miniature, low-poly soft clay / painted wood with chunky bevelled rounded matte forms and restrained pastel surfaces. Cream plaster walls, terracotta/coral gabled and straw/slate roofs, warm timber, olive grassy organic islands with sandy rims, pale aqua shallows over deep teal ocean. Troops match current campaign attacker colors: blue tabards/plumes and pale stone helmets, timber bows and gold shield bosses.\nHero-subject assets: bold immediately readable silhouette, toy-like volumes, soft top-left studio lighting, crisp gentle edge highlights, soft contact shadows, controlled saturation. No clutter or tiny disappearing detail.\nPalette: plaster #EDDEBF; parchment #F2E8D1; terracotta #C9735C; coral #E08F73; red #C76152; sunset #F0A64F; accent #D17A3D; gold #E6B35C; olive #8CAD66; crops #8CAB61; moss #526E42; aqua #8FC4C8; sea #5F8F9C; deep sea #2A5262; backdrop #1B4A5E; slate #70808A; timber #8F6B4A; dark outlines #29211A.\nAvoid gothic/grimdark fantasy, realistic humans, photorealism, chrome, lens flare, grain, filigree, neon, purple, generic glossy mobile-game explosions, signatures/watermarks, UI, frames, device mockups. No text except official title logos.\nUse case: logo-brand. Asset type: official primary stacked title logo.\nImage1 is the NEW approved master emblem; preserve its exact organic island, coral conical-roof cream round tower, orange sun, flag and clay material. Images2–3 are current gameplay style references only; no UI may appear.\nLayout on landscape3:2 canvas, requested3000x2000px: emblem centered on top, slightly overlaps small \"QUEST FOR\", and below it large dominant \"DUSKARA\". Generous transparent padding all sides, nothing cropped. Emblem occupies upper45% of visible lockup and wordmark lower55%; big sturdy readable letters.\nLettering a custom chunky condensed SLAB-SERIF adventurous carved display face, dimensional matte clay. Parchment-cream faces #F2E8D1 to #EDDEBF, softly rounded bevels, short warm-terracotta bottom extrusion #A35745, clean even dark-brown #29211A outer outline. Subtle warm sunset light on top edges. \"QUEST FOR\" same face smaller in gold #E6B35C with same outline. Tight even spacing, broad readable letter shapes.\nText verbatim once each, ALL CAPS, spell EXACTLY:\n\"QUEST FOR\"\n\"DUSKARA\"\nCheck D U S K A R A seven letters. No other text. Do not change the emblem. No ribbons, plaques, shields, swords, borders, ornaments, backdrop, water extending to canvas or shadow plate.\nTRANSPARENT background. The letters and emblem together are the only artwork.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/emblem.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-village.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-world-map.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-e41413dd-21d4-4d85-9c34-68ec6a8749d5.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/title-stacked.png",
+      "nativeSize": [
+        1536,
+        1024
+      ],
+      "nativeAlpha": true
+    },
+    {
+      "asset": "title-horizontal",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nA calm single-player macOS island strategy game: build small coastal town districts, train knights and archers, sail between 15 islands, capture Duskara's stronghold. Current authoritative visual references are the user-supplied current screenshots; this updated game is now on main, with a real RealityKit 3D archipelago using the same town islands, organic coastlines, modular settlement clusters, rolling ocean and little cream-sailed ships. Never copy an old 2D map, old logos or archived screenshots.\nVisual DNA: handcrafted coastal miniature, low-poly soft clay / painted wood with chunky bevelled rounded matte forms and restrained pastel surfaces. Cream plaster walls, terracotta/coral gabled and straw/slate roofs, warm timber, olive grassy organic islands with sandy rims, pale aqua shallows over deep teal ocean. Troops match current campaign attacker colors: blue tabards/plumes and pale stone helmets, timber bows and gold shield bosses.\nHero-subject assets: bold immediately readable silhouette, toy-like volumes, soft top-left studio lighting, crisp gentle edge highlights, soft contact shadows, controlled saturation. No clutter or tiny disappearing detail.\nPalette: plaster #EDDEBF; parchment #F2E8D1; terracotta #C9735C; coral #E08F73; red #C76152; sunset #F0A64F; accent #D17A3D; gold #E6B35C; olive #8CAD66; crops #8CAB61; moss #526E42; aqua #8FC4C8; sea #5F8F9C; deep sea #2A5262; backdrop #1B4A5E; slate #70808A; timber #8F6B4A; dark outlines #29211A.\nAvoid gothic/grimdark fantasy, realistic humans, photorealism, chrome, lens flare, grain, filigree, neon, purple, generic glossy mobile-game explosions, signatures/watermarks, UI, frames, device mockups. No text except official title logos.\nUse case: logo-brand. Asset type: horizontal official title lockup.\nImage1 is approved stacked logo. Image2 is approved master emblem. Images3–4 are gameplay style only.\nCreate the exact same logo as image1 in a very wide horizontal layout requested4000x1200px (10:3). Emblem LEFT; to its RIGHT small \"QUEST FOR\" above large dominant \"DUSKARA\", vertically centered with emblem. Use exactly the same bespoke slab-serif letterforms, cream faces, terracotta bottom extrusion, rounded bevel, brown even outline, warm gold smaller line, and emblem shapes. No redesigned letters. Do not alter spelling.\nText verbatim allcaps once each: \"QUEST FOR\" and \"DUSKARA\". Seven letters D U S K A R A.\nEmblem and wordmark are the only objects. Transparent background with ZERO background color and no outside atmospheric glow. Generous padding every side, nothing touches edges. No cropped sun, flag or letters, no frame, no border, no plaques, no text beyond the title. Clean alpha cutout.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/title-stacked.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/emblem.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-village.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-world-map.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-669da9fd-6233-4b08-855d-e47be598d09b.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/title-horizontal.png",
+      "nativeSize": [
+        1983,
+        793
+      ],
+      "nativeAlpha": true
+    },
+    {
+      "asset": "wordmark-flat",
+      "prompt": "Use case: logo-brand. Asset type: flat one-color lettering for website SVG and print.\nUse ONLY the lettering of the attached newly created title logos as the exact letter-shape reference. Preserve the sturdy slab-serifs, distinctive tall D and final A, letter spacing and widths. Redraw lettering as truly FLAT solid shapes in ONE color parchment cream #F2E8D1, over perfectly flat deep-teal #1B4A5E background. No shading, bevel, extrusion, outline, gradient, texture or glow. Absolutely no emblem or island or tower or sun.\nComposition: requested3000x1200 landscape canvas. Small \"QUEST FOR\" centered above very large \"DUSKARA\", generous padding all sides. Text verbatim, allcaps, once each: \"QUEST FOR\" and \"DUSKARA\". The seven letters in DUSKARA must be exact D U S K A R A. This is a clean simple vector-style stencil-ready wordmark, not 3D art. Do not redesign the font, no other text.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/title-stacked.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/title-horizontal.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-30a90fab-ff93-4298-901b-98a66a3cde39.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/wordmark-flat.png",
+      "nativeSize": [
+        1983,
+        793
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "icon-default",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nA calm single-player macOS island strategy game: build small coastal town districts, train knights and archers, sail between 15 islands, capture Duskara's stronghold. Current authoritative visual references are the user-supplied current screenshots; this updated game is now on main, with a real RealityKit 3D archipelago using the same town islands, organic coastlines, modular settlement clusters, rolling ocean and little cream-sailed ships. Never copy an old 2D map, old logos or archived screenshots.\nVisual DNA: handcrafted coastal miniature, low-poly soft clay / painted wood with chunky bevelled rounded matte forms and restrained pastel surfaces. Cream plaster walls, terracotta/coral gabled and straw/slate roofs, warm timber, olive grassy organic islands with sandy rims, pale aqua shallows over deep teal ocean. Troops match current campaign attacker colors: blue tabards/plumes and pale stone helmets, timber bows and gold shield bosses.\nHero-subject assets: bold immediately readable silhouette, toy-like volumes, soft top-left studio lighting, crisp gentle edge highlights, soft contact shadows, controlled saturation. No clutter or tiny disappearing detail.\nPalette: plaster #EDDEBF; parchment #F2E8D1; terracotta #C9735C; coral #E08F73; red #C76152; sunset #F0A64F; accent #D17A3D; gold #E6B35C; olive #8CAD66; crops #8CAB61; moss #526E42; aqua #8FC4C8; sea #5F8F9C; deep sea #2A5262; backdrop #1B4A5E; slate #70808A; timber #8F6B4A; dark outlines #29211A.\nAvoid gothic/grimdark fantasy, realistic humans, photorealism, chrome, lens flare, grain, filigree, neon, purple, generic glossy mobile-game explosions, signatures/watermarks, UI, frames, device mockups. No text except official title logos.\nUse case: logo-brand. Asset type: default macOS app icon,1024x1024px.\nImage1 is new master emblem; keep its cream round tower, coral roof and terracotta pennant, warm window, olive island, orange sun and aqua rim. Screenshots show current game surfaces. Recompose a SIMPLIFIED bold version of the emblem: tower proportionately taller/bolder, sun behind to its left, organic grassy island with cream shoreline and small aqua rim. ONLY two simple round bushes. NO stones, no scattered grass blades, no masonry seams, no ships, no fine roof tile lines. Hero tower instantly readable at16px.\nSubject bounding box about65–70% canvas width and height, centered completely inside central78% safe circle; tower highest tip and island sides have generous margin. Keep big smooth shapes and soft-clay lighting from emblem.\nBackground FULL-BLEED edge-to-edge completely OPAQUE square, smooth radial gradient #1B4A5E edges to #2A5E70 behind subject, very soft sunset bloom at15% behind sun only. No transparency anywhere.\nCanvas exactly1024x1024. DO NOT draw rounded corners, rounded-square shape, squircle, borders, icon frame, drop shadow around outer icon, transparent margin, gloss sheen, text or UI. There is no icon container shape; background fills all four corners.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/emblem.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-village.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-world-map.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-1b0d2e29-c6e7-47ac-8266-b15012160456.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-default-unframed.png",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "icon-default — safe-area framing edit",
+      "prompt": "Edit the attached Quest For Duskara default app icon. Keep EXACTLY the same design, objects, pose, material, colors, sun behind tower, lighting and full-bleed teal gradient background. ONLY change framing: scale the complete island + tower + pennant + bushes + sun together to 72% of its present size, centered in the square. The whole subject should fit within a central 76% diameter safe circle, with its full bounding box no more than 70% of the canvas width and height. Leave generous clean teal air all around, equal top/bottom margins. No new objects, no details, no text, no rounded app-icon mask, no border. Preserve the clean matte clay form. Output fully opaque full bleed 1024x1024 square RGB appearance, zero transparent holes.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-default-unframed.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-2c8dd929-47b4-44cd-8b61-4ac7ca70aa85.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-default.png",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "icon-dark",
+      "prompt": "Edit the attached final default Quest For Duskara app icon to make its DARK appearance. Keep EXACT same subject, silhouette, pose, scale, layout and position, including cream cylindrical tower with coral cone roof and pennant, two bushes, organic olive island with beach and aqua shore, and circular sun. Change only background and lighting to dusk: opaque full-bleed near-black teal radial gradient, #0E2630 at every edge and #173A47 near center; lower/deeper orange sun #D17A3D with gentle glow; the window glows #FFCC78; clay materials slightly darker and more saturated, warm cream walls still easy to read. Retain exact generous safe margins of reference. Matte soft clay, no extra objects, no realistic gloss. Square 1024x1024. No rounded corners, no squircle, no outer shadow, no border, no text, no alpha/transparency.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-default.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-f2e6934a-dfc9-4b5d-9462-97742362719b.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-dark.png",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "icon-tinted",
+      "prompt": "Use the attached final default Quest For Duskara app icon as the EXACT reference. Create its macOS TINTED appearance. Keep EVERY shape, silhouette, lighting shape, pose, SCALE and POSITION exactly the same: tower, roof, flag, two bushes, island, beach, waves and circular sun. Render the subject as a neutral GRAYSCALE luminance image (no hint of any color): cream walls light grey, roof mid grey, island and bushes dark grey, beach and aqua rim lighter grey, sun mid-light grey, window light grey. Clear value separation and bold small-size readability. Replace the entire background with completely flat PURE BLACK #000000, every edge and every corner black, no gradient and no bloom outside the subject. Full bleed opaque square 1024x1024. Do not crop or enlarge the subject; maintain exact generous safe margins of reference. No text, no border, no app-icon corner mask, no transparency. Matte toy clay shading stays legible.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-default.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-e58cf746-cbde-4d9e-857e-f36299485299.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-tinted.png",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "social-avatar",
+      "prompt": "Use the attached final default Quest For Duskara app icon as the exact reference for the new SOCIAL AVATAR, intended for circular cropping. Same cream cylindrical tower, bold coral cone roof and pennant, orange sun behind left, just two olive bushes and organic grassy island, creamy shore and aqua rim, matching matte soft-clay forms and colors. Recompose the group together so all objects fit within a central 80% diameter CIRCLE and main tower/sun read at32pixels. Keep same graceful scale and layout of reference; slightly enlarge together at most5%. The entire outer margin remains the same opaque full-bleed dark-teal to muted lighter-teal radial gradient. No drawn circle or rounded corners, no alpha, no mask, no text, no border. Output1024x1024 square. Keep details minimal and bold for favicon use.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/icon-default.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdaf-f2cd-7760-b6a3-24a4636bfd42/exec-c0e70f85-47a8-4802-bc36-7f71eba6956f.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/avatar.png",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "keyart",
+      "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara master key art, a wide cinematic text-free banner source.\nCreate one finished landscape illustration at 3840×2160 pixels, exact 16:9 composition, fully opaque.\n\nReference images and roles:\nImage 1 is the NEW master emblem: match its cream watchtower with coral terracotta conical roof, flag, olive grassy island, soft cream sandy shore, pale aqua shallows, rounded handmade clay forms and orange setting sun. Integrate that tower naturally into the foreground town; do not paste the emblem or its sun disc over the scene.\nImage 2 is the CURRENT village screenshot supplied by the user: use only the actual game world as visual reference, with organic grassy island, cream cottages with coral/straw/slate roofs, rounded trees, paths, pier and boats. Ignore all screenshot UI, text and window frame.\nImage 3 is the CURRENT world-map screenshot supplied by the user: use only its real organic archipelago, cream sandy coastlines, teal/deep-blue sea and pale aqua shallows. Ignore every label, lane line, badge, compass and UI overlay. This is an artistic scenic composition of 3–4 islands, not a map diagram.\n\nScene and composition:\nA calm deep teal sea with pale aqua shallows around three or four organic soft-clay islands at different distances. Foreground RIGHT: the player's cozy island town, cream plaster cottages with oversized molded terracotta, coral and straw roofs, a timber pier, small farm fields, rounded olive/moss-green bushes and trees, and the exact cream tower from the new emblem with coral conical roof. Warm-lit windows. One short line of tiny chunky friendly knights and archers on the pier. Correct CURRENT battle colors: BLUE tabards and blue hood/plume/shields; knight armor slate blue with cream/pale-stone helmets, small gold shield bosses, timber bows and quivers for archers. Keep them small, toy-like and simple.\nMidground: TWO small timber ships with cream sails traveling across the open water.\nFar LEFT near the horizon: Duskara's stronghold on a larger distant fortress island, a square terracotta fortified-clay keep with cream stone merlons, a timber gate and small RED pennant banners, a few slate roofs. It is silhouetted against a huge low warm ORANGE setting sun.\nThe sky fades from warm gold near the horizon to soft teal at the top. Gentle long shadows, calm inviting adventurous mood, the moment before the campaign begins.\n\nReserve the UPPER CENTER-LEFT THIRD as clean empty calm sky so an existing title logo can be composited later. No clouds, flags, towers, ships or scene focal objects in this open logo space. Keep all important subjects away from the outer 10% of all canvas edges. Tower and town on right, sun and distant stronghold on left, flowing sea in the lower middle. A coherent 3/4 elevated camera with miniature diorama depth, matching the handmade game.\n\nStyle and material:\nLow-poly soft clay plus painted wood, handcrafted coastal miniature. Chunky bevelled rounded primitives with matte softly hand-pressed surfaces, premium polymer clay/wooden toys. Bold simple readable silhouettes, soft top-left light with gentle edge highlights, subtle rim light and soft contact shadows. Rich controlled saturation and an elegant restrained premium indie-game finish. Clean scene, zero clutter, zero grain or busy microscopic detail.\n\nPalette:\nplaster cream #EDDEBF, ink parchment #F2E8D1, terracotta #C9735C, coral #E08F73, banner red #C76152, sunset orange #F0A64F, accent orange #D17A3D, warm gold #E6B35C, island olive #8CAD66, crop green #8CAB61, moss #526E42, shallow aqua #8FC4C8, sea #5F8F9C, deep sea #2A5262, deep teal #1B4A5E, slate roof #70808A, timber #8F6B4A. Friendly soldier blue can use #5C8FDB. Dark brown only in small architectural accents.\n\nText: NONE. This entire image must be completely text-free.\nAvoid any logo, title, lettering, UI elements, labels, borders, device/window frames, map route lines, watermarks, signatures, extra ornaments, dark/gothic fantasy, grimdark, realistic humans, photorealism, metallic chrome, lens flare, gloss sheen, heavy grain, busy filigree, neon, purple and generic mobile-game explosions.\n",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/emblem.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-village.png",
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/references/current-world-map.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-a196b883-f116-4fd3-a843-7c9730220bed.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png",
+      "nativeSize": [
+        1672,
+        941
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "github-social",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nGame: a calm single-player island strategy game for macOS. You build a small island town, train knights and archers, sail between 15 islands, and capture Duskara's stronghold before dusk falls on the archipelago.\nVisual DNA: low-poly \"soft clay\" 3D. Chunky, bevelled, rounded primitives with matte, slightly hand-pressed surfaces, premium polymer clay or soft vinyl toys. Cream plaster walls, terracotta and coral roofs, straw roofs, slate roofs, olive-green organic islands, pale aqua shallows over deep teal sea, warm orange setting sun.\nPolish: bold readable forms, chunky toy-like volumes, soft top-left key light, crisp highlights on bevelled curves, subtle rim light, soft contact shadows, rich controlled saturation. Calm, inviting, adventurous, careful handmade art. Zero clutter or noise.\nPalette: plaster cream #EDDEBF, parchment #F2E8D1, terracotta #C9735C, coral #E08F73, banner red #C76152, sunset orange #F0A64F, accent orange #D17A3D, warm gold #E6B35C, olive #8CAD66, crop green #8CAB61, moss #526E42, shallow aqua #8FC4C8, sea #5F8F9C, deep sea #2A5262, deep teal #1B4A5E, slate roof #70808A, timber #8F6B4A.\nAvoid: gothic fantasy, grimdark, realistic humans, photorealism, metallic chrome, lens flare, heavy grain, neon or purple, gloss explosions, watermarks, signatures, UI elements, borders, device mockups and ALL text.\nUse case: ads-marketing. Asset: GitHub repository social preview background.\nInput reference: attached NEW key art, exact reference for miniature clay shapes, palette, sunset lighting and subjects. Recompose the scene genuinely for a 1280×640 px landscape canvas, aspect ratio2:1. Do not stretch the reference or crop objects awkwardly.\nScene: the cozy island town is on the RIGHT, mostly the lower-right half: the same cream watchtower with coral conical roof and little terracotta flag, cream cottages with coral/straw roofs, farm plots, grassy irregular coast, pale aqua shallows, wooden pier with tiny BLUE toy knights and archers. Two little cream-sailed ships on deep teal water. The orange setting sun and distant Duskara stronghold with slate roofs and red pennants are on the LEFT horizon.\nLayout: reserve the upper and middle LEFT half as quiet calm sky/open distant water for a horizontal title logo to be composited later. Put sun and stronghold toward far-left/lower-left without filling this upper-left negative space. Keep the town silhouette strong and complete on the right and all important subjects40px inside the edges. Same elevated3/4 camera as reference.\nOutput: TEXT-FREE art background only. NO logo, NO lettering, NO title, NO UI, NO border, NO frame. Full-bleed opaque image.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb1-9e85-7e30-b894-31b1ea9e758c/exec-0365d03c-8126-4850-a254-64ecb21d5ea1.png",
+      "savedPath": "brand-assets/.sources/github-social.png",
+      "requestedSize": [
+        1280,
+        640
+      ],
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "readme-header",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nGame: a calm single-player island strategy game for macOS. You build a small island town, train knights and archers, sail between 15 islands, and capture Duskara's stronghold before dusk falls on the archipelago.\nVisual DNA: low-poly \"soft clay\" 3D. Chunky, bevelled, rounded primitives with matte, slightly hand-pressed surfaces, premium polymer clay or soft vinyl toys. Cream plaster walls, terracotta and coral roofs, straw roofs, slate roofs, olive-green organic islands, pale aqua shallows over deep teal sea, warm orange setting sun.\nPolish: bold readable forms, chunky toy-like volumes, soft top-left key light, crisp highlights on bevelled curves, subtle rim light, soft contact shadows, rich controlled saturation. Calm, inviting, adventurous, careful handmade art. Zero clutter or noise.\nPalette: plaster cream #EDDEBF, parchment #F2E8D1, terracotta #C9735C, coral #E08F73, banner red #C76152, sunset orange #F0A64F, accent orange #D17A3D, warm gold #E6B35C, olive #8CAD66, crop green #8CAB61, moss #526E42, shallow aqua #8FC4C8, sea #5F8F9C, deep sea #2A5262, deep teal #1B4A5E, slate roof #70808A, timber #8F6B4A.\nAvoid: gothic fantasy, grimdark, realistic humans, photorealism, metallic chrome, lens flare, heavy grain, neon or purple, gloss explosions, watermarks, signatures, UI elements, borders, device mockups and ALL text.\nUse case: ads-marketing. Asset: README panoramic header background.\nInput reference: attached NEW key art, exact reference for clay-miniature forms, palette, dusk lighting and island subjects.\nRecompose genuinely for a VERY WIDE SHALLOW 1600×500 px canvas, aspect ratio3.2:1. Do not stretch or crop the reference; lay out smaller diorama objects naturally in a panorama. The sea, exactly three principal islands at varying distances, and a large setting orange sun in the CENTER.\nComposition: the cozy island town is LOWER RIGHT, with cream cottages coral and straw roofs, the same cream tower coral cone roof/terracotta flag, grassy organic shoreline, pale aqua shallows, wooden pier, and tiny BLUE toy troops. Duskara fortress island with slate roofs and red banners is LOWER LEFT. A small distant third island and two cream-sailed boats sit well away from the center. Keep the important structures away from all edges; preserve complete town tower and fortress silhouettes.\nReserve the center1000×360 px as a spacious calm zone of softly graded sky and simple water, to receive a large stacked title logo later. Keep cottages, troops, fortress and boats outside that center zone. The sun can sit at the central horizon in the background, with no busy clouds. Same elevated3/4 camera, warm sun glow, soft-clay material and calm adventurous mood as reference.\nOutput: art background ONLY, FULL-BLEED OPAQUE. Absolutely NO text, NO letters, NO logo, NO UI, NO border, NO frame.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb1-9e85-7e30-b894-31b1ea9e758c/exec-a88e3264-2983-4f91-9818-a892ab683300.png",
+      "savedPath": "brand-assets/.sources/readme-header.png",
+      "requestedSize": [
+        1600,
+        500
+      ],
+      "nativeSize": [
+        2172,
+        724
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "website-og",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nGame: a calm single-player island strategy game for macOS. You build a small island town, train knights and archers, sail between 15 islands, and capture Duskara's stronghold before dusk falls on the archipelago.\nVisual DNA: low-poly \"soft clay\" 3D. Chunky, bevelled, rounded primitives with matte, slightly hand-pressed surfaces, premium polymer clay or soft vinyl toys. Cream plaster walls, terracotta and coral roofs, straw roofs, slate roofs, olive-green organic islands, pale aqua shallows over deep teal sea, warm orange setting sun.\nPolish: bold readable forms, chunky toy-like volumes, soft top-left key light, crisp highlights on bevelled curves, subtle rim light, soft contact shadows, rich controlled saturation. Calm, inviting, adventurous, careful handmade art. Zero clutter or noise.\nPalette: plaster cream #EDDEBF, parchment #F2E8D1, terracotta #C9735C, coral #E08F73, banner red #C76152, sunset orange #F0A64F, accent orange #D17A3D, warm gold #E6B35C, olive #8CAD66, crop green #8CAB61, moss #526E42, shallow aqua #8FC4C8, sea #5F8F9C, deep sea #2A5262, deep teal #1B4A5E, slate roof #70808A, timber #8F6B4A.\nAvoid: gothic fantasy, grimdark, realistic humans, photorealism, metallic chrome, lens flare, heavy grain, neon or purple, gloss explosions, watermarks, signatures, UI elements, borders, device mockups and ALL text.\nUse case: ads-marketing. Asset: website Open Graph link-share background.\nInput reference: attached NEW key art, exact reference for the clay miniature shapes, warm dusk light, controlled palette and island subjects.\nRecompose genuinely for a1200×630 px landscape canvas, aspect ratio1.905:1. Slightly tighter than a broad panoramic banner, with complete main objects and no stretched shapes.\nScene: cozy town island on the RIGHT, small cream tower with coral conical roof and terracotta flag, cream cottages with coral/straw roofs, farm plots, organic grassy shoreline, pale aqua shallows, wooden pier and a few tiny BLUE toy knights/archers. Two small cream-sailed ships across deep teal sea. At the LEFT horizon the large low orange sun backs Duskara fortress on its own island, slate roofs and red pennants.\nComposition: upper LEFT half is calm open sky reserved for the finished horizontal title logo to be composited later; keep that sky especially uncluttered. Fortress/sun lower-left and town lower-right, visually balanced. Main tower and cottages fully visible, no clipped flags or roofs. Keep every important subject inside centered1100×560 px safe area; keep peripheral shoreline plain at edges. Same elevated3/4 camera, inviting soft-clay diorama materials and soft warm studio-like dusk illumination.\nOutput: TEXT-FREE art background only. FULL-BLEED OPAQUE. Absolutely NO logo, NO lettering, NO title, NO UI, NO frame or border.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb1-9e85-7e30-b894-31b1ea9e758c/exec-bdfba5ca-8a54-4f44-865b-ccc5dc7a2214.png",
+      "savedPath": "brand-assets/.sources/website-og.png",
+      "requestedSize": [
+        1200,
+        630
+      ],
+      "nativeSize": [
+        1730,
+        909
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "website-hero",
+      "prompt": "STYLE — QUEST FOR DUSKARA BRAND\nGame: a calm single-player island strategy game for macOS. You build a small island town, train knights and archers, sail between 15 islands, and capture Duskara's stronghold before dusk falls on the archipelago.\nVisual DNA: low-poly \"soft clay\" 3D. Chunky, bevelled, rounded primitives with matte, slightly hand-pressed surfaces, premium polymer clay or soft vinyl toys. Cream plaster walls, terracotta and coral roofs, straw roofs, slate roofs, olive-green organic islands, pale aqua shallows over deep teal sea, warm orange setting sun.\nPolish: bold readable forms, chunky toy-like volumes, soft top-left key light, crisp highlights on bevelled curves, subtle rim light, soft contact shadows, rich controlled saturation. Calm, inviting, adventurous, careful handmade art. Zero clutter or noise.\nPalette: plaster cream #EDDEBF, parchment #F2E8D1, terracotta #C9735C, coral #E08F73, banner red #C76152, sunset orange #F0A64F, accent orange #D17A3D, warm gold #E6B35C, olive #8CAD66, crop green #8CAB61, moss #526E42, shallow aqua #8FC4C8, sea #5F8F9C, deep sea #2A5262, deep teal #1B4A5E, slate roof #70808A, timber #8F6B4A.\nAvoid: gothic fantasy, grimdark, realistic humans, photorealism, metallic chrome, lens flare, heavy grain, neon or purple, gloss explosions, watermarks, signatures, UI elements, borders, device mockups and ALL text.\nUse case: ads-marketing. Asset: website hero background.\nInput reference: attached NEW key art. Preserve its exact miniature clay forms, palette, gentle warm dusk lighting and subjects; recompose the scene for a2880×1200 px landscape canvas, ratio2.4:1. Do not stretch the reference or awkwardly crop its objects.\nComposition: SKY-HEAVY panorama. The entire upper55% is open softly graded teal/gold sky, broad quiet upper CENTER reserved for a stacked title logo to be placed later. The horizon is around65% from the top. Scale the islands and all structures as charming small miniature dioramas in the LOWER45% only. Keep the top of the town tower flag, fortress towers and boat sails below55% from the top. Do not fill the center sky with anything. Sun low on the far LEFT horizon, low enough not to intrude into the upper-center title space.\nForeground lower-RIGHT: complete cozy town island, cream plaster cottages with coral/terracotta and straw roofs, the same cream watchtower with coral cone roof and tiny terracotta pennant, warm windows, farm plots, timber pier, tiny BLUE toy knights and archers. Grassy irregular coastline, cream shoreline and aqua shallows. Lower-LEFT: distant Duskara fortress island with slate roofs and red pennants backed by a warm orange setting sun. A small middle island and two cream-sailed boats across the deep teal water; none in the upper sky.\nSafe layout: all principal structures at least10% of canvas width away from left/right edges and away from the bottom edge; whole watchtower flag, roofs, pier and ships fully visible. Same elevated3/4 camera and calm, inviting soft-clay strategy-game mood.\nOutput: TEXT-FREE art background only. FULL-BLEED OPAQUE. Absolutely NO logo, NO title, NO lettering, NO UI, NO frame or border.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb1-9e85-7e30-b894-31b1ea9e758c/exec-05dc62fb-2190-478b-bc07-0960e1dbc416.png",
+      "savedPath": "brand-assets/.sources/website-hero.png",
+      "requestedSize": [
+        2880,
+        1200
+      ],
+      "nativeSize": [
+        1942,
+        809
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "discord-banner",
+      "prompt": "Use case: stylized-concept. Generate a fresh, carefully recomposed game-brand banner using Image 1 solely as the exact style, palette, light, and subject reference. Do not stretch, crop, or simply extend the reference composition. Match its soft matte clay coastal miniature art: creamy rounded cottages with coral terracotta, golden straw, and muted slate roofs; organic olive-green islands edged in cream sand; aqua shallows fading to a deep teal sea; orange dusk sky, soft warm glowing windows, rounded trees and grey boulders. Preserve the reference's distinctive cream cylindrical tower, crenellated collar, coral conical roof, small red pennant, arched wooden door and glowing arched window, and the distant cream fortified castle with red banners. Keep tiny friendly blue helmeted toy troops if people are visible; same gentle scale and proportions as reference. Clean premium illustration with softly sculpted edges, warm cinematic dusk and real spatial depth. TEXT FREE: no logos, lettering, captions, interface, frames, border or watermark.\n\nAsset type: Discord server banner background. Target 960 × 540, landscape 16:9.\nComposition: Recompose the main village island and cream tower near the middle of the canvas, with a warm dusk sun centered behind its middle-distance horizon. Keep a calm uninterrupted bottom-left wedge, approximately x0–340/y350–540, containing only low-contrast open sea for the Discord server name later. Keep the upper-right approximately x680–960/y0–210 calm open sky for a small stacked logo later. Subjects and readable silhouettes should cluster in the center, village in central lower half, distant castle small left of center. Main sun center. Neither reserved empty area should contain boats, troops, buildings, trees or bright reflections. Create a real scene around these quiet areas; don't add placeholder boxes.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb0-c424-7cb0-8f47-1ab45df5f5f7/exec-cb9834d8-5892-4870-99be-c4939c2a0399.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/discord-banner.png",
+      "nativeSize": [
+        1672,
+        941
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "discord-invite",
+      "prompt": "Use case: stylized-concept. Generate a fresh, carefully recomposed game-brand banner using Image 1 solely as the exact style, palette, light, and subject reference. Do not stretch, crop, or simply extend the reference composition. Match its soft matte clay coastal miniature art: creamy rounded cottages with coral terracotta, golden straw, and muted slate roofs; organic olive-green islands edged in cream sand; aqua shallows fading to a deep teal sea; orange dusk sky, soft warm glowing windows, rounded trees and grey boulders. Preserve the reference's distinctive cream cylindrical tower, crenellated collar, coral conical roof, small red pennant, arched wooden door and glowing arched window, and the distant cream fortified castle with red banners. Keep tiny friendly blue helmeted toy troops if people are visible; same gentle scale and proportions as reference. Clean premium illustration with softly sculpted edges, warm cinematic dusk and real spatial depth. TEXT FREE: no logos, lettering, captions, interface, frames, border or watermark.\n\nAsset type: Discord invite background. Target 1920 × 1080, landscape 16:9.\nComposition: Recompose the whole scene with village, reference cream tower and dock at the far lower-right, cream castle at far left in the distance, and an orange sunset toward left. Reserve the central x520–1400/y250–850 for a later invite-card overlay: visually quiet open sea and soft sky without boats, buildings, troops or sun disk there. Use a slightly darker soft natural edge vignette around the full frame while keeping the colorful dusk miniature mood. Scatter tiny boats near the lower side edges only. No logo anywhere. No actual invite card or overlay in the artwork.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb0-c424-7cb0-8f47-1ab45df5f5f7/exec-eebd58b1-b2b4-47ff-aef6-acad8d386d86.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/discord-invite.png",
+      "nativeSize": [
+        1672,
+        941
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "twitter-header",
+      "prompt": "Use case: stylized-concept. Generate a fresh, carefully recomposed game-brand banner using Image 1 solely as the exact style, palette, light, and subject reference. Do not stretch, crop, or simply extend the reference composition. Match its soft matte clay coastal miniature art: creamy rounded cottages with coral terracotta, golden straw, and muted slate roofs; organic olive-green islands edged in cream sand; aqua shallows fading to a deep teal sea; orange dusk sky, soft warm glowing windows, rounded trees and grey boulders. Preserve the reference's distinctive cream cylindrical tower, crenellated collar, coral conical roof, small red pennant, arched wooden door and glowing arched window, and the distant cream fortified castle with red banners. Keep tiny friendly blue helmeted toy troops if people are visible; same gentle scale and proportions as reference. Clean premium illustration with softly sculpted edges, warm cinematic dusk and real spatial depth. TEXT FREE: no logos, lettering, captions, interface, frames, border or watermark.\n\nAsset type: Twitter/X profile header background. Target 1500 × 500, wide exact 3:1 panorama.\nComposition: Recompose as a fresh very wide panorama. Put the orange sun just right of center near x890 and high enough for warm dusk across the sea. Leave bottom-left x0–400/y300–500 exclusively calm unobstructed low-contrast sea or sky safe under a profile avatar. Leave upper middle/right x830–1430/y20–190 calm spacious sky suitable for later horizontal logo placement, with no building, boat, troop, sun disk or bright distracting reflection in that area. Place village and reference tower toward the lower-right edge with dock and tiny blue troops, castle small toward far left above the reserved avatar zone, and widely separated small organic islands along the horizon. Do not crowd scene. Exact ultra-wide3:1composition, no letterboxing or borders.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb0-c424-7cb0-8f47-1ab45df5f5f7/exec-368bb0f1-7715-4484-b6d9-4261fc679ef5.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/twitter-header.png",
+      "nativeSize": [
+        2172,
+        724
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "youtube-channel",
+      "prompt": "Use case: stylized-concept. Generate a fresh, carefully recomposed game-brand banner using Image 1 solely as the exact style, palette, light, and subject reference. Do not stretch, crop, or simply extend the reference composition. Match its soft matte clay coastal miniature art: creamy rounded cottages with coral terracotta, golden straw, and muted slate roofs; organic olive-green islands edged in cream sand; aqua shallows fading to a deep teal sea; orange dusk sky, soft warm glowing windows, rounded trees and grey boulders. Preserve the reference's distinctive cream cylindrical tower, crenellated collar, coral conical roof, small red pennant, arched wooden door and glowing arched window, and the distant cream fortified castle with red banners. Keep tiny friendly blue helmeted toy troops if people are visible; same gentle scale and proportions as reference. Clean premium illustration with softly sculpted edges, warm cinematic dusk and real spatial depth. TEXT FREE: no logos, lettering, captions, interface, frames, border or watermark.\n\nAsset type: YouTube channel-art background. Target 2560 × 1440, landscape 16:9.\nComposition: Recompose full scene around YouTube's central safe area. Reserve central rectangle x507–2053/y508–931 (width1546 height423) as genuinely visually quiet smooth sea and softly graded sky for a later horizontal logo: no buildings, trees, docks, troops, boats or sun disk in this rectangle. Place the reference village island, tower and dock low in the LOWER RIGHT, with all tall village structures to the right of x2053 or below y931. Place distant castle/fortress in LOWER LEFT, to the left of x507 or below y931. Place warm orange sun in UPPER LEFT, above y508. Keep those subjects readable in the full frame, organic islands near outer edges, lower middle sea quiet. No real safe-area lines or boxes. No logo. Fresh composed full scene, not stretched or cropped.",
+      "references": [
+        "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb0-c424-7cb0-8f47-1ab45df5f5f7/exec-b96021bf-cfef-406a-99cf-e971433f49d6.png",
+      "savedPath": "/Users/aaa/Documents/Quest For Duskara/brand-assets/.sources/youtube-channel.png",
+      "nativeSize": [
+        1672,
+        941
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "itch-cover",
+      "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara itch.io cover BACKGROUND, text-free.\nGenerate a fresh standalone landscape image, requested exact 630×500 px (1.26:1).\nInput image: ONLY the attached accepted master key art. Use it as the exact reference for palette, character and architecture identities, clay forms, lighting, and subjects. Recompose the scene for this new aspect ratio without stretching or awkward cropping.\nComposition: a close view of the cozy foreground town and its cream watchtower. Place the same distinctive round cream tower with coral conical roof and terracotta flag in the UPPER RIGHT, below the outer 10% margins. Warm orange setting sun on the LEFT with the distant cream/terracotta crenellated stronghold below it. A few cream cottages with coral/straw/slate molded roofs and rounded olive bushes; a wooden pier with tiny BLUE-friendly toy knights/archers. Deep teal sea with aqua shallows and cream sandy shoreline flows in front of the town. Keep the BOTTOM THIRD quiet and uncluttered, mostly smooth dark teal sea, because an existing finished HORIZONTAL logo will be added there later. No boats, figures, tower or buildings in that quiet logo zone.\nStyle: match the reference's premium handmade low-poly soft clay and matte painted wood, chunky bevelled rounded shapes, cream plaster, organic olive grassy islands, cream sandy shores, pale aqua shallows, deep teal ocean, warm orange dusk. Small BLUE-friendly troops, toy scale. Soft studio sunset lighting, gently warm-lit windows, restrained saturation, elegant calm miniature diorama.\nText: NONE. No title, wordmark, logo, letters, UI, route lines, frames, borders, watermarks or signatures. No photorealism, glossy plastic, chrome, lens flare, neon, purple, heavy grain or clutter. Entire output fully opaque.",
+      "references": [
+        "brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-50144484-8206-4374-91d0-6056c37ab712.png",
+      "savedPath": "brand-assets/.sources/itch-cover.png",
+      "requestedSize": [
+        630,
+        500
+      ],
+      "nativeSize": [
+        1408,
+        1117
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "wallpaper-desktop",
+      "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara desktop community wallpaper BACKGROUND, completely text-free.\nCreate a fresh finished LANDSCAPE image, requested exact 2560×1600 px, 16:10 aspect ratio.\nInput image: ONLY the attached accepted master key art. Treat it as the exact style, palette, lighting and subject reference. Preserve the cream round tower with coral roof and flag, cottage identities, cream-sailed ships, blue troops, organic grass islands and sunset fortress. Recompose for 16:10 without stretching or awkward cropping.\n\nShow the full calm archipelago scene: foreground town and distinctive cream watchtower on the RIGHT, cream cottages with coral/straw/slate molded roofs, wooden pier and small farm fields with rounded olive bushes and toy trees. Tiny BLUE-friendly knights and archers stand on the pier. A distant cream/terracotta crenellated stronghold with red banners on the LEFT, silhouetted against a large warm orange setting sun. TWO cream-sailed timber ships cross the water. A few organic olive islands at different depths with soft cream sandy shorelines and pale aqua shallows over a deep teal ocean. A broad teal/gold sky, gentle long sunset shadows, premium calm miniature diorama.\n\nComposition: leave the BOTTOM CENTER quiet and uncluttered, with a clean area approximately 380×255 px in the requested 2560×1600 composition, positioned at bottom center with 60px bottom padding. That area must be calm dark teal sea only, no boats, rocks, figures, pier or islands, because a small existing STACKED title logo will later be added there. Keep main tower, fortress and boats safely away from outer 10% edges. Allow the sea to breathe between left stronghold and right town.\n\nStyle: identical premium handmade soft clay and matte painted wood, chunky bevelled rounded shapes, cream plaster, organic olive grassy land, cream sand, aqua coastal rings and deep teal ocean, warm orange dusk, small blue troops. Soft top-left sunset lighting, warm windows, elegant controlled saturation. No tiny noisy detail or clutter.\n\nText: NONE. No logo, wordmark, title, letters, UI, labels, route lines, frames, borders, watermarks or signatures. No photorealism, reflective plastic, chrome, lens flare, neon, purple, heavy grain or explosions. Fully opaque image.",
+      "references": [
+        "brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-7b203236-1875-483a-ad1a-16fc15bbc8ce.png",
+      "savedPath": "brand-assets/.sources/wallpaper-desktop.png",
+      "requestedSize": [
+        2560,
+        1600
+      ],
+      "nativeSize": [
+        1586,
+        992
+      ],
+      "nativeAlpha": false
+    },
+    {
+      "asset": "wallpaper-phone",
+      "prompt": "Use case: stylized-concept.\nAsset type: Quest for Duskara phone community wallpaper BACKGROUND, completely text-free.\nCreate a fresh finished VERTICAL PORTRAIT composition requested exact 1290×2796 px, 9:19.5 aspect ratio.\nInput image: ONLY the attached accepted master key art. It is the exact reference for palette, lighting, handmade clay forms and subject identity. RECOMPOSE all subjects vertically for this tall phone format; do not stretch the landscape, do not simply crop it, and do not put a landscape panel inside a vertical frame.\n\nVertical scene layout:\nUPPER HALF: broad airy softly graded teal and golden sunset sky, with the huge warm orange setting sun high on the LEFT. Leave plentiful open sky near the top for phone clock/widget overlays (do not draw any overlays). Below the sun, in the upper-middle LEFT, place the distant cream/terracotta crenellated stronghold on its organic island with tiny red banners and a timber gate.\nMIDDLE RIGHT: the cozy player town and the distinctive round cream watchtower from the reference, same coral conical roof and terracotta flag, warm arched window, cream base steps. A cluster of cream cottages with coral/straw/slate molded roofs, farm fields, rounded olive bushes and trees, and a timber pier with tiny BLUE-friendly toy knights/archers. Entire town and tower must remain inside the frame with generous margins and enough camera distance.\nLOWER HALF: flowing deep teal ocean and pale aqua shallows wrapping cream sandy organic shorelines. TWO small timber boats with cream sails cross the lower water. Use a few organic olive-green islands at differing distances to give depth, without crowding.\nKeep the BOTTOM CENTER peaceful and uncluttered with only smooth dark teal sea, roughly the lower 12% of the portrait, because a small existing HORIZONTAL title logo will be composited there later. No ships, rocks, pier, figures, land or focal objects in that bottom center logo space.\nA coherent elevated 3/4 miniature-diorama camera, calm inviting adventure at dusk. Warm sun left, town tower right, ships lower down. Nothing cropped at the edges.\n\nStyle: match the attached reference's premium soft-clay and matte painted-wood handcrafted game scene exactly, chunky bevelled rounded volumes, cream plaster, organic olive grassy islands, cream sand, pale aqua shallows, deep teal sea and orange-gold dusk. Soft sunset edge lighting, gentle long shadows, warm windows, small BLUE-friendly troops. Elegant restrained saturation and clean readable toy silhouettes.\nText: NONE. No title, logo, wordmark, letters, UI, status bar, clock, widgets, map labels, route lines, borders, frames, watermarks or signatures. No photorealism, chrome, glossy plastic, lens flare, neon, purple, heavy grain, clutter or explosions. Fully opaque edge-to-edge illustration.",
+      "references": [
+        "brand-assets/.sources/keyart.png"
+      ],
+      "mode": "built-in image_gen",
+      "generated": "/Users/aaa/.codex/generated_images/01a0fdb4-0506-7c50-b70d-3901cffad6f7/exec-2f141a17-74d8-44b9-8ecf-06c84345d02b.png",
+      "savedPath": "brand-assets/.sources/wallpaper-phone.png",
+      "requestedSize": [
+        1290,
+        2796
+      ],
+      "nativeSize": [
+        853,
+        1844
+      ],
+      "nativeAlpha": false
+    }
+  ],
+  "exportNotes": "Generated bitmap masters retain their native dimensions in .sources. Final PNGs are resized to the brief dimensions with Lanczos resampling, losslessly compressed, and receive the finished title logo by deterministic compositing. The flat wordmark SVG contains traced vector paths. Icons are opaque RGB; tinted export is normalized to neutral grayscale and black corners.",
+  "skipped": {
+    "steam": "The brief says to skip these rows until there is a Steam page; no Steam page supplied.",
+    "iconComposer": "Optional layered Icon Composer project omitted; all three required PNG appearances included.",
+    "emoji": "Optional Discord emoji omitted."
+  }
+}

@@ -1,3 +1,6 @@
 .DS_Store
 DerivedData/
 *.xcresult
+.build/
+.swiftpm/
+duskara-session.json

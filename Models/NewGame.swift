@@ -1,6 +1,8 @@
 import Foundation
 
-func makeNewGame(balance: GameBalance) -> GameState {
+/// `seed` picks the archipelago; the headless playtester passes one so a
+/// campaign can be replayed.
+func makeNewGame(balance: GameBalance, seed: Int = Int.random(in: 0..<1_000_000)) -> GameState {
     let layouts = [
         TownBiomeLayout(sides: [.left: .forest, .right: .mountain, .top: .forest, .bottom: .mountain]),
         TownBiomeLayout(sides: [.left: .forest, .top: .forest, .right: .forest, .bottom: .mountain]),
@@ -43,7 +45,7 @@ func makeNewGame(balance: GameBalance) -> GameState {
     playerResources[.people] = startingPeople
     towns[0].resources = playerResources
 
-    let generated = WorldGenerator().generate(towns: towns)
+    let generated = WorldGenerator().generate(towns: towns, seed: seed)
     if let duskara = towns.first(where: \.isDuskara)?.id {
         let distances = GameRules.graphDistances(from: duskara, connections: generated.connections)
         let maxDistance = max(distances.values.max() ?? 1, 1)
